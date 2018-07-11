@@ -1,0 +1,9 @@
+platform: linux/arm
+
+pipeline:
+  tests:
+    image: karsten/f12-testing:arm
+    commands:
+      - autoreconf --install
+      - ./configure
+      - make check || (cat tests/test-suite.log && exit 1)

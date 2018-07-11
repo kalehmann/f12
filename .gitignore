@@ -1,0 +1,29 @@
+# Ignore everything
+*
+
+# Do not ignore code
+!*.c
+!*.h
+!*/
+!src
+!tests
+
+# Do not ignore the files needed for dron
+!.drone.yml
+!*Dockerfile.*
+
+# Do not ignore the files for autoconf and automake
+!*Makefile.am
+!configure.ac
+!NEWS
+!README
+!AUTHORS
+!ChangeLog
+
+# Do not ignore the files needed for git
+!.gitignore
+
+# Do not ignore files with information for this project
+!*.md
+
+*~
