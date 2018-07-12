@@ -150,7 +150,25 @@ int parse_f12_path(const char *input, struct f12_path **path)
   return 0;
 }
 
-int f12_is_parent(struct f12_path *possible_child, struct f12_path *possible_parent)
-{
+int f12_get_parent(struct f12_path *path_a, struct f12_path *path_b)
+{ 
+  while (0 == memcmp(path_a->name, path_b->name, 11)) {
+    if (path_b->descendant == NULL) {
+      if (path_a->descendant == NULL) {
+	// Both are equal
+	return PATHS_EQUAL;
+      }
+      
+      return PATHS_SECOND;
+    }
 
+    if (path_a->descendant == NULL) {
+      return PATHS_FIRST;
+    }
+
+    path_a = path_a->descendant;
+    path_b = path_b->descendant; 
+  }
+
+  return PATHS_UNRELATED; 
 }

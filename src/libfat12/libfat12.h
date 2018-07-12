@@ -8,6 +8,10 @@
 #define EMPTY_PATH -2
 #define FILE_NOT_FOUND NULL
 #define DIRECTORY_NOT_EMPTY -2
+#define PATHS_SECOND 1
+#define PATHS_EQUAL 0
+#define PATHS_FIRST -1
+#define PATHS_UNRELATED -2
 
 struct bios_parameter_block {
   char OEMLabel[8];
@@ -89,7 +93,7 @@ int parse_f12_path(const char *input, struct f12_path **path);
 int free_f12_path(struct f12_path *path);
 struct f12_directory_entry *f12_entry_from_path(struct f12_directory_entry *entry,
 						struct f12_path *path);
-int f12_is_parent(struct f12_path *possible_parent, struct f12_path *possible_child);
+int f12_get_parent(struct f12_path *path_a, struct f12_path *path_b);
 char *get_file_name(struct f12_directory_entry *entry);
 char *convert_name(char *name);
 int f12_is_directory(struct f12_directory_entry *entry);
