@@ -5,7 +5,17 @@
 
 #include "libfat12.h"
 
-uint16_t read_fat_entry(char *fat, int n)
+/*
+ * Function: read_fat_entry
+ * ------------------------
+ * Read a entry out of the compressed file allocation table into an integer.
+ *
+ * fat: a pointer to the compressed file allocation table
+ * n: the number of the entry to readout
+ *
+ * returns: the value of the entry 
+ */
+static uint16_t read_fat_entry(char *fat, int n)
 {
   uint16_t fat_entry;
   memcpy(&fat_entry, fat + n * 3 / 2, 2);
@@ -16,6 +26,16 @@ uint16_t read_fat_entry(char *fat, int n)
   }
 }
 
+/*
+ * Function: cluster_offset
+ * ------------------------
+ * Get the offset of a cluster on a fat12 partition in bytes.
+ *
+ * cluster: the number of the cluster
+ * f12_meta: a pointer to the metadata of the partition
+ *
+ * returns: the offset of the cluster on the partition in bytes
+ */
 static int cluster_offset(uint16_t cluster, struct f12_metadata *f12_meta)
 {
   struct bios_parameter_block *bpb = f12_meta->bpb;
@@ -28,6 +48,16 @@ static int cluster_offset(uint16_t cluster, struct f12_metadata *f12_meta)
   return sector_offset * bpb->SectorSize;
 }
 
+/*
+ * Function: get_cluster_chain_length
+ * ----------------------------------
+ * Get the number of clusters in a cluster chain.
+ *
+ * start_cluster: number of the first cluster on the cluster chain
+ * f12_meta: a pointer to the metadata of the partition
+ *
+ * returns: the number of clusters in the cluster chain
+ */
 static uint16_t get_cluster_chain_length(uint16_t start_cluster,
 				       struct f12_metadata *f12_meta)
 {
@@ -43,11 +73,30 @@ static uint16_t get_cluster_chain_length(uint16_t start_cluster,
   return chain_length;
 }
 
+/*
+ * Function: get_cluster_size
+ * --------------------------
+ * Get the size of a cluster on a fat12 partition
+ *
+ * f12_meta: a pointer to the metadata of the partition
+ *
+ * returns: the size of a cluster on the partition in bytes
+ */
 static size_t get_cluster_size(struct f12_metadata *f12_meta)
 {
   return f12_meta->bpb->SectorSize * f12_meta->bpb->SectorsPerCluster;
 }
 
+/*
+ * Function: get_cluster_chain_size
+ * --------------------------------
+ * Get the size of a cluster chain in bytes.
+ *
+ * start_cluster: the number of the first cluster of the cluster chain
+ * f12_meta: a pointer to the metadata of the fat12 partition
+ *
+ * returns: the size of the clusterchain in bytes
+ */
 static size_t get_cluster_chain_size(uint16_t start_cluster,
 				     struct f12_metadata *f12_meta)
 {
@@ -56,7 +105,19 @@ static size_t get_cluster_chain_size(uint16_t start_cluster,
   return cluster_size * get_cluster_chain_length(start_cluster, f12_meta);
 }
 
-char *load_cluster_chain(FILE *fp, uint16_t start_cluster,
+/*
+ * Function: load_cluster_chain
+ * ----------------------------
+ * Load the contents of a cluster chain into memory.
+ *
+ * fp: the file descriptor of the fat12 partition
+ * start_cluster: the number of the first cluster in the cluster chain
+ * f12_meta: a pointer to the metadata of the partition
+ *
+ * returns: a pointer to the contents of the clsuter chain in the memory. Must be
+ *          freed.
+ */
+static char *load_cluster_chain(FILE *fp, uint16_t start_cluster,
 			 struct f12_metadata *f12_meta)
 {
   uint16_t *fat_entries = f12_meta->fat_entries;
@@ -83,7 +144,17 @@ char *load_cluster_chain(FILE *fp, uint16_t start_cluster,
   return data;
 }
 
-int f12_erase_cluster_chain(FILE *fp, struct f12_metadata *f12_meta,
+/*
+ * Function: f12_erase_cluster_chain
+ * ---------------------------------
+ * Erase the contents of a cluster chain on the partition.
+ * fp: file pointer of the partition
+ * f12_meta: a pointer to the metadata of the partition
+ * first_cluster: the number of the first cluster of the cluster chain
+ *
+ * returns: -1 on an allocation error, 0 on success
+ */
+static int f12_erase_cluster_chain(FILE *fp, struct f12_metadata *f12_meta,
 			    uint16_t first_cluster)
 {
   uint16_t *fat_entries = f12_meta->fat_entries;
@@ -108,6 +179,13 @@ int f12_erase_cluster_chain(FILE *fp, struct f12_metadata *f12_meta,
   return 0;
 }
 
+/*
+ * Function: f12_erase_entry
+ * -------------------------
+ * Fill a f12_directory_entry structure with zeros.
+ *
+ * entry: a pointer to the f12_directory_entry structure
+ */
 static void f12_erase_entry(struct f12_directory_entry *entry)
 {
   size_t entry_size = sizeof(struct f12_directory_entry);
@@ -118,7 +196,17 @@ static void f12_erase_entry(struct f12_directory_entry *entry)
   }
 }
 
-int read_dir_entry(char *data, struct f12_directory_entry *entry)
+/*
+ * Function: read_dir_entry
+ * ------------------------
+ * Populate a f12_directory_entry structure from the raw entry from the disk.
+ *
+ * data: a pointer to the raw data
+ * entry: a pointer to the f12_directory_entry structure to populate
+ *
+ * returns: 0 on success
+ */
+static int read_dir_entry(char *data, struct f12_directory_entry *entry)
 {
   memcpy(&entry->ShortFileName, data, 8);
   memcpy(&entry->ShortFileExtension, data + 8, 3);
@@ -137,7 +225,18 @@ int read_dir_entry(char *data, struct f12_directory_entry *entry)
   return 0;
 }
 
-int scan_subsequent_entries(FILE *fp, struct f12_metadata *f12_meta,
+/*
+ * Function: scan_subsequent_entries
+ * ---------------------------------
+ * Scan for subdirectories and files in a directory on the partition.
+ * fp: file pointer of the fat12 partition
+ * f12_meta: a pointer to the metadata of the partition
+ * dir_entry: a pointer to a f12_directory_entry structure describing the directory,
+ *            that should be scanned for subdirectories and files
+ *
+ * returns: -1 on allocation error, 0 on success
+ */
+static int scan_subsequent_entries(FILE *fp, struct f12_metadata *f12_meta,
 			      struct f12_directory_entry *dir_entry)
 {
   if (f12_entry_is_empty(dir_entry) ||
@@ -191,7 +290,17 @@ int scan_subsequent_entries(FILE *fp, struct f12_metadata *f12_meta,
   return 0;
 }
 
-int load_root_dir(FILE *fp, struct f12_metadata *f12_meta)
+/*
+ * Function: load_root_dir
+ * -----------------------
+ * Load the root directory of a fat12 partition.
+ *
+ * fp: file pointer of the partition
+ * f12_meta: a pointer to the metadata of the partition
+ *
+ * returns: -1 on allocation error, 0 on success
+ */
+static int load_root_dir(FILE *fp, struct f12_metadata *f12_meta)
 {
   struct bios_parameter_block *bpb = f12_meta->bpb;
 
@@ -239,7 +348,17 @@ int load_root_dir(FILE *fp, struct f12_metadata *f12_meta)
   free(root_data);
 }
 
-int read_fat_entries(FILE *fp, struct f12_metadata *f12_meta)
+/*
+ * Function: read_fat_entries
+ * --------------------------
+ * Reads all values out of the cluster table of the partition.
+ *
+ * fp: file pointer of the partition
+ * f12_meta: a pointer to the metadata of the partition
+ *
+ * returns: -1 on allocation error, 0 on success
+ */
+static int read_fat_entries(FILE *fp, struct f12_metadata *f12_meta)
 {
 
   struct bios_parameter_block *bpb = f12_meta->bpb;
@@ -271,7 +390,16 @@ int read_fat_entries(FILE *fp, struct f12_metadata *f12_meta)
   return 0;
 }
 
-int read_bpb(FILE *fp, struct bios_parameter_block *bpb)
+/*
+ * Function: read_bpb
+ * ------------------
+ * Populates a bios_parameter_block structure with data from the partition.
+ * fp: file pointer of the partition
+ * bpb: a pointer to the bios_parameter_block structure to populate
+ *
+ * returns: 0 on success
+ */
+static int read_bpb(FILE *fp, struct bios_parameter_block *bpb)
 {
   fseek (fp, 3, SEEK_SET);
 
@@ -300,43 +428,23 @@ int read_bpb(FILE *fp, struct bios_parameter_block *bpb)
   return 0;
 }
 
-int read_f12_metadata(FILE *fp, struct f12_metadata **f12_meta)
-{
-  struct bios_parameter_block *bpb;
-  
-  *f12_meta = malloc(sizeof(struct f12_metadata));
-
-  if (NULL == *f12_meta) {
-    return -1;
-  }
-
-  (*f12_meta)->bpb = bpb = malloc(sizeof(struct bios_parameter_block));
-
-  if (NULL == (*f12_meta)->bpb) {
-    return -1;
-  }
-
-  if (0 != read_bpb(fp, (*f12_meta)->bpb)) {
-    return -2;
-  }
-
-  (*f12_meta)->root_dir_offset = bpb->SectorSize *
-    ((bpb->NumberOfFats * bpb->SectorsPerFat) + bpb->ReservedForBoot);
-  
-  read_fat_entries(fp, *f12_meta);
-  (*f12_meta)->fat_id = (*f12_meta)->fat_entries[0];
-  (*f12_meta)->end_of_chain_marker = (*f12_meta)->fat_entries[1];
-
-  if (0 != load_root_dir(fp, *f12_meta)) {
-
-    return -1;
-  }
-
-  return 0;
-}
-
-int write_to_clusterchain(FILE *fp, void *data, uint16_t first_cluster, size_t bytes,
-			  struct f12_metadata *f12_meta)
+/*
+ * Function: write_to_clusterchain
+ * -------------------------------
+ * Writes data to a cluster chain.
+ *
+ * fp: the file pointer of the partition
+ * data: a pointer to the data to write
+ * first_cluster: the number of the first cluster of the cluster chain
+ * f12_meta: a pointer to the metadata of the partition
+ *
+ * returns: -2 if the data is more than on cluster_size smaller than the cluster
+ *             chain. It would be a waste of space to write it on the chain.
+ *          -1 if the data is larger than the cluster chain.
+ *           0 on success  
+ */
+static int write_to_clusterchain(FILE *fp, void *data, uint16_t first_cluster,
+				 size_t bytes, struct f12_metadata *f12_meta)
 {
   uint16_t chain_length = get_cluster_chain_length(first_cluster, f12_meta);
   uint16_t written_bytes = 0;
@@ -377,7 +485,17 @@ int write_to_clusterchain(FILE *fp, void *data, uint16_t first_cluster, size_t b
   return 0;
 }
 
-int write_f12_bpb(FILE *fp, struct f12_metadata *f12_meta)
+/*
+ * Function: write_f12_bpb
+ * -----------------------
+ * Write the bios_parameter_block structure to the partition.
+ *
+ * fp: file pointer of the partition
+ * f12_meta: a pointer to the metadata of the partition
+ *
+ * returns: 0 on success
+ */
+static int write_f12_bpb(FILE *fp, struct f12_metadata *f12_meta)
 {
   struct bios_parameter_block *bpb = f12_meta->bpb;
   
@@ -406,6 +524,15 @@ int write_f12_bpb(FILE *fp, struct f12_metadata *f12_meta)
   return 0;
 }
 
+/*
+ * Function: create_fat
+ * --------------------
+ * Creates a compressed file allocation table from the metadata of a partition.
+ * 
+ * f12_meta: a pointer to the metadata of the partition
+ *
+ * returns: a pointer to the compressed fat that must be freed or NULL on failure
+ */
 static char *create_fat(struct f12_metadata *f12_meta)
 {
   struct bios_parameter_block *bpb = f12_meta->bpb;
@@ -433,6 +560,19 @@ static char *create_fat(struct f12_metadata *f12_meta)
   return fat;
 }
 
+/*
+ * Function: create_directory
+ * --------------------------
+ * Compress all the child (but not their childs) of a directory entry, so that
+ * it can be written on the partition.
+ *
+ * dir_entry: a pointer to the f12_directory_entry structure
+ * f12_meta: a pointer to the metadata of the partition
+ * dir_size: the size of the directory on the partition in bytes
+ * 
+ * returns: a pointer to the compressed directory, that must be freed or NULL
+ *          on failure
+ */
 static char *create_directory(struct f12_directory_entry *dir_entry,
 			      struct f12_metadata *f12_meta, size_t dir_size)
 {
@@ -469,7 +609,17 @@ static char *create_directory(struct f12_directory_entry *dir_entry,
   return dir;
 }
 
-int write_f12_fats(FILE *fp, struct f12_metadata *f12_meta)
+/*
+ * Function: write_f12_fats
+ * ------------------------
+ * Writtes the file allocation tables from the metadata on the partition.
+ *
+ * fp: the file pointer of the partition
+ * f12_meta: a pointer to the metadata
+ * 
+ * returns: -1 on allocation failure, 0 on success
+ */
+static int write_f12_fats(FILE *fp, struct f12_metadata *f12_meta)
 {
   struct bios_parameter_block *bpb = f12_meta->bpb;
   int fat_offset = bpb->SectorSize * bpb->ReservedForBoot;
@@ -490,7 +640,19 @@ int write_f12_fats(FILE *fp, struct f12_metadata *f12_meta)
   return 0;
 }
 
-int write_f12_directory(FILE *fp, struct f12_metadata *f12_meta,
+/*
+ * Function: write_f12_directory
+ * -----------------------------
+ * Writtes the directory described by a f12_directory_entry structure and all
+ * its children on the partition.
+ *
+ * fp: the file pointer of the partition
+ * f12_meta: a pointer to the metadata of the partition
+ * entry: a pointer to the f12_directory_entry structure
+ *
+ * returns: -1 on allocation failure, 0 on success
+ */
+static int write_f12_directory(FILE *fp, struct f12_metadata *f12_meta,
 			struct f12_directory_entry *entry)
 {
   uint16_t first_cluster = entry->FirstCluster;
@@ -511,7 +673,18 @@ int write_f12_directory(FILE *fp, struct f12_metadata *f12_meta,
   return 0;
 }
 
-int write_f12_root_dir(FILE *fp, struct f12_metadata *f12_meta)
+/*
+ * Function: write_f12_root_dir
+ * ----------------------------
+ * Writtes the root directory from the metadata of a fat12 partition on the
+ * partition.
+ *
+ * fp: the file pointer of the partition
+ * f12_meta: a pointer to the metadata of the partition
+ *
+ * returns: -1 on allocation failure, 0 on success
+ */
+static int write_f12_root_dir(FILE *fp, struct f12_metadata *f12_meta)
 {
   size_t dir_size = 32 * f12_meta->bpb->RootDirEntries;
   char *dir = create_directory(f12_meta->root_dir, f12_meta, dir_size);
@@ -525,6 +698,61 @@ int write_f12_root_dir(FILE *fp, struct f12_metadata *f12_meta)
   fwrite(dir, 1, dir_size, fp);
 }
 
+/*
+ * Function: read_f12_metadata
+ * ---------------------------
+ * Populates a f12_metadata structure with data from a fat12 partition.
+ *
+ * fp: the file pointer of the partition
+ * f12_meta: a pointer to a pointer to the f12_metadata structure to populate.
+ * 
+ * returns: 0 on success, -1 on failure
+ */
+int read_f12_metadata(FILE *fp, struct f12_metadata **f12_meta)
+{
+  struct bios_parameter_block *bpb;
+  
+  *f12_meta = malloc(sizeof(struct f12_metadata));
+
+  if (NULL == *f12_meta) {
+    return -1;
+  }
+
+  (*f12_meta)->bpb = bpb = malloc(sizeof(struct bios_parameter_block));
+
+  if (NULL == (*f12_meta)->bpb) {
+    return -1;
+  }
+
+  if (0 != read_bpb(fp, (*f12_meta)->bpb)) {
+    return -2;
+  }
+
+  (*f12_meta)->root_dir_offset = bpb->SectorSize *
+    ((bpb->NumberOfFats * bpb->SectorsPerFat) + bpb->ReservedForBoot);
+  
+  read_fat_entries(fp, *f12_meta);
+  (*f12_meta)->fat_id = (*f12_meta)->fat_entries[0];
+  (*f12_meta)->end_of_chain_marker = (*f12_meta)->fat_entries[1];
+
+  if (0 != load_root_dir(fp, *f12_meta)) {
+
+    return -1;
+  }
+
+  return 0;
+}
+
+/*
+ * Function: write_f12_metadata
+ * ----------------------------
+ * Writtes the data from a f12_metadata structure on a fat12 partition.
+ *
+ * fp: the file pointer of the partition
+ * f12_meta: a pointer to the metadata
+ *
+ * returns: 0 on success
+ */
 int write_f12_metadata(FILE *fp, struct f12_metadata *f12_meta)
 {
   write_f12_bpb(fp, f12_meta);
@@ -534,6 +762,21 @@ int write_f12_metadata(FILE *fp, struct f12_metadata *f12_meta)
   return 0;
 }
 
+/*
+ * Function: f12_del_entry
+ * -----------------------
+ * Deletes a file or driectory from a fat12 partition.
+ *
+ * fp: the file pointer of the partition
+ * f12_meta: a pointer to the metadata of the partition
+ * entry: a pointer to a f12_directory_entry structure, that describes the file
+ *        or direcotry that should be removed; Note that the entry will also be
+ *        removed from the metadata.
+ * hard_delete: whether the entry should be erased or only marked as deleted
+ * 
+ * returns: DIRECTORY_NOT_EMPTY if the entry describes a subdirectory with children
+ *          0 on success  
+ */
 int f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
 		  struct f12_directory_entry *entry, int hard_delete)
 {

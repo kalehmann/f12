@@ -2,19 +2,18 @@
 #include <string.h>
 #include "libfat12.h"
 
-
-int free_f12_path(struct f12_path *path)
-{
-  if (path->descendant != NULL) {
-    free_f12_path(path->descendant);
-  }
-  free(path->name);
-  free(path);
-  
-  return 0;
-}
-
-
+/*
+ * Function: build_path
+ * --------------------
+ * Populates a f12_path structure from an array of directory and file names.
+ *
+ * input_parts: a pointer to an array of file and directory names
+ * part_count: the number of file and directory names in the array
+ * path: a pointer to the f12_path structure to populate
+ *
+ * returns: -1 on failure
+ *           0 on success
+ */
 static int build_path(char **input_parts, int part_count, struct f12_path *path)
 {
   path->name = convert_name(input_parts[0]);
@@ -108,6 +107,19 @@ static int split_input(const char *input, char ***input_parts)
   return input_part_count;
 }
 
+/*
+ * Function: f12_entry_from_path
+ * -----------------------------
+ * Find a file or subdirectory in a directory from a path.
+ *
+ * entry: a pointer to a f12_directory_entry structure, that describes the 
+ *        directory that should be searched for files
+ * path: a pointer to a f12_path structure
+ *
+ * returns: a pointer to a f12_directory_entry structure describing the file 
+ *          or subdirectory or FILE_NOT_FOUND if the path matches no file in
+ *          the given directory  
+ */
 struct f12_directory_entry *f12_entry_from_path(struct f12_directory_entry *entry,
 						struct f12_path *path)
 { 
@@ -125,6 +137,19 @@ struct f12_directory_entry *f12_entry_from_path(struct f12_directory_entry *entr
   return FILE_NOT_FOUND;
 }
 
+/*
+ * Function: parse_f12_path
+ * ------------------------
+ * Creates a f12_path structure from a string with a filepath.
+ * 
+ * input: a pointer to a string with the filepath to parse
+ * path: a pointer to a pointer to a f12_path structure with the parsed path
+ *       The structure must be freed!
+ *
+ * returns: EMPTY_PATH if input does not contain a file or directory name
+ *          -1 on allocation failure
+ *          0 on success
+ */
 int parse_f12_path(const char *input, struct f12_path **path)
 {
   char **input_parts;
@@ -150,6 +175,21 @@ int parse_f12_path(const char *input, struct f12_path **path)
   return 0;
 }
 
+/*
+ * Function: f12_get_parent
+ * ------------------------
+ * Determines if one of two given f12_path structure describes a parent directory
+ * of the file or directory described by the other path.
+ *
+ * path_a: a pointer to a f12_path structure
+ * path_b: a pointer to a f12_path structure
+ *
+ * returns: PATHS_EQUAL if both structures describe the same file path
+ *          PATHS_SECOND if the second path describes a parent directory of the
+ *          first path
+ *          PATHS_FIRST if the first path describes a parent directory of the
+ *          second path
+ */
 int f12_get_parent(struct f12_path *path_a, struct f12_path *path_b)
 { 
   while (0 == memcmp(path_a->name, path_b->name, 11)) {
@@ -171,4 +211,24 @@ int f12_get_parent(struct f12_path *path_a, struct f12_path *path_b)
   }
 
   return PATHS_UNRELATED; 
+}
+
+/*
+ * Function: free_f12_path
+ * -----------------------
+ * Frees a f12_path structure
+ *
+ * path: a pointer to the f12_path structure
+ *
+ * returns: 0 on success
+ */
+int free_f12_path(struct f12_path *path)
+{
+  if (path->descendant != NULL) {
+    free_f12_path(path->descendant);
+  }
+  free(path->name);
+  free(path);
+  
+  return 0;
 }

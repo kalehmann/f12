@@ -55,7 +55,7 @@ char *get_file_name(struct f12_directory_entry *entry)
  *
  * name: a pointer to the human readable filename
  *
- * returns: a pointer to an arraz of 11 chars with the filename in the 8.3 format,
+ * returns: a pointer to an array of 11 chars with the filename in the 8.3 format,
  *          that must be freed after use.
  */
 char *convert_name(char *name)
