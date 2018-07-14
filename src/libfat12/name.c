@@ -5,7 +5,7 @@
 
 
 /*
- * Function: get_file_name
+ * Function: f12_get_file_name
  * -----------------------
  * Generates a human readable filename in the format name.extension from a fat12
  * directory entry. 
@@ -14,7 +14,7 @@
  *
  * returns: a pointer to the human readable filename which must be freed after use.
  */
-char *get_file_name(struct f12_directory_entry *entry)
+char *f12_get_file_name(struct f12_directory_entry *entry)
 {
   char name[13], *result;
   int length = 0;
@@ -49,7 +49,7 @@ char *get_file_name(struct f12_directory_entry *entry)
 } 
 
 /*
- * Function: convert_name
+ * Function: f12_convert_name
  * ----------------------
  * Converts a human readable filename to the 8.3 format
  *
@@ -58,7 +58,7 @@ char *get_file_name(struct f12_directory_entry *entry)
  * returns: a pointer to an array of 11 chars with the filename in the 8.3 format,
  *          that must be freed after use.
  */
-char *convert_name(char *name)
+char *f12_convert_name(char *name)
 {
   int i=0;
   char *converted_name = malloc(11), c;

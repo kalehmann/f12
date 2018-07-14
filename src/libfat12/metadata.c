@@ -3,22 +3,22 @@
 #include "libfat12.h"
 
 /*
- * Function: free_f12_entry
+ * Function: free_entry
  * ------------------------
  * Free a f12_directory_entry structure and all subsequent entries.
  *
- * entry: a pointer to the f212_directory_entry structure to free
+ * entry: a pointer to the f12_directory_entry structure to free
  *
  * returns: 0 on success
  */
-static int free_f12_entry(struct f12_directory_entry *entry)
+static int free_entry(struct f12_directory_entry *entry)
 {
   if (!f12_is_directory(entry) || f12_is_dot_dir(entry)) {
     return 0;
   }
 
   for (int i=0; i < entry->child_count; i++) {
-    free_f12_entry(&entry->children[i]);
+    free_entry(&entry->children[i]);
   }
   free(entry->children);
 
@@ -68,7 +68,7 @@ size_t f12_get_used_bytes(struct f12_metadata *f12_meta)
 }
 
 /*
- * Function: free_f12_metadata
+ * Function: f12_free_metadata
  * ---------------------------
  * Free all the metadata of a fat12 partition
  *
@@ -76,11 +76,11 @@ size_t f12_get_used_bytes(struct f12_metadata *f12_meta)
  *
  * returns: 0 on success
  */
-int free_f12_metadata(struct f12_metadata *f12_meta)
+int f12_free_metadata(struct f12_metadata *f12_meta)
 {
   free(f12_meta->bpb);
   free(f12_meta->fat_entries);
-  free_f12_entry(f12_meta->root_dir);
+  free_entry(f12_meta->root_dir);
   free(f12_meta->root_dir);
   free(f12_meta);
 

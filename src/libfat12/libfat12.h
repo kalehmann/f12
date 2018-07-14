@@ -98,25 +98,25 @@ int f12_get_file_count(struct f12_directory_entry *entry);
 int f12_get_directory_count(struct f12_directory_entry *entry);
 
 /* io.c */
-int read_f12_metadata(FILE *fp, struct f12_metadata **f12_meta);
-int write_f12_metadata(FILE *fp, struct f12_metadata *f12_meta);
+int f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta);
+int f12_write_metadata(FILE *fp, struct f12_metadata *f12_meta);
 int f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
 		  struct f12_directory_entry *entry, int hard_delete);
 
 /* metadata.c */
 size_t f12_get_partition_size(struct f12_metadata *f12_meta);
 size_t f12_get_used_bytes(struct f12_metadata *f12_meta);
-int free_f12_metadata(struct f12_metadata *f12_meta);
+int f12_free_metadata(struct f12_metadata *f12_meta);
 
 /* name.c */
-char *get_file_name(struct f12_directory_entry *entry);
-char *convert_name(char *name);
+char *f12_get_file_name(struct f12_directory_entry *entry);
+char *f12_convert_name(char *name);
 
 /* path.c */
-int parse_f12_path(const char *input, struct f12_path **path);
-int free_f12_path(struct f12_path *path);
+int f12_parse_path(const char *input, struct f12_path **path);
+int f12_free_path(struct f12_path *path);
 struct f12_directory_entry *f12_entry_from_path(struct f12_directory_entry *entry,
 						struct f12_path *path);
-int f12_get_parent(struct f12_path *path_a, struct f12_path *path_b);
+int f12_path_get_parent(struct f12_path *path_a, struct f12_path *path_b);
 
 #endif

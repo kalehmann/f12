@@ -68,7 +68,7 @@ static int list_f12_entry(struct f12_directory_entry *entry, char **output,
     return 0;
   }
 
-  char *name = get_file_name(entry);
+  char *name = f12_get_file_name(entry);
   
   char *temp = *output;
   asprintf(output,
@@ -110,7 +110,7 @@ int f12_del(struct f12_del_arguments *args, char **output)
     return -1;
   }
 
-  res = read_f12_metadata(fp, &f12_meta);
+  res = f12_read_metadata(fp, &f12_meta);
 
   if (res != 0) {
     fclose(fp);
@@ -119,7 +119,7 @@ int f12_del(struct f12_del_arguments *args, char **output)
 
   struct f12_path *path;
 
-  res  = parse_f12_path(args->path, &path);
+  res  = f12_parse_path(args->path, &path);
   if (res == -1) {
     fclose(fp);
     return -1;
@@ -140,7 +140,8 @@ int f12_del(struct f12_del_arguments *args, char **output)
   
   f12_del_entry(fp, f12_meta, entry, args->hard_delete);
   
-  free_f12_path(path);
+  f12_free_path(path);
+  f12_free_metadata(f12_meta);
   fclose(fp);
   
   return 0;
@@ -158,7 +159,7 @@ int f12_info(struct f12_info_arguments *args, char ** output)
     return -1;
   }
   
-  res = read_f12_metadata(fp, &f12_meta);
+  res = f12_read_metadata(fp, &f12_meta);
   fclose(fp);
 
   if (res != 0) {
@@ -191,7 +192,7 @@ int f12_info(struct f12_info_arguments *args, char ** output)
     *output = tmp;
   }
   
-  free_f12_metadata(f12_meta);
+  f12_free_metadata(f12_meta);
   return res;
 }
 
@@ -214,7 +215,7 @@ int f12_list(struct f12_list_arguments *args, char **output)
     return -1;
   }
 
-  res = read_f12_metadata(fp, &f12_meta);
+  res = f12_read_metadata(fp, &f12_meta);
   fclose(fp);
   
   if (res != 0) {
@@ -223,7 +224,7 @@ int f12_list(struct f12_list_arguments *args, char **output)
 
   if (args->path != 0 && args->path[0] != '\0') {
     struct f12_path *path;
-    int res = parse_f12_path(args->path, &path);
+    int res = f12_parse_path(args->path, &path);
     if (res == -1) {
       return -1;
     }
@@ -234,7 +235,7 @@ int f12_list(struct f12_list_arguments *args, char **output)
     }
     
     struct f12_directory_entry *entry = f12_entry_from_path(f12_meta->root_dir, path);
-    free_f12_path(path);
+    f12_free_path(path);
     
     if (FILE_NOT_FOUND == entry) {
       asprintf(output, "File not found\n");
@@ -256,7 +257,7 @@ int f12_list(struct f12_list_arguments *args, char **output)
 
   list_root_dir_entries(f12_meta, args, output);
   
-  free_f12_metadata(f12_meta);
+  f12_free_metadata(f12_meta);
   
   return 0;
 }

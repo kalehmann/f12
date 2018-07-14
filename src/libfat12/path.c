@@ -16,7 +16,7 @@
  */
 static int build_path(char **input_parts, int part_count, struct f12_path *path)
 {
-  path->name = convert_name(input_parts[0]);
+  path->name = f12_convert_name(input_parts[0]);
   path->short_file_name = path->name;
   path->short_file_extension = path->name + 8;
   path->descendant = malloc(sizeof(struct f12_path));
@@ -138,7 +138,7 @@ struct f12_directory_entry *f12_entry_from_path(struct f12_directory_entry *entr
 }
 
 /*
- * Function: parse_f12_path
+ * Function: f12_parse_path
  * ------------------------
  * Creates a f12_path structure from a string with a filepath.
  * 
@@ -150,7 +150,7 @@ struct f12_directory_entry *f12_entry_from_path(struct f12_directory_entry *entr
  *          -1 on allocation failure
  *          0 on success
  */
-int parse_f12_path(const char *input, struct f12_path **path)
+int f12_parse_path(const char *input, struct f12_path **path)
 {
   char **input_parts;
   int input_part_count = split_input(input, &input_parts);
@@ -176,7 +176,7 @@ int parse_f12_path(const char *input, struct f12_path **path)
 }
 
 /*
- * Function: f12_get_parent
+ * Function: f12_path_get_parent
  * ------------------------
  * Determines if one of two given f12_path structure describes a parent directory
  * of the file or directory described by the other path.
@@ -190,7 +190,7 @@ int parse_f12_path(const char *input, struct f12_path **path)
  *          PATHS_FIRST if the first path describes a parent directory of the
  *          second path
  */
-int f12_get_parent(struct f12_path *path_a, struct f12_path *path_b)
+int f12_path_get_parent(struct f12_path *path_a, struct f12_path *path_b)
 { 
   while (0 == memcmp(path_a->name, path_b->name, 11)) {
     if (path_b->descendant == NULL) {
@@ -214,7 +214,7 @@ int f12_get_parent(struct f12_path *path_a, struct f12_path *path_b)
 }
 
 /*
- * Function: free_f12_path
+ * Function: f12_free_path
  * -----------------------
  * Frees a f12_path structure
  *
@@ -222,10 +222,10 @@ int f12_get_parent(struct f12_path *path_a, struct f12_path *path_b)
  *
  * returns: 0 on success
  */
-int free_f12_path(struct f12_path *path)
+int f12_free_path(struct f12_path *path)
 {
   if (path->descendant != NULL) {
-    free_f12_path(path->descendant);
+    f12_free_path(path->descendant);
   }
   free(path->name);
   free(path);

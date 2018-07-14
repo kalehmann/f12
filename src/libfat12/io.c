@@ -145,7 +145,7 @@ static char *load_cluster_chain(FILE *fp, uint16_t start_cluster,
 }
 
 /*
- * Function: f12_erase_cluster_chain
+ * Function: erase_cluster_chain
  * ---------------------------------
  * Erase the contents of a cluster chain on the partition.
  * fp: file pointer of the partition
@@ -154,7 +154,7 @@ static char *load_cluster_chain(FILE *fp, uint16_t start_cluster,
  *
  * returns: -1 on an allocation error, 0 on success
  */
-static int f12_erase_cluster_chain(FILE *fp, struct f12_metadata *f12_meta,
+static int erase_cluster_chain(FILE *fp, struct f12_metadata *f12_meta,
 			    uint16_t first_cluster)
 {
   uint16_t *fat_entries = f12_meta->fat_entries;
@@ -180,13 +180,13 @@ static int f12_erase_cluster_chain(FILE *fp, struct f12_metadata *f12_meta,
 }
 
 /*
- * Function: f12_erase_entry
+ * Function: erase_entry
  * -------------------------
  * Fill a f12_directory_entry structure with zeros.
  *
  * entry: a pointer to the f12_directory_entry structure
  */
-static void f12_erase_entry(struct f12_directory_entry *entry)
+static void erase_entry(struct f12_directory_entry *entry)
 {
   size_t entry_size = sizeof(struct f12_directory_entry);
   char *_entry = (char *)entry;
@@ -346,6 +346,8 @@ static int load_root_dir(FILE *fp, struct f12_metadata *f12_meta)
   }
   
   free(root_data);
+
+  return 0;
 }
 
 /*
@@ -486,7 +488,7 @@ static int write_to_clusterchain(FILE *fp, void *data, uint16_t first_cluster,
 }
 
 /*
- * Function: write_f12_bpb
+ * Function: write_bpb
  * -----------------------
  * Write the bios_parameter_block structure to the partition.
  *
@@ -495,7 +497,7 @@ static int write_to_clusterchain(FILE *fp, void *data, uint16_t first_cluster,
  *
  * returns: 0 on success
  */
-static int write_f12_bpb(FILE *fp, struct f12_metadata *f12_meta)
+static int write_bpb(FILE *fp, struct f12_metadata *f12_meta)
 {
   struct bios_parameter_block *bpb = f12_meta->bpb;
   
@@ -610,7 +612,7 @@ static char *create_directory(struct f12_directory_entry *dir_entry,
 }
 
 /*
- * Function: write_f12_fats
+ * Function: write_fats
  * ------------------------
  * Writtes the file allocation tables from the metadata on the partition.
  *
@@ -619,7 +621,7 @@ static char *create_directory(struct f12_directory_entry *dir_entry,
  * 
  * returns: -1 on allocation failure, 0 on success
  */
-static int write_f12_fats(FILE *fp, struct f12_metadata *f12_meta)
+static int write_fats(FILE *fp, struct f12_metadata *f12_meta)
 {
   struct bios_parameter_block *bpb = f12_meta->bpb;
   int fat_offset = bpb->SectorSize * bpb->ReservedForBoot;
@@ -641,7 +643,7 @@ static int write_f12_fats(FILE *fp, struct f12_metadata *f12_meta)
 }
 
 /*
- * Function: write_f12_directory
+ * Function: write_directory
  * -----------------------------
  * Writtes the directory described by a f12_directory_entry structure and all
  * its children on the partition.
@@ -652,7 +654,7 @@ static int write_f12_fats(FILE *fp, struct f12_metadata *f12_meta)
  *
  * returns: -1 on allocation failure, 0 on success
  */
-static int write_f12_directory(FILE *fp, struct f12_metadata *f12_meta,
+static int write_directory(FILE *fp, struct f12_metadata *f12_meta,
 			struct f12_directory_entry *entry)
 {
   uint16_t first_cluster = entry->FirstCluster;
@@ -664,7 +666,7 @@ static int write_f12_directory(FILE *fp, struct f12_metadata *f12_meta,
   }
 
   for (int i=0; i<entry->child_count; i++) {
-    write_f12_directory(fp, f12_meta, &entry->children[i]);
+    write_directory(fp, f12_meta, &entry->children[i]);
   }
 
   write_to_clusterchain(fp, dir, first_cluster, dir_size, f12_meta);
@@ -674,7 +676,7 @@ static int write_f12_directory(FILE *fp, struct f12_metadata *f12_meta,
 }
 
 /*
- * Function: write_f12_root_dir
+ * Function: write_root_dir
  * ----------------------------
  * Writtes the root directory from the metadata of a fat12 partition on the
  * partition.
@@ -684,13 +686,13 @@ static int write_f12_directory(FILE *fp, struct f12_metadata *f12_meta,
  *
  * returns: -1 on allocation failure, 0 on success
  */
-static int write_f12_root_dir(FILE *fp, struct f12_metadata *f12_meta)
+static int write_root_dir(FILE *fp, struct f12_metadata *f12_meta)
 {
   size_t dir_size = 32 * f12_meta->bpb->RootDirEntries;
   char *dir = create_directory(f12_meta->root_dir, f12_meta, dir_size);
 
   for (int i=0; i<f12_meta->root_dir->child_count; i++) {
-    write_f12_directory(fp, f12_meta, &f12_meta->root_dir->children[i]);
+    write_directory(fp, f12_meta, &f12_meta->root_dir->children[i]);
   }
   
   fseek(fp, f12_meta->root_dir_offset, SEEK_SET);
@@ -699,7 +701,7 @@ static int write_f12_root_dir(FILE *fp, struct f12_metadata *f12_meta)
 }
 
 /*
- * Function: read_f12_metadata
+ * Function: f12_read_metadata
  * ---------------------------
  * Populates a f12_metadata structure with data from a fat12 partition.
  *
@@ -708,7 +710,7 @@ static int write_f12_root_dir(FILE *fp, struct f12_metadata *f12_meta)
  * 
  * returns: 0 on success, -1 on failure
  */
-int read_f12_metadata(FILE *fp, struct f12_metadata **f12_meta)
+int f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta)
 {
   struct bios_parameter_block *bpb;
   
@@ -744,7 +746,7 @@ int read_f12_metadata(FILE *fp, struct f12_metadata **f12_meta)
 }
 
 /*
- * Function: write_f12_metadata
+ * Function: f12_write_metadata
  * ----------------------------
  * Writtes the data from a f12_metadata structure on a fat12 partition.
  *
@@ -753,11 +755,11 @@ int read_f12_metadata(FILE *fp, struct f12_metadata **f12_meta)
  *
  * returns: 0 on success
  */
-int write_f12_metadata(FILE *fp, struct f12_metadata *f12_meta)
+int f12_write_metadata(FILE *fp, struct f12_metadata *f12_meta)
 {
-  write_f12_bpb(fp, f12_meta);
-  write_f12_fats(fp, f12_meta);
-  write_f12_root_dir(fp, f12_meta);
+  write_bpb(fp, f12_meta);
+  write_fats(fp, f12_meta);
+  write_root_dir(fp, f12_meta);
   
   return 0;
 }
@@ -786,9 +788,9 @@ int f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
   }
 
   if (1 == hard_delete) {
-    f12_erase_cluster_chain(fp, f12_meta, entry->FirstCluster);
-    f12_erase_entry(entry);
-    write_f12_metadata(fp, f12_meta);
+    erase_cluster_chain(fp, f12_meta, entry->FirstCluster);
+    erase_entry(entry);
+    f12_write_metadata(fp, f12_meta);
 
     return 0;
   }
