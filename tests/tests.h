@@ -2,7 +2,8 @@
 #define TESTS_H
 #include <check.h>
 
-TCase *create_libfat12_filename_case(void);
-TCase *create_libfat12_path_case(void);
+TCase *libfat12_name_case(void);
+TCase *libfat12_path_case(void);
+TCase *libfat12_directory_case(void);
 
 #endif

@@ -41,7 +41,7 @@ START_TEST(test_f12_path_get_parent)
 }
 END_TEST
 
-TCase *create_libfat12_path_case(void)
+TCase *libfat12_path_case(void)
 {
   TCase *tc_libfat12_path;
 
