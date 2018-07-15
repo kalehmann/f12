@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdlib.h>
 
 #include "libfat12.h"
 
@@ -75,14 +76,16 @@ int f12_entry_is_empty(struct f12_directory_entry *entry)
  */
 int f12_get_file_count(struct f12_directory_entry *entry)
 {
+  struct f12_directory_entry *child;
   int file_count = 0;
 
   for (int i = 0; i < entry->child_count; i++) {
-    if (f12_is_directory(&entry->children[i]) &&
-	!f12_is_dot_dir(&entry->children[i]))
-    {
-      file_count += f12_get_file_count(&entry->children[i]);
-    } else if (!f12_entry_is_empty(&entry->children[i])) {
+    child = &entry->children[i];
+    if (f12_is_directory(child)) {
+      if (!f12_is_dot_dir(child)) {
+	file_count += f12_get_file_count(child);
+      }
+    } else if (!f12_entry_is_empty(child)) {
       file_count++;
     }
   }
