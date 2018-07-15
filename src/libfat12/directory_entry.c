@@ -117,3 +117,26 @@ int f12_get_directory_count(struct f12_directory_entry *entry)
 
   return dir_count;
 }
+
+/*
+ * Function: f12_free_entry
+ * ------------------------
+ * Free a f12_directory_entry structure and all subsequent entries.
+ *
+ * entry: a pointer to the f12_directory_entry structure to free
+ *
+ * returns: 0 on success
+ */
+int f12_free_entry(struct f12_directory_entry *entry)
+{
+  if (!f12_is_directory(entry) || f12_is_dot_dir(entry)) {
+    return 0;
+  }
+
+  for (int i=0; i < entry->child_count; i++) {
+    f12_free_entry(&entry->children[i]);
+  }
+  free(entry->children);
+
+  return 0;
+}

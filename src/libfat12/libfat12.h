@@ -96,6 +96,7 @@ int f12_is_dot_dir(struct f12_directory_entry *entry);
 int f12_entry_is_empty(struct f12_directory_entry *entry);
 int f12_get_file_count(struct f12_directory_entry *entry);
 int f12_get_directory_count(struct f12_directory_entry *entry);
+int f12_free_entry(struct f12_directory_entry *entry);
 
 /* io.c */
 int f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta);
