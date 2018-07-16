@@ -42,6 +42,7 @@ void setup(void)
   ck_assert_ptr_nonnull(dir);
   zero_mem(dir, sizeof(struct f12_directory_entry));
 
+  dir->FileAttributes = F12_ATTR_SUBDIRECTORY;
   dir->child_count = 8;
   dir->children = malloc(sizeof(struct f12_directory_entry) * 8);
   ck_assert_ptr_nonnull(dir->children);
