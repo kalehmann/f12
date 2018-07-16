@@ -8,6 +8,9 @@
 #define EMPTY_PATH -2
 #define FILE_NOT_FOUND NULL
 #define DIRECTORY_NOT_EMPTY -2
+#define NOT_A_FILE -3
+#define NOT_A_DIR -4
+#define RELATION_PROBLEM -5
 #define PATHS_SECOND 1
 #define PATHS_EQUAL 0
 #define PATHS_FIRST -1

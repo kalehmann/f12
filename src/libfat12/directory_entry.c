@@ -72,13 +72,18 @@ int f12_entry_is_empty(struct f12_directory_entry *entry)
  *
  * entry: a pointer to the f12_directory_entry structure of the directory
  *
- * returns: the number of files in the directory and all its subdirectories
+ * returns: the number of files in the directory and all its subdirectories or
+ *          NOT_A_DIR if entry is not a directory
  */
 int f12_get_file_count(struct f12_directory_entry *entry)
 {
   struct f12_directory_entry *child;
   int file_count = 0;
 
+  if (!f12_is_directory(entry)) {
+    return NOT_A_DIR;
+  }
+  
   for (int i = 0; i < entry->child_count; i++) {
     child = &entry->children[i];
     if (f12_is_directory(child)) {
@@ -100,11 +105,16 @@ int f12_get_file_count(struct f12_directory_entry *entry)
  *
  * entry: a pointer to the f12_directory_entry structure of the directory
  *
- * returns: the number of subdirectories and their subdirectories in the directory
+ * returns: the number of subdirectories and their subdirectories in the
+ *          directory or NOT_A_DIR if entry is not a directory
  */
 int f12_get_directory_count(struct f12_directory_entry *entry)
 {
   int dir_count = 0;
+
+  if (!f12_is_directory(entry)) {
+    return NOT_A_DIR;
+  }  
 
   for (int i = 0; i < entry->child_count; i++) {
     if (f12_is_directory(&entry->children[i]) &&
