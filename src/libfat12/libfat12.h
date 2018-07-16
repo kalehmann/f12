@@ -100,6 +100,8 @@ int f12_entry_is_empty(struct f12_directory_entry *entry);
 int f12_get_file_count(struct f12_directory_entry *entry);
 int f12_get_directory_count(struct f12_directory_entry *entry);
 int f12_free_entry(struct f12_directory_entry *entry);
+int f12_move_entry(struct f12_directory_entry *src,
+		   struct f12_directory_entry *dest);
 
 /* io.c */
 int f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta);

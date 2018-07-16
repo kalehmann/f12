@@ -150,3 +150,24 @@ int f12_free_entry(struct f12_directory_entry *entry)
 
   return 0;
 }
+
+/*
+ * Function: f12_move_entry
+ * ------------------------
+ * Remove the entry src from the parent and make it a child of the entry dest.
+ *
+ * src: a pointer to the f12_directory_entry structure that should be moved
+ * dest: a pointer to the f12_directory_entry structure that should be the new
+ *       parent of src
+ *
+ * returns: 0 on success
+ *          NOT_A_DIR if src or dest are files and not directories
+ *          RELATION_PROBLEM if the relationship of src and dest does not
+ *                           allow src to  become a child of dest
+ *
+ */
+int f12_move_entry(struct f12_directory_entry *src,
+		   struct f12_directory_entry *dest)
+{
+  
+}
