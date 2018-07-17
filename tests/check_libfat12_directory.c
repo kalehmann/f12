@@ -114,6 +114,15 @@ START_TEST(test_f12_entry_is_empty)
 }
 END_TEST
 
+
+START_TEST(test_f12_get_child_count)
+{
+  ck_assert_int_eq(f12_get_child_count(&dir->children[0]), 3);
+  ck_assert_int_eq(f12_get_child_count(dir), 7);
+}
+END_TEST
+
+
 START_TEST(test_f12_get_file_count)
 {
   ck_assert_int_eq(f12_get_file_count(dir), 7);
@@ -135,6 +144,7 @@ TCase * libfat12_directory_case(void)
   tcase_add_test(tc_libfat12_directory, test_f12_is_directory);
   tcase_add_test(tc_libfat12_directory, test_f12_is_dot_dir);
   tcase_add_test(tc_libfat12_directory, test_f12_entry_is_empty);
+  tcase_add_test(tc_libfat12_directory, test_f12_get_child_count);
   tcase_add_test(tc_libfat12_directory, test_f12_get_file_count);
   tcase_add_test(tc_libfat12_directory, test_f12_get_directory_count);
   

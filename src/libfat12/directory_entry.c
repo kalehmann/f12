@@ -64,6 +64,27 @@ int f12_entry_is_empty(struct f12_directory_entry *entry)
   return 0;
 }
 
+/*
+ * Function: f12_get_child_count
+ * -----------------------------
+ * Get the number of used entries of a directory (not its subdirectories).
+ * 
+ * entry: a pointer to the f12_directory_entry structure of the directory
+ *
+ * returns: the number of used entries of the directory
+ */
+int f12_get_child_count(struct f12_directory_entry *entry)
+{
+  int child_count = 0;
+  
+  for (int i = 0; i < entry->child_count; i++) {
+    if (!f12_entry_is_empty(&entry->children[i])) {
+      child_count++;
+    }
+  }
+
+  return child_count;
+}
 
 /*
  * Function: f12_get_file_count
