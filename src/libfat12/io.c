@@ -776,7 +776,8 @@ int f12_write_metadata(FILE *fp, struct f12_metadata *f12_meta)
  *        removed from the metadata.
  * hard_delete: whether the entry should be erased or only marked as deleted
  * 
- * returns: DIRECTORY_NOT_EMPTY if the entry describes a subdirectory with children
+ * returns: F12_DIRECTORY_NOT_EMPTY if the entry describes a subdirectory with
+ *                                  children
  *          0 on success  
  */
 int f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
@@ -784,7 +785,7 @@ int f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
 {
   struct f12_directory_entry *parent = entry->parent;
   if (f12_is_directory(entry) && entry->child_count > 2) {
-    return DIRECTORY_NOT_EMPTY;
+    return F12_DIRECTORY_NOT_EMPTY;
   }
 
   if (1 == hard_delete) {

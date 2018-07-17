@@ -124,7 +124,7 @@ int f12_del(struct f12_del_arguments *args, char **output)
     fclose(fp);
     return -1;
   }
-  if (res == EMPTY_PATH) {
+  if (res == F12_EMPTY_PATH) {
     asprintf(output, "Cannot delete the root dir\n");
     fclose(fp);
     return 0;
@@ -132,7 +132,7 @@ int f12_del(struct f12_del_arguments *args, char **output)
 
   struct f12_directory_entry *entry = f12_entry_from_path(f12_meta->root_dir, path);
 
-  if (entry == FILE_NOT_FOUND) {
+  if (entry == F12_FILE_NOT_FOUND) {
     asprintf(output, "The file %s was not found on the device\n", args->path);
     fclose(fp);
     return 0;
@@ -228,7 +228,7 @@ int f12_list(struct f12_list_arguments *args, char **output)
     if (res == -1) {
       return -1;
     }
-    if (res == EMPTY_PATH) {
+    if (res == F12_EMPTY_PATH) {
       list_root_dir_entries(f12_meta, args, output);
 
       return 0;
@@ -237,7 +237,7 @@ int f12_list(struct f12_list_arguments *args, char **output)
     struct f12_directory_entry *entry = f12_entry_from_path(f12_meta->root_dir, path);
     f12_free_path(path);
     
-    if (FILE_NOT_FOUND == entry) {
+    if (F12_FILE_NOT_FOUND == entry) {
       asprintf(output, "File not found\n");
       return 0;
     }

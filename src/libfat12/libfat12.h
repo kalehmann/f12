@@ -4,17 +4,20 @@
 #include <stdio.h>
 #include <inttypes.h>
 
+/* directory entry attributes */
 #define F12_ATTR_SUBDIRECTORY 0x10
-#define EMPTY_PATH -2
-#define FILE_NOT_FOUND NULL
-#define DIRECTORY_NOT_EMPTY -2
-#define NOT_A_FILE -3
-#define NOT_A_DIR -4
-#define RELATION_PROBLEM -5
-#define PATHS_SECOND 1
-#define PATHS_EQUAL 0
-#define PATHS_FIRST -1
-#define PATHS_UNRELATED -2
+/* constants for describing errors */
+#define F12_EMPTY_PATH -2
+#define F12_FILE_NOT_FOUND NULL
+#define F12_DIRECTORY_NOT_EMPTY -3
+#define F12_NOT_A_FILE -4
+#define F12_NOT_A_DIR -5
+#define F12_RELATION_PROBLEM -6
+/* constants for comparing paths */
+#define F12_PATHS_SECOND 1
+#define F12_PATHS_EQUAL 0
+#define F12_PATHS_FIRST -1
+#define F12_PATHS_UNRELATED -2
 
 struct bios_parameter_block {
   char OEMLabel[8];

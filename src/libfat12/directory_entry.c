@@ -73,7 +73,7 @@ int f12_entry_is_empty(struct f12_directory_entry *entry)
  * entry: a pointer to the f12_directory_entry structure of the directory
  *
  * returns: the number of files in the directory and all its subdirectories or
- *          NOT_A_DIR if entry is not a directory
+ *          F12_NOT_A_DIR if entry is not a directory
  */
 int f12_get_file_count(struct f12_directory_entry *entry)
 {
@@ -81,7 +81,7 @@ int f12_get_file_count(struct f12_directory_entry *entry)
   int file_count = 0;
 
   if (!f12_is_directory(entry)) {
-    return NOT_A_DIR;
+    return F12_NOT_A_DIR;
   }
   
   for (int i = 0; i < entry->child_count; i++) {
@@ -106,14 +106,14 @@ int f12_get_file_count(struct f12_directory_entry *entry)
  * entry: a pointer to the f12_directory_entry structure of the directory
  *
  * returns: the number of subdirectories and their subdirectories in the
- *          directory or NOT_A_DIR if entry is not a directory
+ *          directory or F12_NOT_A_DIR if entry is not a directory
  */
 int f12_get_directory_count(struct f12_directory_entry *entry)
 {
   int dir_count = 0;
 
   if (!f12_is_directory(entry)) {
-    return NOT_A_DIR;
+    return F12_NOT_A_DIR;
   }  
 
   for (int i = 0; i < entry->child_count; i++) {
@@ -161,9 +161,9 @@ int f12_free_entry(struct f12_directory_entry *entry)
  *       parent of src
  *
  * returns: 0 on success
- *          NOT_A_DIR if src or dest are files and not directories
- *          RELATION_PROBLEM if the relationship of src and dest does not
- *                           allow src to  become a child of dest
+ *          F12_NOT_A_DIR if src or dest are files and not directories
+ *          F12_RELATION_PROBLEM if the relationship of src and dest does not
+ *                               allow src to  become a child of dest
  *
  */
 int f12_move_entry(struct f12_directory_entry *src,
