@@ -94,6 +94,7 @@ struct f12_path {
 int f12_is_directory(struct f12_directory_entry *entry);
 int f12_is_dot_dir(struct f12_directory_entry *entry);
 int f12_entry_is_empty(struct f12_directory_entry *entry);
+int f12_get_child_count(struct f12_directory_entry *entry);
 int f12_get_file_count(struct f12_directory_entry *entry);
 int f12_get_directory_count(struct f12_directory_entry *entry);
 int f12_free_entry(struct f12_directory_entry *entry);
