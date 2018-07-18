@@ -13,6 +13,7 @@
 #define F12_NOT_A_FILE -4
 #define F12_NOT_A_DIR -5
 #define F12_RELATION_PROBLEM -6
+#define F12_DIR_FULL -6
 /* constants for comparing paths */
 #define F12_PATHS_SECOND 1
 #define F12_PATHS_EQUAL 0
