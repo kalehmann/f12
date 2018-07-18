@@ -1,14 +1,9 @@
 #include <check.h>
 #include <stdlib.h>
+#include <string.h>
+
 #include "tests.h"
 #include "../src/libfat12/libfat12.h"
-
-static void zero_mem(void *ptr, size_t size)
-{
-  for (int i=0; i<size; i++) {
-    *((char *)(ptr + i)) = 0;
-  }
-}
 
 /*
  * |-> SUBDIR1
@@ -40,12 +35,12 @@ void setup(void)
   
   dir = malloc(sizeof(struct f12_directory_entry));
   ck_assert_ptr_nonnull(dir);
-  zero_mem(dir, sizeof(struct f12_directory_entry));
+  memset(dir, 0, sizeof(struct f12_directory_entry));
 
   dir->child_count = 8;
   dir->children = malloc(sizeof(struct f12_directory_entry) * 8);
   ck_assert_ptr_nonnull(dir->children);
-  zero_mem(dir->children, sizeof(struct f12_directory_entry) * 8);
+  memset(dir->children, 0, sizeof(struct f12_directory_entry) * 8);
 
   for (int i=0; i<3; i++) {
     child = &dir->children[i];
@@ -57,7 +52,7 @@ void setup(void)
     child->child_count = 4;
     child->children = malloc(sizeof(struct f12_directory_entry) * 4);
     ck_assert_ptr_nonnull(child->children);
-    zero_mem(child->children, sizeof(struct f12_directory_entry) * 4);
+    memset(child->children, 0, sizeof(struct f12_directory_entry) * 4);
     for (int j=0; j<2; j++) {
       child->children[j].FileAttributes = F12_ATTR_SUBDIRECTORY;
       if (j==0) {
