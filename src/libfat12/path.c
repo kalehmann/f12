@@ -60,7 +60,7 @@ static int split_input(const char *input, char ***input_parts)
     input++;
   }
   if (input[0] == '\0') {
-    return EMPTY_PATH;
+    return F12_EMPTY_PATH;
   }
   
   int input_len = strlen(input) + 1, input_part_count = 1;
@@ -117,7 +117,7 @@ static int split_input(const char *input, char ***input_parts)
  * path: a pointer to a f12_path structure
  *
  * returns: a pointer to a f12_directory_entry structure describing the file 
- *          or subdirectory or FILE_NOT_FOUND if the path matches no file in
+ *          or subdirectory or F12_FILE_NOT_FOUND if the path matches no file in
  *          the given directory  
  */
 struct f12_directory_entry *f12_entry_from_path(struct f12_directory_entry *entry,
@@ -134,7 +134,7 @@ struct f12_directory_entry *f12_entry_from_path(struct f12_directory_entry *entr
     }
   }
 
-  return FILE_NOT_FOUND;
+  return F12_FILE_NOT_FOUND;
 }
 
 /*
@@ -146,7 +146,7 @@ struct f12_directory_entry *f12_entry_from_path(struct f12_directory_entry *entr
  * path: a pointer to a pointer to a f12_path structure with the parsed path
  *       The structure must be freed!
  *
- * returns: EMPTY_PATH if input does not contain a file or directory name
+ * returns: F12_EMPTY_PATH if input does not contain a file or directory name
  *          -1 on allocation failure
  *          0 on success
  */
@@ -155,8 +155,8 @@ int f12_parse_path(const char *input, struct f12_path **path)
   char **input_parts;
   int input_part_count = split_input(input, &input_parts);
 
-  if (input_part_count == EMPTY_PATH) {
-    return EMPTY_PATH;
+  if (input_part_count == F12_EMPTY_PATH) {
+    return F12_EMPTY_PATH;
   }
   
   *path = malloc(sizeof(struct f12_path));
@@ -184,10 +184,10 @@ int f12_parse_path(const char *input, struct f12_path **path)
  * path_a: a pointer to a f12_path structure
  * path_b: a pointer to a f12_path structure
  *
- * returns: PATHS_EQUAL if both structures describe the same file path
- *          PATHS_SECOND if the second path describes a parent directory of the
+ * returns: F12_PATHS_EQUAL if both structures describe the same file path
+ *          F12_PATHS_SECOND if the second path describes a parent directory of the
  *          first path
- *          PATHS_FIRST if the first path describes a parent directory of the
+ *          F12_PATHS_FIRST if the first path describes a parent directory of the
  *          second path
  */
 int f12_path_get_parent(struct f12_path *path_a, struct f12_path *path_b)
@@ -196,21 +196,21 @@ int f12_path_get_parent(struct f12_path *path_a, struct f12_path *path_b)
     if (path_b->descendant == NULL) {
       if (path_a->descendant == NULL) {
 	// Both are equal
-	return PATHS_EQUAL;
+	return F12_PATHS_EQUAL;
       }
       
-      return PATHS_SECOND;
+      return F12_PATHS_SECOND;
     }
 
     if (path_a->descendant == NULL) {
-      return PATHS_FIRST;
+      return F12_PATHS_FIRST;
     }
 
     path_a = path_a->descendant;
     path_b = path_b->descendant; 
   }
 
-  return PATHS_UNRELATED; 
+  return F12_PATHS_UNRELATED; 
 }
 
 /*
