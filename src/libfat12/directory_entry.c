@@ -206,19 +206,77 @@ int f12_free_entry(struct f12_directory_entry *entry)
  * Function: f12_move_entry
  * ------------------------
  * Remove the entry src from the parent and make it a child of the entry dest.
+ * If src points to the "." entry, all siblings of the entry (except "..") will
+ * be moved.
  *
  * src: a pointer to the f12_directory_entry structure that should be moved
  * dest: a pointer to the f12_directory_entry structure that should be the new
  *       parent of src
  *
  * returns: 0 on success
- *          F12_NOT_A_DIR if src or dest are files and not directories
- *          F12_RELATION_PROBLEM if the relationship of src and dest does not
- *                               allow src to  become a child of dest
- *
+ *          F12_NOT_A_DIR if dest is a files and not a directory
+ *          F12_DIR_FULL if all entries in dest are used
  */
 int f12_move_entry(struct f12_directory_entry *src,
 		   struct f12_directory_entry *dest)
 {
+  int dest_free_entries;
+  int entries_to_move;
+  struct f12_directory_entry *child, *free_entry;
   
+  if (!f12_is_directory(dest)) {
+    return F12_NOT_A_DIR;
+  }
+
+  dest_free_entries = dest->child_count - f12_get_child_count(dest);
+
+  if (0 == memcmp(src->ShortFileName, ".       ", 8) &&
+      0 == memcmp(src->ShortFileExtension, "   ", 3) &&
+      f12_is_directory(src)) {
+    entries_to_move = f12_get_child_count(src->parent) - 2;
+  } else {
+    entries_to_move = 1;
+  }
+
+  if (entries_to_move > dest_free_entries) {
+    return F12_DIR_FULL;
+  }
+
+  if (0 == memcmp(src->ShortFileName, ".       ", 8) &&
+      0 == memcmp(src->ShortFileExtension, "   ", 3) &&
+      f12_is_directory(src)) {
+    for (int i=0; i<src->parent->child_count; i++) {
+      child = &src->parent->children[i];
+      if (f12_entry_is_empty(child) || f12_is_dot_dir(child)) {
+	continue;
+      }
+      child->parent = dest;
+
+      for (int j = 0; j<dest->child_count; j++) {
+	if (!f12_entry_is_empty(&dest->children[j])) {
+	  continue;
+	}
+	memmove(&dest->children[j], child, sizeof(struct f12_directory_entry));
+	memset(child, 0, sizeof(struct f12_directory_entry));
+      }    
+    }
+
+    return 0;
+  }
+
+  src->parent = dest;
+  if (NULL == (free_entry = get_free_entry(dest))) {
+    return F12_DIR_FULL;
+  }
+
+  for (int i = 0; i < src->child_count; i++) {
+    if (f12_entry_is_empty(&src->children[i])) {
+      continue;
+    }
+    src->children[i].parent = free_entry;
+  }
+  
+  memmove(free_entry, src, sizeof(struct f12_directory_entry));
+  memset(src, 0, sizeof(struct f12_directory_entry));
+      
 }
