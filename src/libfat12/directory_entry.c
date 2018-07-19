@@ -4,6 +4,31 @@
 #include "libfat12.h"
 
 /*
+ * Function: get_free_entry
+ * ------------------------------
+ * Get a free entry of a directory.
+ *
+ * dir: a pointer to the f12_directory_entry structure describing the directory.
+ *
+ * returns: a pointer to the first free entry or 
+ *          NULL if there are no free entries or dir is a file         
+ */
+static struct f12_directory_entry * get_free_entry(struct f12_directory_entry *dir)
+{
+  if (!f12_is_directory(dir)) {
+    return NULL;
+  }
+  
+  for (int i = 0; i < dir->child_count; i++) {
+    if (f12_entry_is_empty(&dir->children[i])) {
+      return &dir->children[i];
+    }
+  }
+
+  return NULL;
+}
+
+/*
  * Function: f12_is_directory
  * --------------------------
  * Check whether a f12_directory_entry structure describes a file or a directory
