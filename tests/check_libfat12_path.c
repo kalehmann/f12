@@ -30,10 +30,10 @@ START_TEST(test_f12_path_get_parent)
   f12_parse_path("/TEST/FOO/BAR", &path_a);
   f12_parse_path("/DIR/TEST", &path_c);
 
-  ck_assert_int_eq(PATHS_SECOND, f12_path_get_parent(path_a, path_b));
-  ck_assert_int_eq(PATHS_FIRST, f12_path_get_parent(path_b, path_a));
-  ck_assert_int_eq(PATHS_EQUAL, f12_path_get_parent(path_a, path_a));
-  ck_assert_int_eq(PATHS_UNRELATED, f12_path_get_parent(path_a, path_c));
+  ck_assert_int_eq(F12_PATHS_SECOND, f12_path_get_parent(path_a, path_b));
+  ck_assert_int_eq(F12_PATHS_FIRST, f12_path_get_parent(path_b, path_a));
+  ck_assert_int_eq(F12_PATHS_EQUAL, f12_path_get_parent(path_a, path_a));
+  ck_assert_int_eq(F12_PATHS_UNRELATED, f12_path_get_parent(path_a, path_c));
   
   f12_free_path(path_a);
   f12_free_path(path_b);

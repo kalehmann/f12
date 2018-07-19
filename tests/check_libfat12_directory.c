@@ -1,14 +1,9 @@
 #include <check.h>
 #include <stdlib.h>
+#include <string.h>
+
 #include "tests.h"
 #include "../src/libfat12/libfat12.h"
-
-static void zero_mem(void *ptr, size_t size)
-{
-  for (int i=0; i<size; i++) {
-    *((char *)(ptr + i)) = 0;
-  }
-}
 
 /*
  * |-> SUBDIR1
@@ -40,12 +35,14 @@ void setup(void)
   
   dir = malloc(sizeof(struct f12_directory_entry));
   ck_assert_ptr_nonnull(dir);
-  zero_mem(dir, sizeof(struct f12_directory_entry));
+  memset(dir, 0, sizeof(struct f12_directory_entry));
 
+  dir->FileAttributes = F12_ATTR_SUBDIRECTORY;
   dir->child_count = 8;
+  dir->parent = NULL;
   dir->children = malloc(sizeof(struct f12_directory_entry) * 8);
   ck_assert_ptr_nonnull(dir->children);
-  zero_mem(dir->children, sizeof(struct f12_directory_entry) * 8);
+  memset(dir->children, 0, sizeof(struct f12_directory_entry) * 8);
 
   for (int i=0; i<3; i++) {
     child = &dir->children[i];
@@ -54,11 +51,13 @@ void setup(void)
     memmove(&child->ShortFileName, "SUBDIR0 ", 8);
     child->ShortFileName[6] += i + 1;
     memmove(&child->ShortFileExtension, "   ", 3);
+    child->parent = dir;
     child->child_count = 4;
     child->children = malloc(sizeof(struct f12_directory_entry) * 4);
     ck_assert_ptr_nonnull(child->children);
-    zero_mem(child->children, sizeof(struct f12_directory_entry) * 4);
+    memset(child->children, 0, sizeof(struct f12_directory_entry) * 4);
     for (int j=0; j<2; j++) {
+      child->children[j].parent = child;
       child->children[j].FileAttributes = F12_ATTR_SUBDIRECTORY;
       if (j==0) {
 	memmove(&child->children[j].ShortFileName, ".       ", 8);
@@ -70,6 +69,7 @@ void setup(void)
     
     memmove(&child->children[2].ShortFileName, "DATA0   ", 8);
     memmove(&child->children[2].ShortFileExtension, "BIN", 3);
+    child->children[2].parent = child;
   }
  
   for (int i=3; i<7; i++) {
@@ -134,18 +134,43 @@ START_TEST(test_f12_get_directory_count)
 }
 END_TEST
 
+START_TEST(test_f12_move_entry)
+{
+  struct f12_directory_entry *subdir2 = &dir->children[1];
+  struct f12_directory_entry *subdir2_data0 = &dir->children[1].children[2];
+
+  /* try to move a directory into a file */
+  ck_assert_int_eq(f12_move_entry(&dir->children[0], &dir->children[3]),
+		   F12_NOT_A_DIR);
+
+  /* move subdir2 into subdir1 */
+  f12_move_entry(&dir->children[1], &dir->children[0]);
+  ck_assert_mem_eq(&dir->children[0].children[3].ShortFileName, "SUBDIR2 ", 8);
+
+  /* move all children of subdir2 (DATA0.BIN) into subdir3 */
+  f12_move_entry(&dir->children[0].children[3].children[0], &dir->children[2]);
+  ck_assert_mem_eq(&dir->children[2].children[3].ShortFileName, "DATA0   ", 8);
+
+  /* try to move a file into a full directory */
+  ck_assert_int_eq(f12_move_entry(&dir->children[3], &dir->children[0]),
+		   F12_DIR_FULL);
+}
+END_TEST
+
+
 TCase * libfat12_directory_case(void)
 {
   TCase *tc_libfat12_directory;
 
   tc_libfat12_directory = tcase_create("libfat12 directory");
-  tcase_add_unchecked_fixture(tc_libfat12_directory, setup, teardown);
+  tcase_add_checked_fixture(tc_libfat12_directory, setup, teardown);
   tcase_add_test(tc_libfat12_directory, test_f12_is_directory);
   tcase_add_test(tc_libfat12_directory, test_f12_is_dot_dir);
   tcase_add_test(tc_libfat12_directory, test_f12_entry_is_empty);
   tcase_add_test(tc_libfat12_directory, test_f12_get_child_count);
   tcase_add_test(tc_libfat12_directory, test_f12_get_file_count);
   tcase_add_test(tc_libfat12_directory, test_f12_get_directory_count);
+  tcase_add_test(tc_libfat12_directory, test_f12_move_entry);
   
   return tc_libfat12_directory;
 }
