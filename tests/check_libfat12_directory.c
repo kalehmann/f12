@@ -51,11 +51,13 @@ void setup(void)
     memmove(&child->ShortFileName, "SUBDIR0 ", 8);
     child->ShortFileName[6] += i + 1;
     memmove(&child->ShortFileExtension, "   ", 3);
+    child->parent = dir;
     child->child_count = 4;
     child->children = malloc(sizeof(struct f12_directory_entry) * 4);
     ck_assert_ptr_nonnull(child->children);
     memset(child->children, 0, sizeof(struct f12_directory_entry) * 4);
     for (int j=0; j<2; j++) {
+      child->children[j].parent = child;
       child->children[j].FileAttributes = F12_ATTR_SUBDIRECTORY;
       if (j==0) {
 	memmove(&child->children[j].ShortFileName, ".       ", 8);
@@ -67,6 +69,7 @@ void setup(void)
     
     memmove(&child->children[2].ShortFileName, "DATA0   ", 8);
     memmove(&child->children[2].ShortFileExtension, "BIN", 3);
+    child->children[2].parent = child;
   }
  
   for (int i=3; i<7; i++) {
