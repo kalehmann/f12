@@ -46,7 +46,7 @@ struct arguments
 
 error_t parser_create(int key, char *arg, struct argp_state *state)
 {
-  return 0;
+  return ARGP_ERR_UNKNOWN;
 }
 
 static struct argp_option create_options[] = {
@@ -61,7 +61,7 @@ static struct argp argp_create = {create_options, parser_create};
 
 error_t parser_defrag(int key, char *arg, struct argp_state *state)
 {
-  return 0;
+  return ARGP_ERR_UNKNOWN;
 }
 
 static struct argp_option defrag_options[] = {
@@ -80,15 +80,15 @@ error_t parser_del(int key, char *arg, struct argp_state *state)
     {
     case (OPT_DEL_HARD_DELETE):
       del_arguments->hard_delete = 1;
-      break;
+      return 0;
     case (ARGP_KEY_ARG):
       if (del_arguments->path != 0 && del_arguments->path[0] != '\0')
 	argp_usage(state);
       del_arguments->path = arg;
-      break;
+      return 0;
     }
   
-  return 0;
+  return ARGP_ERR_UNKNOWN;
 }
 
 static struct argp_option del_options[] = {
@@ -101,7 +101,7 @@ static struct argp argp_del = {del_options, parser_del};
 
 error_t parser_get(int key, char *arg, struct argp_state *state)
 {
-  return 0;
+  return ARGP_ERR_UNKNOWN;
 }
 
 static struct argp_option get_options[] = {
@@ -120,10 +120,10 @@ error_t parser_info(int key, char *arg, struct argp_state *state)
     {
     case (OPT_INFO_DUMP_BPB):
       info_arguments->dump_bpb = 1;
-      break;
+      return 0;
     }
   
-  return 0;
+  return ARGP_ERR_UNKNOWN;
 }
 
 static struct argp_option info_options[] = {
@@ -144,13 +144,13 @@ error_t parser_list(int key, char *arg, struct argp_state *state)
       if (list_arguments->path != 0 && list_arguments->path[0] != '\0')
 	argp_usage(state);
       list_arguments->path = arg;
-      break;
+      return 0;
     case (OPT_LIST_WITH_SIZE):
       list_arguments->with_size = 1;
-      break;
+      return 0;
     }
   
-  return 0;
+  return ARGP_ERR_UNKNOWN;
 }
 
 static struct argp_option list_options[] = {
@@ -163,7 +163,7 @@ static struct argp argp_list = {list_options, parser_list};
 
 error_t parser_move(int key, char*arg, struct argp_state *state)
 {  
-  return 0;
+  return ARGP_ERR_UNKNOWN;
 }
 
 static struct argp_option move_options[] = {
@@ -175,7 +175,7 @@ static struct argp argp_move = {move_options, parser_move};
 
 error_t parser_put(int key, char *arg, struct argp_state *state)
 {
-  return 0;
+  return ARGP_ERR_UNKNOWN;
 }
 
 static struct argp_option put_options[] = {
@@ -186,7 +186,7 @@ static struct argp argp_put = {put_options, parser_put};
 
 error_t parser_resize(int key, char *arg, struct argp_state *state)
 {
-  return 0;
+  return ARGP_ERR_UNKNOWN;
 }
 
 static struct argp_option resize_options[] = {
