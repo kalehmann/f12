@@ -40,12 +40,11 @@ static int cluster_offset(uint16_t cluster, struct f12_metadata *f12_meta)
 {
   struct bios_parameter_block *bpb = f12_meta->bpb;
   cluster -= 2;
-  int root_start_sector = f12_meta->root_dir_offset;
+  int root_dir_offset = f12_meta->root_dir_offset;
   int root_size = bpb->RootDirEntries * 32 / bpb->SectorSize;
-  int sector_offset = cluster * f12_meta->bpb->SectorsPerCluster + root_start_sector +
-    root_size;
+  int sector_offset = cluster * f12_meta->bpb->SectorsPerCluster + root_size;
 
-  return sector_offset * bpb->SectorSize;
+  return sector_offset * bpb->SectorSize + root_dir_offset;
 }
 
 /*
