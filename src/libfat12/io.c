@@ -789,7 +789,9 @@ int f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
   }
 
   if (1 == hard_delete) {
-    erase_cluster_chain(fp, f12_meta, entry->FirstCluster);
+    if (entry->FirstCluster) {
+      erase_cluster_chain(fp, f12_meta, entry->FirstCluster);
+    }
     erase_entry(entry);
     f12_write_metadata(fp, f12_meta);
 
