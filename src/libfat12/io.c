@@ -20,9 +20,9 @@ static uint16_t read_fat_entry(char *fat, int n)
   uint16_t fat_entry;
   memcpy(&fat_entry, fat + n * 3 / 2, 2);
   if (n % 2) {
-    return fat_entry & 0xfff;
-  } else {
     return fat_entry >> 4;
+  } else {
+    return fat_entry & 0xfff;
   }
 }
 
