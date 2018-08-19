@@ -416,7 +416,13 @@ int main(int argc, char* argv[])
 	}
       break;
     case COMMAND_MOVE:
-
+      arguments.move_arguments->device_path = arguments.device_path;
+      switch (f12_move(arguments.move_arguments, &output))
+	{
+	case 0:
+	  printf(output);
+	  break;
+	}
       break;
     case COMMAND_RESIZE:
 
