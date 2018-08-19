@@ -173,6 +173,8 @@ static int erase_cluster_chain(FILE *fp, struct f12_metadata *f12_meta,
   } while ((current_cluster = fat_entries[current_cluster])
 	   != f12_meta->end_of_chain_marker);
 
+  free(zeros);
+  
   return 0;
 }
 
