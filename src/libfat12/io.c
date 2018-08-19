@@ -165,9 +165,7 @@ static int erase_cluster_chain(FILE *fp, struct f12_metadata *f12_meta,
     return -1;
   }
 
-  for (int i=0; i<cluster_size; i++) {
-    zeros[i] = 0; 
-  }
+  memset(zeros, 0, cluster_size);
 
   do {
     fseek(fp, cluster_offset(current_cluster, f12_meta), SEEK_SET);
@@ -187,12 +185,7 @@ static int erase_cluster_chain(FILE *fp, struct f12_metadata *f12_meta,
  */
 static void erase_entry(struct f12_directory_entry *entry)
 {
-  size_t entry_size = sizeof(struct f12_directory_entry);
-  char *_entry = (char *)entry;
-
-  for (int i =0; i<entry_size; i++) {
-    _entry[i] = 0;
-  }
+  memset(entry, 0, sizeof(struct f12_directory_entry));
 }
 
 /*
