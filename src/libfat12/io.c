@@ -20,9 +20,9 @@ static uint16_t read_fat_entry(char *fat, int n)
   uint16_t fat_entry;
   memcpy(&fat_entry, fat + n * 3 / 2, 2);
   if (n % 2) {
-    return fat_entry & 0xfff;
-  } else {
     return fat_entry >> 4;
+  } else {
+    return fat_entry & 0xfff;
   }
 }
 
@@ -165,9 +165,7 @@ static int erase_cluster_chain(FILE *fp, struct f12_metadata *f12_meta,
     return -1;
   }
 
-  for (int i=0; i<cluster_size; i++) {
-    zeros[i] = 0; 
-  }
+  memset(zeros, 0, cluster_size);
 
   do {
     fseek(fp, cluster_offset(current_cluster, f12_meta), SEEK_SET);
@@ -175,6 +173,8 @@ static int erase_cluster_chain(FILE *fp, struct f12_metadata *f12_meta,
   } while ((current_cluster = fat_entries[current_cluster])
 	   != f12_meta->end_of_chain_marker);
 
+  free(zeros);
+  
   return 0;
 }
 
@@ -187,12 +187,7 @@ static int erase_cluster_chain(FILE *fp, struct f12_metadata *f12_meta,
  */
 static void erase_entry(struct f12_directory_entry *entry)
 {
-  size_t entry_size = sizeof(struct f12_directory_entry);
-  char *_entry = (char *)entry;
-
-  for (int i =0; i<entry_size; i++) {
-    _entry[i] = 0;
-  }
+  memset(entry, 0, sizeof(struct f12_directory_entry));
 }
 
 /*
@@ -447,7 +442,7 @@ static int read_bpb(FILE *fp, struct bios_parameter_block *bpb)
 static int write_to_clusterchain(FILE *fp, void *data, uint16_t first_cluster,
 				 size_t bytes, struct f12_metadata *f12_meta)
 {
-  uint16_t chain_length = get_cluster_chain_length(first_cluster, f12_meta);
+  uint16_t chain_length = get_cluster_chain_size(first_cluster, f12_meta);
   uint16_t written_bytes = 0;
   uint16_t current_cluster = first_cluster;
   uint16_t cluster_size = get_cluster_size(f12_meta);
@@ -550,7 +545,7 @@ static char *create_fat(struct f12_metadata *f12_meta)
   for (int i=0; i<cluster_count; i++) {
     if (i % 2) {
       // Odd cluster
-      cluster = (f12_meta->fat_entries[i] >> 4) | (f12_meta->fat_entries[i-1] << 12);
+      cluster = (f12_meta->fat_entries[i] << 4) | (f12_meta->fat_entries[i-1] >> 8);
       memmove(fat + i * 3 / 2, &cluster, 2);
       continue;
     }
@@ -656,21 +651,27 @@ static int write_fats(FILE *fp, struct f12_metadata *f12_meta)
 static int write_directory(FILE *fp, struct f12_metadata *f12_meta,
 			struct f12_directory_entry *entry)
 {
-  uint16_t first_cluster = entry->FirstCluster;
-  size_t dir_size = get_cluster_chain_length(entry->FirstCluster, f12_meta);
-  char *dir = create_directory(entry, f12_meta, dir_size);
+  if (f12_entry_is_empty(entry)
+      || f12_is_dot_dir(entry)
+      || entry->FirstCluster == 0
+    ) {
+    return 0;
+  }  
   
-  if (NULL == dir) {
-    return -1;
-  }
-
+  uint16_t first_cluster = entry->FirstCluster;
+ 
   for (int i=0; i<entry->child_count; i++) {
     write_directory(fp, f12_meta, &entry->children[i]);
   }
 
+  size_t dir_size = get_cluster_chain_size(entry->FirstCluster, f12_meta);
+  char *dir = create_directory(entry, f12_meta, dir_size);
+  if (NULL == dir) {
+    return -1;
+  }
   write_to_clusterchain(fp, dir, first_cluster, dir_size, f12_meta);
-  
   free(dir);
+  
   return 0;
 }
 
@@ -788,7 +789,9 @@ int f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
   }
 
   if (1 == hard_delete) {
-    erase_cluster_chain(fp, f12_meta, entry->FirstCluster);
+    if (entry->FirstCluster) {
+      erase_cluster_chain(fp, f12_meta, entry->FirstCluster);
+    }
     erase_entry(entry);
     f12_write_metadata(fp, f12_meta);
 
