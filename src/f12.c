@@ -138,7 +138,7 @@ int f12_del(struct f12_del_arguments *args, char **output)
     return 0;
   }
   
-  f12_del_entry(fp, f12_meta, entry, args->hard_delete);
+  f12_del_entry(fp, f12_meta, entry, args->soft_delete);
   
   f12_free_path(path);
   f12_free_metadata(f12_meta);

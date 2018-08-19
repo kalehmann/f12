@@ -21,7 +21,7 @@ struct f12_del_arguments
   char *device_path;
   char *path;
   int recursive;
-  int hard_delete;
+  int soft_delete;
 };
 
 struct f12_get_arguments

@@ -781,22 +781,22 @@ int f12_write_metadata(FILE *fp, struct f12_metadata *f12_meta)
  *          0 on success  
  */
 int f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
-		  struct f12_directory_entry *entry, int hard_delete)
+		  struct f12_directory_entry *entry, int soft_delete)
 {
   struct f12_directory_entry *parent = entry->parent;
   if (f12_is_directory(entry) && entry->child_count > 2) {
     return F12_DIRECTORY_NOT_EMPTY;
   }
 
-  if (1 == hard_delete) {
-    if (entry->FirstCluster) {
-      erase_cluster_chain(fp, f12_meta, entry->FirstCluster);
-    }
-    erase_entry(entry);
-    f12_write_metadata(fp, f12_meta);
-
+  if (1 == soft_delete) {
     return 0;
   }
 
+  if (entry->FirstCluster) {
+    erase_cluster_chain(fp, f12_meta, entry->FirstCluster);
+  }
+  erase_entry(entry);
+  f12_write_metadata(fp, f12_meta);
+  
   return 0;
 }

@@ -19,7 +19,7 @@
 #define OPT_CREATE_VOLUME_NAME 3
 #define OPT_CREATE_VOLUME_SIZE 4
 #define OPT_DEFRAG_SIMULATE 5
-#define OPT_DEL_HARD_DELETE 6
+#define OPT_DEL_SOFT_DELETE 6
 #define OPT_INFO_DUMP_BPB 7
 #define OPT_LIST_WITH_SIZE 8
 #define OPT_RESIZE_SIZE 9
@@ -78,8 +78,8 @@ error_t parser_del(int key, char *arg, struct argp_state *state)
 
   switch (key)
     {
-    case (OPT_DEL_HARD_DELETE):
-      del_arguments->hard_delete = 1;
+    case (OPT_DEL_SOFT_DELETE):
+      del_arguments->soft_delete = 1;
       return 0;
     case (ARGP_KEY_ARG):
       if (del_arguments->path != 0 && del_arguments->path[0] != '\0')
@@ -93,7 +93,7 @@ error_t parser_del(int key, char *arg, struct argp_state *state)
 
 static struct argp_option del_options[] = {
   {"recursive", 'r'},
-  {"hard-delete", OPT_DEL_HARD_DELETE},
+  {"soft-delete", OPT_DEL_SOFT_DELETE},
   {0}
 };
 
