@@ -261,7 +261,78 @@ int f12_list(struct f12_list_arguments *args, char **output)
   
   return 0;
 }
-int f12_move(struct f12_move_arguments *args, char **output);
+int f12_move(struct f12_move_arguments *args, char **output)
+{
+  FILE *fp;
+  int res;
+  char *device_path = args->device_path;
+  struct f12_metadata *f12_meta;
+  struct f12_path *src, *dest;
+  struct f12_directory_entry *src_entry, *dest_entry;
+  
+  *output = malloc(1);
+
+  if (NULL == *output) {
+    return -1;
+  }
+
+  (*output)[0] = 0;
+  
+  if (NULL == (fp = fopen(device_path, "r+"))) {
+    return -1;
+  }
+  
+  res = f12_read_metadata(fp, &f12_meta);
+
+  if (res != 0) {
+    return res;
+  }
+
+  res = f12_parse_path(args->source, &src);
+  if (res == -1) {
+    return -1;
+  }
+  if (res == F12_EMPTY_PATH) {
+    asprintf(output, "Cannot move the root directory\n");
+    return 0;
+  }
+  
+  res = f12_parse_path(args->destination, &dest);
+  if (res == -1) {
+    return -1;
+  }
+
+  switch (f12_path_get_parent(src, dest))
+    {
+    case F12_PATHS_FIRST:
+      asprintf(output, "Cannot move the directory into a child\n");
+      return 0;
+    case F12_PATHS_EQUAL:
+      return 0;
+    }
+
+  src_entry = f12_entry_from_path(f12_meta->root_dir, src);
+
+  if (src_entry == F12_FILE_NOT_FOUND) {
+    asprintf(output, "File or directory %s not found\n", args->source);
+    return 0;
+  }
+
+  dest_entry = f12_entry_from_path(f12_meta->root_dir, dest);
+
+  if (dest_entry == F12_FILE_NOT_FOUND) {
+    asprintf(output, "File or directory %s not found\n", args->destination);
+    return 0;
+  }
+
+  res = f12_move_entry(src_entry, dest_entry);
+
+  f12_write_metadata(fp, f12_meta);
+  f12_free_metadata(f12_meta);
+  fclose(fp);
+  
+  return 0;
+}
 int f12_put(struct f12_put_arguments *args, char **output);
 int f12_resize(struct f12_resize_arguments *args, char **output);
 
