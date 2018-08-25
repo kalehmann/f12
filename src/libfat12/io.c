@@ -784,7 +784,7 @@ int f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
 		  struct f12_directory_entry *entry, int soft_delete)
 {
   struct f12_directory_entry *parent = entry->parent;
-  if (f12_is_directory(entry) && entry->child_count > 2) {
+  if (f12_is_directory(entry) && f12_get_child_count(entry) > 2) {
     return F12_DIRECTORY_NOT_EMPTY;
   }
 

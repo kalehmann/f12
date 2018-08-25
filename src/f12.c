@@ -24,6 +24,31 @@ char *format_bytes(size_t bytes)
   return out;
 }
 
+
+static int recursive_del_entry(FILE *fp,
+			       struct f12_metadata *f12_meta,
+			       struct f12_directory_entry *entry,
+			       int soft_delete)
+{
+  struct f12_directory_entry *child;
+  
+  if (f12_is_directory(entry) && f12_get_child_count(entry) > 2) {
+    for (int i = 0; i < entry->child_count; i++) {
+      child = &entry->children[i];
+      if (f12_entry_is_empty(child) || f12_is_dot_dir(child)) {
+	continue;
+      }
+
+      recursive_del_entry(fp, f12_meta, child, soft_delete);
+    }
+  }
+
+  f12_del_entry(fp, f12_meta, entry, soft_delete);
+
+  return 0;
+}
+
+
 static int info_dump_bpb(struct f12_metadata *f12_meta, char **output)
 {
   struct bios_parameter_block *bpb = f12_meta->bpb;
@@ -137,9 +162,13 @@ int f12_del(struct f12_del_arguments *args, char **output)
     fclose(fp);
     return 0;
   }
-  
-  f12_del_entry(fp, f12_meta, entry, args->soft_delete);
-  
+
+  if (args->recursive) {
+    recursive_del_entry(fp, f12_meta, entry, args->soft_delete);
+  } else {
+    f12_del_entry(fp, f12_meta, entry, args->soft_delete);
+  }
+    
   f12_free_path(path);
   f12_free_metadata(f12_meta);
   fclose(fp);
