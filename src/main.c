@@ -101,11 +101,31 @@ static struct argp argp_del = {del_options, parser_del};
 
 error_t parser_get(int key, char *arg, struct argp_state *state)
 {
+  struct arguments *args = state->input;
+  struct f12_get_arguments *get_arguments = args->get_arguments;
+
+  switch (key)
+    {
+    case 'v':
+      get_arguments->verbose = 1;
+    case (ARGP_KEY_ARG):
+      if (get_arguments->path == 0 || get_arguments->path[0] == '\0') {
+	get_arguments->path = arg;
+	return 0;
+      }
+      if (get_arguments->dest == 0 || get_arguments->dest[0] == '\0') {
+	get_arguments->dest = arg;
+	return 0;
+      }
+	
+      argp_usage(state);
+    }
+  
   return ARGP_ERR_UNKNOWN;
 }
 
 static struct argp_option get_options[] = {
-  {"recursive", 'r'},
+  {"verbose", 'v'},		      
   {0}
 };
 
@@ -200,7 +220,7 @@ static struct argp_child children[] = {
   {&argp_create, 0, "create DEVICE [OPTION...]", 5},
   {&argp_defrag, 0, "defrag DEVICE [OPTION...]", 5},
   {&argp_del, 0, "del DEVICE PATH [OPTION...]", 5},
-  {&argp_get, 0, "get DEVICE PATH [DESTINATION] [OPTION...]", 5},
+  {&argp_get, 0, "get DEVICE PATH DESTINATION", 5},
   {&argp_info, 0, "info DEVICE [OPTION...]", 5},
   {&argp_list, 0, "list DEVICE [PATH] [OPTION...]", 5},
   {&argp_move, 0, "move DEVICE SOURCE DESTINATION [OPTION]", 5},
@@ -305,6 +325,15 @@ error_t parser(int key, char *arg, struct argp_state *state)
 	  argp_usage(state);
 	}
 	break;
+      case COMMAND_GET:
+	if (
+	    arguments->get_arguments->path == 0
+	    || arguments->get_arguments->dest == 0
+	   )
+	  {
+	    argp_usage(state);
+	  }
+	break;
       }
     break;
   }
@@ -360,7 +389,13 @@ int main(int argc, char* argv[])
 	}
       break;
     case COMMAND_GET:
-      
+      arguments.get_arguments->device_path = arguments.device_path;
+      switch(f12_get(arguments.get_arguments, &output))
+	{
+	case 0:
+	  printf(output);
+	  break;
+	}
       break;
     case COMMAND_INFO:
       arguments.info_arguments->device_path = arguments.device_path;
