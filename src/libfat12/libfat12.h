@@ -113,6 +113,8 @@ int f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta);
 int f12_write_metadata(FILE *fp, struct f12_metadata *f12_meta);
 int f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
 		  struct f12_directory_entry *entry, int hard_delete);
+int f12_dump_file(FILE *fp, struct f12_metadata*f12_meta,
+		  struct f12_directory_entry *entry, FILE *dest_fp);
 
 /* metadata.c */
 size_t f12_get_partition_size(struct f12_metadata *f12_meta);

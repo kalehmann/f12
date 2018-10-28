@@ -800,3 +800,42 @@ int f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
   
   return 0;
 }
+
+/*
+ *Function: f12_dump_file
+ *-----------------------
+ * Dump a file from the fat 12 image onto the host file system. 
+ *
+ * fp: the file pointer of the partition
+ * f12_meta: a pointer to the metadata of the partition
+ * entry: a pointer to the f12_directory_entry structure of the file that should be
+ *        be dumped
+ * dest_fp: the file pointer of the destination file.
+ *
+ * returns: -1 on failure
+ *          0 on success
+ */
+int f12_dump_file(FILE *fp, struct f12_metadata*f12_meta,
+		  struct f12_directory_entry *entry, FILE *dest_fp)
+{
+  int offset = cluster_offset(entry->FirstCluster, f12_meta);
+  uint16_t chain_length = get_cluster_chain_length(entry->FirstCluster, f12_meta);
+  size_t cluster_size = get_cluster_size(f12_meta);
+
+  fseek(fp, offset, SEEK_SET);
+
+  void *buffer = malloc(cluster_size);
+
+  if (buffer == NULL) {
+    return -1;
+  }
+  
+  for (uint16_t i=0; i<chain_length; i++) {
+    fread(buffer, cluster_size, 1, fp);
+    fwrite(buffer, cluster_size, 1, dest_fp);
+  }
+
+  free(buffer);
+
+  return 0;
+}
