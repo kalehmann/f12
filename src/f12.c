@@ -1,8 +1,12 @@
 /* Use the not posix conform function asprintf */
 #define _GNU_SOURCE
+
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "f12.h"
 #include "libfat12/libfat12.h"
@@ -48,6 +52,55 @@ static int recursive_del_entry(FILE *fp,
   return 0;
 }
 
+static int dump_f12_structure(FILE *fp,
+			      struct f12_metadata * f12_meta,
+			      struct f12_directory_entry *entry,
+			      char *dest_path,
+			      int verbose)
+{
+  struct f12_directory_entry *child_entry;
+  char *entry_path;
+  
+  if (!f12_is_directory(entry)) {
+    FILE *dest_fp = fopen(dest_path, "w");
+    f12_dump_file(fp, f12_meta, entry, dest_fp);
+    fclose(dest_fp);  
+  
+    return 0;
+  }
+
+  if (0 != mkdir(dest_path, 0777)) {
+    if (errno != EEXIST) {
+      return -1;
+    }
+  }
+
+  for (int i=0; i<entry->child_count; i++) {
+    child_entry = &entry->children[i];
+
+    if (f12_entry_is_empty(child_entry)
+	|| f12_is_dot_dir(child_entry)
+    ) {
+      continue;
+    }
+    
+    char *child_name = f12_get_file_name(child_entry);
+    if (-1 == asprintf(&entry_path, "%s/%s",
+		       dest_path, child_name)) {
+      return -1;
+    }
+    
+    if (verbose) {
+      printf("%s\n", entry_path);
+    }
+   
+    free(child_name);
+    dump_f12_structure(fp, f12_meta, child_entry, entry_path, verbose);
+    free(entry_path);
+  }
+    
+  return 0;
+}
 
 static int info_dump_bpb(struct f12_metadata *f12_meta, char **output)
 {
@@ -175,7 +228,46 @@ int f12_del(struct f12_del_arguments *args, char **output)
   
   return 0;
 }
-int f12_get(struct f12_get_arguments *args, char **output);
+int f12_get(struct f12_get_arguments *args, char **output)
+{
+  FILE *fp;
+  int res;
+
+  struct f12_metadata *f12_meta;
+
+  if (NULL == (fp = fopen(args->device_path, "r+"))) {
+    return -1;
+  }
+
+  res = f12_read_metadata(fp, &f12_meta);
+
+  if (res != 0) {
+    fclose(fp);
+    return res;
+  }
+
+  struct f12_path *src_path;
+
+  res  = f12_parse_path(args->path, &src_path);
+  if (res == -1) {
+    fclose(fp);
+    return -1;
+  }
+
+  struct f12_directory_entry *entry = f12_entry_from_path(f12_meta->root_dir,
+							  src_path);
+  if (entry == F12_FILE_NOT_FOUND) {
+    asprintf(output, "The file %s was not found on the device\n", args->path);
+    fclose(fp);
+    return 0;
+  }
+
+  dump_f12_structure(fp, f12_meta, entry, args->dest, args->verbose);
+  
+  fclose(fp);
+  return 0;
+}
+
 int f12_info(struct f12_info_arguments *args, char ** output)
 {  
   FILE *fp;

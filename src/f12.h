@@ -28,6 +28,8 @@ struct f12_get_arguments
 {
   char *device_path;
   char *path;
+  char *dest;
+  int verbose;
 };
 
 struct f12_info_arguments
