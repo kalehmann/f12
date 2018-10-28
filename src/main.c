@@ -161,8 +161,28 @@ static struct argp_option list_options[] = {
 
 static struct argp argp_list = {list_options, parser_list};
 
-error_t parser_move(int key, char*arg, struct argp_state *state)
+error_t parser_move(int key, char *arg, struct argp_state *state)
 {  
+  struct arguments *args =  state->input;
+  struct f12_move_arguments *move_arguments = args->move_arguments;
+
+  switch (key)
+    {
+    case ARGP_KEY_ARG:
+      if (move_arguments->source == 0) {
+	move_arguments->source = arg;
+
+	return 0;
+      }
+      if (move_arguments->destination == 0) {
+	move_arguments->destination = arg;
+
+	return 0;
+      }
+
+      argp_usage(state);
+    }
+
   return ARGP_ERR_UNKNOWN;
 }
 
@@ -238,6 +258,8 @@ int parse_key_arg(char *arg, struct argp_state *state)
     return parser_info(ARGP_KEY_ARG, arg, state);
   case COMMAND_LIST:
     return parser_list(ARGP_KEY_ARG, arg, state);
+  case COMMAND_MOVE:
+    return parser_move(ARGP_KEY_ARG, arg, state);
   }
 }
 
@@ -302,6 +324,12 @@ error_t parser(int key, char *arg, struct argp_state *state)
 	break;
       case COMMAND_DEL:
 	if (arguments->del_arguments->path == 0) {
+	  argp_usage(state);
+	}
+	break;
+      case COMMAND_MOVE:
+	if (arguments->move_arguments->source == 0 ||
+	    arguments->move_arguments->destination == 0) {
 	  argp_usage(state);
 	}
 	break;
@@ -388,7 +416,13 @@ int main(int argc, char* argv[])
 	}
       break;
     case COMMAND_MOVE:
-
+      arguments.move_arguments->device_path = arguments.device_path;
+      switch (f12_move(arguments.move_arguments, &output))
+	{
+	case 0:
+	  printf(output);
+	  break;
+	}
       break;
     case COMMAND_RESIZE:
 
