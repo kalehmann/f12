@@ -334,6 +334,12 @@ error_t parser(int key, char *arg, struct argp_state *state)
 	    argp_usage(state);
 	  }
 	break;
+      case COMMAND_MOVE:
+	if (arguments->move_arguments->source == 0 ||
+	    arguments->move_arguments->destination == 0) {
+	  argp_usage(state);
+	}
+	break;
       }
     break;
   }
