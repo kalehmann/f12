@@ -301,30 +301,32 @@ int f12_move(struct f12_move_arguments *args, char **output)
   if (res == -1) {
     return -1;
   }
+  if (res == F12_EMPTY_PATH) {
+	  dest_entry = f12_meta->root_dir;
+  } else {
+    switch (f12_path_get_parent(src, dest))
+      {
+      case F12_PATHS_FIRST:
+	      asprintf(output, "Cannot move the directory into a child\n");
+	      return 0;
+      case F12_PATHS_EQUAL:
+	      return 0;
+      }
+    
+    dest_entry = f12_entry_from_path(f12_meta->root_dir, dest);
 
-  switch (f12_path_get_parent(src, dest))
-    {
-    case F12_PATHS_FIRST:
-      asprintf(output, "Cannot move the directory into a child\n");
-      return 0;
-    case F12_PATHS_EQUAL:
-      return 0;
+    if (dest_entry == F12_FILE_NOT_FOUND) {
+	    asprintf(output, "File or directory %s not found\n", args->destination);
+	    return 0;
     }
-
+  }
+  
   src_entry = f12_entry_from_path(f12_meta->root_dir, src);
 
   if (src_entry == F12_FILE_NOT_FOUND) {
     asprintf(output, "File or directory %s not found\n", args->source);
     return 0;
   }
-
-  dest_entry = f12_entry_from_path(f12_meta->root_dir, dest);
-
-  if (dest_entry == F12_FILE_NOT_FOUND) {
-    asprintf(output, "File or directory %s not found\n", args->destination);
-    return 0;
-  }
-
   res = f12_move_entry(src_entry, dest_entry);
 
   f12_write_metadata(fp, f12_meta);
