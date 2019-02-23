@@ -39,7 +39,8 @@ static int recursive_del_entry(FILE *fp,
         if (f12_is_directory(entry) && f12_get_child_count(entry) > 2) {
                 for (int i = 0; i < entry->child_count; i++) {
                         child = &entry->children[i];
-                        if (f12_entry_is_empty(child) || f12_is_dot_dir(child)) {
+                        if (f12_entry_is_empty(child) ||
+                            f12_is_dot_dir(child)) {
                                 continue;
                         }
 
@@ -95,7 +96,8 @@ static int dump_f12_structure(FILE *fp,
                 }
 
                 free(child_name);
-                dump_f12_structure(fp, f12_meta, child_entry, entry_path, verbose);
+                dump_f12_structure(fp, f12_meta, child_entry, entry_path,
+                                   verbose);
                 free(entry_path);
         }
 
@@ -129,11 +131,13 @@ static int info_dump_bpb(struct f12_metadata *f12_meta, char **output)
                 "  Volume label:\t\t\t%s\n"
                 "  File system:\t\t\t%s\n";
 
-        asprintf(output, text, bpb->OEMLabel, bpb->SectorSize, bpb->SectorsPerCluster,
+        asprintf(output, text, bpb->OEMLabel, bpb->SectorSize,
+                 bpb->SectorsPerCluster,
                  bpb->ReservedForBoot, bpb->NumberOfFats, bpb->RootDirEntries,
                  bpb->LogicalSectors, bpb->MediumByte, bpb->SectorsPerFat,
                  bpb->SectorsPerTrack, bpb->NumberOfHeads, bpb->HiddenSectors,
-                 bpb->LargeSectors, bpb->DriveNumber, bpb->Flags, bpb->Signature,
+                 bpb->LargeSectors, bpb->DriveNumber, bpb->Flags,
+                 bpb->Signature,
                  bpb->VolumeID, bpb->VolumeLabel, bpb->FileSystem);
 
         return 0;
@@ -159,9 +163,11 @@ static int list_f12_entry(struct f12_directory_entry *entry, char **output,
         free(temp);
         free(name);
 
-        if (args->recursive && f12_is_directory(entry) && !f12_is_dot_dir(entry)) {
+        if (args->recursive && f12_is_directory(entry) &&
+            !f12_is_dot_dir(entry)) {
                 for (int i = 0; i < entry->child_count; i++) {
-                        list_f12_entry(&entry->children[i], output, args, depth + 2);
+                        list_f12_entry(&entry->children[i], output, args,
+                                       depth + 2);
                 }
         }
 
@@ -169,10 +175,12 @@ static int list_f12_entry(struct f12_directory_entry *entry, char **output,
 }
 
 static void list_root_dir_entries(struct f12_metadata *f12_meta,
-                                  struct f12_list_arguments *args, char **output)
+                                  struct f12_list_arguments *args,
+                                  char **output)
 {
         for (int i = 0; i < f12_meta->root_dir->child_count; i++) {
-                list_f12_entry(&f12_meta->root_dir->children[i], output, args, 0);
+                list_f12_entry(&f12_meta->root_dir->children[i], output, args,
+                               0);
         }
 }
 
@@ -210,10 +218,12 @@ int f12_del(struct f12_del_arguments *args, char **output)
                 return 0;
         }
 
-        struct f12_directory_entry *entry = f12_entry_from_path(f12_meta->root_dir, path);
+        struct f12_directory_entry *entry = f12_entry_from_path(
+                f12_meta->root_dir, path);
 
         if (entry == F12_FILE_NOT_FOUND) {
-                asprintf(output, "The file %s was not found on the device\n", args->path);
+                asprintf(output, "The file %s was not found on the device\n",
+                         args->path);
                 fclose(fp);
                 return 0;
         }
@@ -257,10 +267,12 @@ int f12_get(struct f12_get_arguments *args, char **output)
                 return -1;
         }
 
-        struct f12_directory_entry *entry = f12_entry_from_path(f12_meta->root_dir,
-                                                                src_path);
+        struct f12_directory_entry *entry = f12_entry_from_path(
+                f12_meta->root_dir,
+                src_path);
         if (entry == F12_FILE_NOT_FOUND) {
-                asprintf(output, "The file %s was not found on the device\n", args->path);
+                asprintf(output, "The file %s was not found on the device\n",
+                         args->path);
                 fclose(fp);
                 return 0;
         }
@@ -358,7 +370,8 @@ int f12_list(struct f12_list_arguments *args, char **output)
                         return 0;
                 }
 
-                struct f12_directory_entry *entry = f12_entry_from_path(f12_meta->root_dir, path);
+                struct f12_directory_entry *entry = f12_entry_from_path(
+                        f12_meta->root_dir, path);
                 f12_free_path(path);
 
                 if (F12_FILE_NOT_FOUND == entry) {
@@ -368,7 +381,8 @@ int f12_list(struct f12_list_arguments *args, char **output)
 
                 if (f12_is_directory(entry)) {
                         for (int i = 0; i < entry->child_count; i++) {
-                                list_f12_entry(&entry->children[i], output, args, 0);
+                                list_f12_entry(&entry->children[i], output,
+                                               args, 0);
                         }
 
                         return 0;
@@ -386,7 +400,80 @@ int f12_list(struct f12_list_arguments *args, char **output)
         return 0;
 }
 
-int f12_move(struct f12_move_arguments *args, char **output);
+int f12_move(struct f12_move_arguments *args, char **output)
+{
+        FILE *fp;
+        int res;
+        char *device_path = args->device_path;
+        struct f12_metadata *f12_meta;
+        struct f12_path *src, *dest;
+        struct f12_directory_entry *src_entry, *dest_entry;
+
+        *output = malloc(1);
+
+        if (NULL == *output) {
+                return -1;
+        }
+
+        (*output)[0] = 0;
+
+        if (NULL == (fp = fopen(device_path, "r+"))) {
+                return -1;
+        }
+
+        res = f12_read_metadata(fp, &f12_meta);
+
+        if (res != 0) {
+                return res;
+        }
+
+        res = f12_parse_path(args->source, &src);
+        if (res == -1) {
+                return -1;
+        }
+        if (res == F12_EMPTY_PATH) {
+                asprintf(output, "Cannot move the root directory\n");
+                return 0;
+        }
+
+        res = f12_parse_path(args->destination, &dest);
+        if (res == -1) {
+                return -1;
+        }
+
+        switch (f12_path_get_parent(src, dest)) {
+                case F12_PATHS_FIRST:
+                        asprintf(output,
+                                 "Cannot move the directory into a child\n");
+                        return 0;
+                case F12_PATHS_EQUAL:
+                        return 0;
+        }
+
+        src_entry = f12_entry_from_path(f12_meta->root_dir, src);
+
+        if (src_entry == F12_FILE_NOT_FOUND) {
+                asprintf(output, "File or directory %s not found\n",
+                         args->source);
+                return 0;
+        }
+
+        dest_entry = f12_entry_from_path(f12_meta->root_dir, dest);
+
+        if (dest_entry == F12_FILE_NOT_FOUND) {
+                asprintf(output, "File or directory %s not found\n",
+                         args->destination);
+                return 0;
+        }
+
+        res = f12_move_entry(src_entry, dest_entry);
+
+        f12_write_metadata(fp, f12_meta);
+        f12_free_metadata(f12_meta);
+        fclose(fp);
+
+        return 0;
+}
 
 int f12_put(struct f12_put_arguments *args, char **output);
 

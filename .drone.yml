@@ -2,7 +2,7 @@ platform: linux/arm
 
 pipeline:
   tests:
-    image: karsten/f12-testing:arm
+    image: registry.banana.pi:5000/f12-testing:arm
     commands:
       - autoreconf --install
       - ./configure

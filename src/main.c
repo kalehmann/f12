@@ -182,6 +182,25 @@ static struct argp argp_list = {list_options, parser_list};
 
 error_t parser_move(int key, char *arg, struct argp_state *state)
 {
+        struct arguments *args = state->input;
+        struct f12_move_arguments *move_arguments = args->move_arguments;
+
+        switch (key) {
+                case ARGP_KEY_ARG:
+                        if (move_arguments->source == 0) {
+                                move_arguments->source = arg;
+
+                                return 0;
+                        }
+                        if (move_arguments->destination == 0) {
+                                move_arguments->destination = arg;
+
+                                return 0;
+                        }
+
+                        argp_usage(state);
+        }
+
         return ARGP_ERR_UNKNOWN;
 }
 
