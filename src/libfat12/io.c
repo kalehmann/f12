@@ -753,6 +753,7 @@ int f12_dump_file(FILE *fp, struct f12_metadata *f12_meta,
         int offset = cluster_offset(entry->FirstCluster, f12_meta);
         uint16_t chain_length = get_cluster_chain_length(entry->FirstCluster, f12_meta);
         size_t cluster_size = get_cluster_size(f12_meta);
+        uint32_t file_size = entry->FileSize;
 
         fseek(fp, offset, SEEK_SET);
 
@@ -764,7 +765,10 @@ int f12_dump_file(FILE *fp, struct f12_metadata *f12_meta,
 
         for (uint16_t i = 0; i < chain_length; i++) {
                 fread(buffer, cluster_size, 1, fp);
-                fwrite(buffer, cluster_size, 1, dest_fp);
+                if (i == chain_length - 1) {
+                        // Last cluster
+                        fwrite(buffer, file_size % cluster_size, 1, dest_fp);
+                }
         }
 
         free(buffer);
