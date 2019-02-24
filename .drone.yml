@@ -7,3 +7,4 @@ pipeline:
       - autoreconf --install
       - ./configure
       - make check || (cat tests/test-suite.log && exit 1)
+      - /usr/local/bin/bats tests/functional.bats
