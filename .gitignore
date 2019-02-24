@@ -7,6 +7,9 @@
 !*/
 !src
 !tests
+!tests/fixtures/test.img.bak
+!tests/*.bats
+!createDummyImage.sh
 
 # Do not ignore the files needed for dron
 !.drone.yml
