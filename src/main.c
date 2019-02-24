@@ -213,6 +213,26 @@ static struct argp argp_move = {move_options, parser_move};
 
 error_t parser_put(int key, char *arg, struct argp_state *state)
 {
+        struct arguments *args =  state->input;
+        struct f12_move_arguments *move_arguments = args->move_arguments;
+
+        switch (key)
+        {
+                case ARGP_KEY_ARG:
+                        if (move_arguments->source == 0) {
+                                move_arguments->source = arg;
+
+                                return 0;
+                        }
+                        if (move_arguments->destination == 0) {
+                                move_arguments->destination = arg;
+
+                                return 0;
+                        }
+
+                        argp_usage(state);
+        }
+
         return ARGP_ERR_UNKNOWN;
 }
 
@@ -275,6 +295,8 @@ int parse_key_arg(char *arg, struct argp_state *state)
                         return parser_info(ARGP_KEY_ARG, arg, state);
                 case COMMAND_LIST:
                         return parser_list(ARGP_KEY_ARG, arg, state);
+                case COMMAND_MOVE:
+                        return parser_move(ARGP_KEY_ARG, arg, state);
         }
 }
 
@@ -444,7 +466,13 @@ int main(int argc, char *argv[])
                         }
                         break;
                 case COMMAND_MOVE:
-
+                        arguments.move_arguments->device_path = arguments.device_path;
+                        switch (f12_move(arguments.move_arguments, &output))
+                        {
+                                case 0:
+                                        printf(output);
+                                        break;
+                        }
                         break;
                 case COMMAND_RESIZE:
 

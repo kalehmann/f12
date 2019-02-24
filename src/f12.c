@@ -475,7 +475,10 @@ int f12_move(struct f12_move_arguments *args, char **output)
         return 0;
 }
 
-int f12_put(struct f12_put_arguments *args, char **output);
+int f12_put(struct f12_put_arguments *args, char **output)
+{
+        return 0;
+}
 
 int f12_resize(struct f12_resize_arguments *args, char **output);
 
