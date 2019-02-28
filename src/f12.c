@@ -7,6 +7,8 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <fts.h>
+#include <libgen.h>
 
 #include "f12.h"
 #include "libfat12/libfat12.h"
@@ -182,6 +184,65 @@ static void list_root_dir_entries(struct f12_metadata *f12_meta,
                 list_f12_entry(&f12_meta->root_dir->children[i], output, args,
                                0);
         }
+}
+
+static void walk_dir(FILE *fp, const char *path, const char *dest,
+                     struct f12_metadata *f12_meta)
+{
+        char *src_path;
+        char putpath[1024];
+        char *paths[] = {path, NULL};
+
+        FTS *ftsp = fts_open(paths, FTS_PHYSICAL | FTS_NOCHDIR, NULL);
+        FTSENT *ent;
+
+        if (ftsp == NULL) {
+                perror("fts_open");
+                exit(EXIT_FAILURE);
+        }
+
+        while (1) {
+                ent = fts_read(
+                        ftsp); // get next entry (could be file or directory).
+                if (ent == NULL) {
+                        if (errno == 0)
+                                break; // No more items, bail out of while loop
+                        else {
+                                // fts_read() had an error.
+                                perror("fts_read");
+                                exit(EXIT_FAILURE);
+                        }
+                }
+
+                if (ent->fts_info & FTS_F) {
+                        int res;
+                        FILE *src;
+                        src_path = ent->fts_path + strlen(path);
+                        memcpy(putpath, dest, strlen(dest));
+                        memcpy(putpath + strlen(dest), src_path, strlen(src_path) + 1);
+
+                        printf("Putting %s -> %s\n", src_path, putpath);
+                        if (NULL == (src = fopen(ent->fts_path, "r"))) {
+                                printf("Cannot open source file %s\n", ent->fts_path);
+                                exit(0);
+                        }
+                        struct f12_path *dest;
+                        res = f12_parse_path(putpath, &dest);
+                        if (res == -1) {
+                                exit(0);
+                        }
+                        if (res == F12_EMPTY_PATH) {
+                                printf("Cannot replace root directory\n");
+                                exit(0);
+                        }
+
+                        res = f12_create_file(fp, f12_meta, dest, src);
+                }
+        }
+
+        // close fts and check for error closing.
+        if (fts_close(ftsp) == -1)
+                perror("fts_close");
 }
 
 int f12_create(struct f12_create_arguments *args, char **output);
@@ -477,6 +538,63 @@ int f12_move(struct f12_move_arguments *args, char **output)
 
 int f12_put(struct f12_put_arguments *args, char **output)
 {
+        FILE *fp, *src;
+        int res;
+        char *device_path = args->device_path;
+        struct f12_metadata *f12_meta;
+        struct f12_path *dest;
+
+        *output = malloc(1);
+
+        if (NULL == *output) {
+                return -1;
+        }
+
+        (*output)[0] = 0;
+
+        if (NULL == (fp = fopen(device_path, "r+"))) {
+                return -1;
+        }
+
+        res = f12_read_metadata(fp, &f12_meta);
+
+        if (res != 0) {
+                return res;
+        }
+
+        struct stat sb;
+
+        if (0 != stat(args->source, &sb)) {
+                asprintf(output, "Cannot open source file\n");
+                return 0;
+        }
+
+        if (S_ISDIR(sb.st_mode)) {
+                walk_dir(fp, args->source, args->destination, f12_meta);
+        } else if (S_ISREG(sb.st_mode)) {
+                if (NULL == (src = fopen(args->source, "r"))) {
+                        asprintf(output, "Cannot open source file\n");
+                        return 0;
+                }
+                res = f12_parse_path(args->destination, &dest);
+                if (res == -1) {
+                        return -1;
+                }
+                if (res == F12_EMPTY_PATH) {
+                        asprintf(output, "Cannot replace root directory\n");
+                        return 0;
+                }
+
+                res = f12_create_file(fp, f12_meta, dest, src);
+        } else {
+                asprintf(output, "Source file has unsupported type\n");
+                return 0;
+        }
+
+        f12_write_metadata(fp, f12_meta);
+        f12_free_metadata(f12_meta);
+        fclose(fp);
+
         return 0;
 }
 

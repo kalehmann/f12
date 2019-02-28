@@ -213,19 +213,18 @@ static struct argp argp_move = {move_options, parser_move};
 
 error_t parser_put(int key, char *arg, struct argp_state *state)
 {
-        struct arguments *args =  state->input;
-        struct f12_move_arguments *move_arguments = args->move_arguments;
+        struct arguments *args = state->input;
+        struct f12_put_arguments *put_arguments = args->put_arguments;
 
-        switch (key)
-        {
+        switch (key) {
                 case ARGP_KEY_ARG:
-                        if (move_arguments->source == 0) {
-                                move_arguments->source = arg;
+                        if (put_arguments->source == 0) {
+                                put_arguments->source = arg;
 
                                 return 0;
                         }
-                        if (move_arguments->destination == 0) {
-                                move_arguments->destination = arg;
+                        if (put_arguments->destination == 0) {
+                                put_arguments->destination = arg;
 
                                 return 0;
                         }
@@ -297,6 +296,8 @@ int parse_key_arg(char *arg, struct argp_state *state)
                         return parser_list(ARGP_KEY_ARG, arg, state);
                 case COMMAND_MOVE:
                         return parser_move(ARGP_KEY_ARG, arg, state);
+                case COMMAND_PUT:
+                        return parser_put(ARGP_KEY_ARG, arg, state);
         }
 }
 
@@ -379,6 +380,16 @@ error_t parser(int key, char *arg, struct argp_state *state)
                                             0 ||
                                             arguments->move_arguments->destination ==
                                             0) {
+                                                argp_usage(state);
+                                        }
+                                        break;
+                                case COMMAND_PUT:
+                                        if (arguments->put_arguments->source ==
+                                            0
+                                            ||
+                                            arguments->put_arguments->destination ==
+                                            0
+                                                ) {
                                                 argp_usage(state);
                                         }
                                         break;
@@ -467,8 +478,15 @@ int main(int argc, char *argv[])
                         break;
                 case COMMAND_MOVE:
                         arguments.move_arguments->device_path = arguments.device_path;
-                        switch (f12_move(arguments.move_arguments, &output))
-                        {
+                        switch (f12_move(arguments.move_arguments, &output)) {
+                                case 0:
+                                        printf(output);
+                                        break;
+                        }
+                        break;
+                case COMMAND_PUT:
+                        arguments.put_arguments->device_path = arguments.device_path;
+                        switch (f12_put(arguments.put_arguments, &output)) {
                                 case 0:
                                         printf(output);
                                         break;

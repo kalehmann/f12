@@ -86,6 +86,7 @@ struct f12_metadata {
         struct bios_parameter_block *bpb;
         struct f12_directory_entry *root_dir;
         uint16_t *fat_entries;
+        uint16_t entry_count;
 };
 
 struct f12_path {
@@ -115,6 +116,7 @@ int f12_free_entry(struct f12_directory_entry *entry);
 int f12_move_entry(struct f12_directory_entry *src,
                    struct f12_directory_entry *dest);
 
+
 /* io.c */
 int f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta);
 
@@ -125,6 +127,16 @@ int f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
 
 int f12_dump_file(FILE *fp, struct f12_metadata *f12_meta,
                   struct f12_directory_entry *entry, FILE *dest_fp);
+
+int f12_create_entry_from_path(struct f12_metadata *f12_meta,
+                               struct f12_path *path,
+                               struct f12_directory_entry **entry);
+
+int f12_create_file(FILE *fp, struct f12_metadata *f12_meta,
+                    struct f12_path *path, FILE *source_fp);
+
+int f12_create_directory_table(struct f12_metadata *f12_meta,
+                               struct f12_directory_entry *entry);
 
 /* metadata.c */
 size_t f12_get_partition_size(struct f12_metadata *f12_meta);
@@ -144,8 +156,12 @@ int f12_parse_path(const char *input, struct f12_path **path);
 int f12_free_path(struct f12_path *path);
 
 struct f12_directory_entry *f12_entry_from_path(struct f12_directory_entry *entry,
-                                                struct f12_path *path);
+                    struct f12_path *path);
 
 int f12_path_get_parent(struct f12_path *path_a, struct f12_path *path_b);
+
+int f12_path_create_directories(struct f12_metadata *f12_meta,
+                                struct f12_directory_entry *entry,
+                                struct f12_path *path);
 
 #endif

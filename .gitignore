@@ -9,6 +9,8 @@
 !tests
 !tests/fixtures/test.img.bak
 !tests/*.bats
+!tests/fixtures/TEST/*
+!tests/fixtures/*.txt
 !createDummyImage.sh
 
 # Do not ignore the files needed for dron

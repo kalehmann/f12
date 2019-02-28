@@ -35,7 +35,8 @@ static int cluster_offset(uint16_t cluster, struct f12_metadata *f12_meta)
         cluster -= 2;
         int root_dir_offset = f12_meta->root_dir_offset;
         int root_size = bpb->RootDirEntries * 32 / bpb->SectorSize;
-        int sector_offset = cluster * f12_meta->bpb->SectorsPerCluster + root_size;
+        int sector_offset =
+                cluster * f12_meta->bpb->SectorsPerCluster + root_size;
 
         return sector_offset * bpb->SectorSize + root_dir_offset;
 }
@@ -157,11 +158,11 @@ static int erase_cluster_chain(FILE *fp, struct f12_metadata *f12_meta,
         return 0;
 }
 
- /**
- * Fill a f12_directory_entry structure with zeros.
-  *
- * @param entry a pointer to the f12_directory_entry structure
- */
+/**
+* Fill a f12_directory_entry structure with zeros.
+ *
+* @param entry a pointer to the f12_directory_entry structure
+*/
 static void erase_entry(struct f12_directory_entry *entry)
 {
         memset(entry, 0, sizeof(struct f12_directory_entry));
@@ -226,9 +227,11 @@ static int scan_subsequent_entries(FILE *fp, struct f12_metadata *f12_meta,
                 return 0;
         }
 
-        size_t directory_size = get_cluster_chain_size(dir_entry->FirstCluster, f12_meta);
+        size_t directory_size = get_cluster_chain_size(dir_entry->FirstCluster,
+                                                       f12_meta);
         int entry_count = directory_size / 32;
-        char *directory_table = load_cluster_chain(fp, dir_entry->FirstCluster, f12_meta);
+        char *directory_table = load_cluster_chain(fp, dir_entry->FirstCluster,
+                                                   f12_meta);
         struct f12_directory_entry *entries = malloc(entry_count *
                                                      sizeof(struct f12_directory_entry));
 
@@ -275,7 +278,8 @@ static int load_root_dir(FILE *fp, struct f12_metadata *f12_meta)
                 return -1;
         }
 
-        struct f12_directory_entry *root_dir = malloc(sizeof(struct f12_directory_entry));
+        struct f12_directory_entry *root_dir = malloc(
+                sizeof(struct f12_directory_entry));
 
         if (NULL == root_dir) {
                 free(root_data);
@@ -286,7 +290,8 @@ static int load_root_dir(FILE *fp, struct f12_metadata *f12_meta)
         fread(root_data, 1, root_size, fp);
 
         struct f12_directory_entry *root_entries =
-                malloc(sizeof(struct f12_directory_entry) * bpb->RootDirEntries);
+                malloc(sizeof(struct f12_directory_entry) *
+                       bpb->RootDirEntries);
 
         if (NULL == root_entries) {
                 free(root_data);
@@ -326,7 +331,8 @@ static int read_fat_entries(FILE *fp, struct f12_metadata *f12_meta)
         struct bios_parameter_block *bpb = f12_meta->bpb;
         int fat_start_addr = bpb->SectorSize * bpb->ReservedForBoot;
         size_t fat_size = bpb->SectorsPerFat * bpb->SectorSize;
-        int cluster_count = fat_size / 3 * 2;
+        uint16_t cluster_count = fat_size / 3 * 2;
+        f12_meta->entry_count = cluster_count;
 
         char *fat = malloc(fat_size);
 
@@ -501,7 +507,8 @@ static char *create_fat(struct f12_metadata *f12_meta)
         for (int i = 0; i < cluster_count; i++) {
                 if (i % 2) {
                         // Odd cluster
-                        cluster = (f12_meta->fat_entries[i] << 4) | (f12_meta->fat_entries[i - 1] >> 8);
+                        cluster = (f12_meta->fat_entries[i] << 4) |
+                                  (f12_meta->fat_entries[i - 1] >> 8);
                         memmove(fat + i * 3 / 2, &cluster, 2);
                         continue;
                 }
@@ -544,7 +551,8 @@ static char *create_directory(struct f12_directory_entry *dir_entry,
                 memcpy(dir + offset + 8, &entry->ShortFileExtension, 3);
                 memcpy(dir + offset + 11, &entry->FileAttributes, 1);
                 memcpy(dir + offset + 12, &entry->UserAttributes, 1);
-                memcpy(dir + offset + 13, &entry->CreateTimeOrFirstCharacter, 1);
+                memcpy(dir + offset + 13, &entry->CreateTimeOrFirstCharacter,
+                       1);
                 memcpy(dir + offset + 14, &entry->PasswordHashOrCreateTime, 2);
                 memcpy(dir + offset + 16, &entry->CreateDate, 2);
                 memcpy(dir + offset + 18, &entry->OwnerId, 2);
@@ -644,6 +652,31 @@ static int write_root_dir(FILE *fp, struct f12_metadata *f12_meta)
         fwrite(dir, 1, dir_size, fp);
 }
 
+static uint16_t get_cluster_chain(struct f12_metadata *f12_meta,
+                                  int cluster_count)
+{
+        uint16_t i = 0, j = 2, first_cluster, last_cluster;
+
+        while (j < f12_meta->entry_count) {
+                if (f12_meta->fat_entries[j] == 0) {
+                        if (i > 0) {
+                                f12_meta->fat_entries[last_cluster] = j;
+                        } else {
+                                first_cluster = j;
+                        }
+                        last_cluster = j;
+                        i++;
+                        if (i == cluster_count) {
+                                f12_meta->fat_entries[j] = f12_meta->end_of_chain_marker;
+                                return first_cluster;
+                        }
+                }
+                j++;
+        }
+
+        return -1;
+}
+
 /**
  * Populates a f12_metadata structure with data from a fat12 partition.
  *
@@ -672,7 +705,9 @@ int f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta)
         }
 
         (*f12_meta)->root_dir_offset = bpb->SectorSize *
-                                       ((bpb->NumberOfFats * bpb->SectorsPerFat) + bpb->ReservedForBoot);
+                                       ((bpb->NumberOfFats *
+                                         bpb->SectorsPerFat) +
+                                        bpb->ReservedForBoot);
 
         read_fat_entries(fp, *f12_meta);
         (*f12_meta)->fat_id = (*f12_meta)->fat_entries[0];
@@ -751,7 +786,8 @@ int f12_dump_file(FILE *fp, struct f12_metadata *f12_meta,
                   struct f12_directory_entry *entry, FILE *dest_fp)
 {
         int offset = cluster_offset(entry->FirstCluster, f12_meta);
-        uint16_t chain_length = get_cluster_chain_length(entry->FirstCluster, f12_meta);
+        uint16_t chain_length = get_cluster_chain_length(entry->FirstCluster,
+                                                         f12_meta);
         size_t cluster_size = get_cluster_size(f12_meta);
         uint32_t file_size = entry->FileSize;
 
@@ -772,6 +808,154 @@ int f12_dump_file(FILE *fp, struct f12_metadata *f12_meta,
         }
 
         free(buffer);
+
+        return 0;
+}
+
+/**
+ *
+ * @param fp the file pointer of the partition
+ * @param f12_meta a pointer to the metadata of the partition
+ * @param path the path for the newly created file
+ * @param source_fp pointer to the file to write on the partition
+ * @return
+ */
+int f12_create_file(FILE *fp, struct f12_metadata *f12_meta,
+                    struct f12_path *path, FILE *source_fp)
+{
+        struct f12_directory_entry *entry;
+        size_t cluster_size, file_size;
+        int cluster_count;
+        uint16_t first_cluster;
+
+        cluster_size = get_cluster_size(f12_meta);
+        fseek(source_fp, 0L, SEEK_END);
+        file_size = ftell(source_fp);
+        rewind(source_fp);
+
+        cluster_count = file_size / cluster_size;
+        if (file_size % cluster_size) {
+                cluster_count++;
+        }
+
+        first_cluster = get_cluster_chain(f12_meta, cluster_count);
+
+        if (0 == first_cluster) {
+                // Partition full
+                return -1;
+        }
+
+        char *data = malloc(file_size);
+
+        if (NULL == data) {
+                return -1;
+        }
+
+        fread(data, file_size, 1, source_fp);
+
+        write_to_clusterchain(fp, data, first_cluster, file_size, f12_meta);
+
+        f12_create_entry_from_path(f12_meta, path, &entry);
+        entry->FirstCluster = first_cluster;
+        entry->FileSize = file_size;
+
+        free(data);
+
+        return 0;
+}
+
+int f12_create_directory_table(struct f12_metadata *f12_meta,
+                               struct f12_directory_entry *entry)
+{
+        size_t children_size = 224 * sizeof(struct f12_directory_entry);
+        size_t table_size = 244 * 32;
+
+        struct f12_directory_entry *children = malloc(children_size);
+
+        if (NULL == children) {
+                return -1;
+        }
+
+        uint16_t cluster_count = table_size / get_cluster_size(f12_meta);
+
+        entry->children = children;
+        entry->child_count = 224;
+        entry->FileAttributes = F12_ATTR_SUBDIRECTORY;
+        entry->FirstCluster = get_cluster_chain(f12_meta, cluster_count);
+
+        memset(children, 0, table_size);
+
+        // Create first dot dir
+        memcpy(&children[0], entry, sizeof(struct f12_directory_entry));
+        memcpy(children[0].ShortFileName, ".       ", 8);
+        memset(children[0].ShortFileExtension, 32, 3);
+        children[0].parent = entry;
+        children[0].FirstCluster = 0;
+
+        // Create second dot dir
+        memcpy(&children[1], entry->parent, sizeof(struct f12_directory_entry));
+        memcpy(children[1].ShortFileName, "..      ", 8);
+        memset(children[1].ShortFileExtension, 32, 3);
+        children[1].parent = entry;
+        children[1].FirstCluster = 0;
+
+        return 0;
+}
+
+int f12_create_entry_from_path(struct f12_metadata *f12_meta,
+                               struct f12_path *path,
+                               struct f12_directory_entry **entry)
+{
+        struct f12_path *tmp_path = path, *original_descendant;
+        struct f12_directory_entry *parent_entry;
+
+        *entry = NULL;
+
+        if (path->descendant == NULL) {
+                // Destination is in the root directory
+                parent_entry = f12_meta->root_dir;
+        } else {
+                do {
+                        tmp_path = tmp_path->descendant;
+                } while (tmp_path->descendant != NULL);
+                tmp_path = tmp_path->ancestor;
+                original_descendant = tmp_path->descendant;
+                tmp_path->descendant = NULL;
+                f12_path_create_directories(f12_meta, f12_meta->root_dir, path);
+                parent_entry = f12_entry_from_path(f12_meta->root_dir, path);
+
+                if (parent_entry == F12_FILE_NOT_FOUND) {
+                        return -1;
+                }
+                path = original_descendant;
+        }
+
+        // Check if the file exists
+        for (int i = 0; i < parent_entry->child_count; i++) {
+                if (0 == memcmp(parent_entry->children[i].ShortFileName,
+                                path->short_file_name, 8) &&
+                    0 == memcmp(parent_entry->children[i].ShortFileExtension,
+                                path->short_file_extension, 3)) {
+                        *entry = &parent_entry->children[i];
+                        break;
+                }
+        }
+
+        if (NULL == *entry) {
+                for (int i = 0; i < parent_entry->child_count; i++) {
+                        if (parent_entry->children[i].ShortFileName[0] == 0) {
+                                *entry = &parent_entry->children[i];
+                                break;
+                        }
+                }
+        }
+
+        if (NULL == *entry) {
+                return -1;
+        }
+
+        memcpy((*entry)->ShortFileName, path->short_file_name, 8);
+        memcpy((*entry)->ShortFileExtension, path->short_file_extension, 3);
 
         return 0;
 }

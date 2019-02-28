@@ -111,17 +111,20 @@ static int split_input(const char *input, char ***input_parts)
  *         or subdirectory or F12_FILE_NOT_FOUND if the path matches no file in
  *         the given directory
  */
-struct f12_directory_entry *f12_entry_from_path(struct f12_directory_entry *entry,
-                                                struct f12_path *path)
+struct f12_directory_entry *
+f12_entry_from_path(struct f12_directory_entry *entry,
+                    struct f12_path *path)
 {
         for (int i = 0; i < entry->child_count; i++) {
-                if (0 == memcmp(entry->children[i].ShortFileName, path->short_file_name, 8) &&
+                if (0 == memcmp(entry->children[i].ShortFileName,
+                                path->short_file_name, 8) &&
                     0 == memcmp(entry->children[i].ShortFileExtension,
                                 path->short_file_extension, 3)) {
                         if (NULL == path->descendant) {
                                 return &entry->children[i];
                         }
-                        return f12_entry_from_path(&entry->children[i], path->descendant);
+                        return f12_entry_from_path(&entry->children[i],
+                                                   path->descendant);
                 }
         }
 
@@ -214,4 +217,43 @@ int f12_free_path(struct f12_path *path)
         free(path);
 
         return 0;
+}
+
+int f12_path_create_directories(struct f12_metadata *f12_meta,
+                                struct f12_directory_entry *entry,
+                                struct f12_path *path)
+{
+        for (int i = 0; i < entry->child_count; i++) {
+                if (0 == memcmp(entry->children[i].ShortFileName,
+                                path->short_file_name, 8) &&
+                    0 == memcmp(entry->children[i].ShortFileExtension,
+                                path->short_file_extension, 3)) {
+                        if (NULL != path->descendant) {
+                                return f12_path_create_directories(f12_meta,
+                                                                   &entry->children[i],
+                                                                   path->descendant);
+                        }
+                        return 0;
+                }
+        }
+
+        // This directory does not exist, lets create it
+        for (int i = 0; i < entry->child_count; i++) {
+                if (entry->children[i].ShortFileName[0] == 0) {
+                        memcpy(&(entry->children[i].ShortFileName), path->short_file_name, 8);
+                        memcpy(&(entry->children[i].ShortFileExtension), path->short_file_extension, 3);
+                        entry->children[i].parent = entry;
+                        f12_create_directory_table(f12_meta, &(entry->children[i]));
+
+                        if (path->descendant == NULL) {
+                                return 0;
+                        }
+
+                        return f12_path_create_directories(f12_meta,
+                                                           &entry->children[i],
+                                                           path->descendant);
+                }
+        }
+
+        return -1;
 }
