@@ -151,7 +151,10 @@ static int erase_cluster_chain(FILE *fp, struct f12_metadata *f12_meta,
 
         do {
                 fseek(fp, cluster_offset(current_cluster, f12_meta), SEEK_SET);
-                fwrite(zeros, 1, cluster_size, fp);
+                if (cluster_size != fwrite(zeros, 1, cluster_size, fp)) {
+                        free(zeros);
+                        return -1;
+                }
         } while ((current_cluster = fat_entries[current_cluster])
                  != f12_meta->end_of_chain_marker);
 
@@ -448,11 +451,15 @@ static int write_to_clusterchain(FILE *fp, void *data, uint16_t first_cluster,
                 if (bytes_left < cluster_size) {
                         fwrite(data, 1, bytes_left, fp);
                         char zero = 0;
-                        for (int i = 0; i < bytes_left; i++) {
-                                fwrite(&zero, 1, 1, fp);
+                        for (uint16_t i = bytes_left; i < cluster_size; i++) {
+                                if (1 != fwrite(&zero, 1, 1, fp)) {
+                                        return -1;
+                                }
                         }
                 } else {
-                        fwrite(data, 1, cluster_size, fp);
+                        if (cluster_size != fwrite(data, 1, cluster_size, fp)) {
+                                return -1;
+                        }
                 }
 
                 written_bytes += cluster_size;
@@ -605,7 +612,10 @@ static int write_fats(FILE *fp, struct f12_metadata *f12_meta)
 
         fseek(fp, fat_offset, SEEK_SET);
         for (int i = 0; i < fat_count; i++) {
-                fwrite(fat, 1, fat_size, fp);
+                if (fat_size != fwrite(fat, 1, fat_size, fp)) {
+                        free(fat);
+                        return -1;
+                }
         }
 
         free(fat);
@@ -661,13 +671,24 @@ static int write_root_dir(FILE *fp, struct f12_metadata *f12_meta)
         size_t dir_size = 32 * f12_meta->bpb->RootDirEntries;
         char *dir = create_directory(f12_meta->root_dir, f12_meta, dir_size);
 
+        if (NULL == dir) {
+                return -1;
+        }
+
         for (int i = 0; i < f12_meta->root_dir->child_count; i++) {
                 write_directory(fp, f12_meta, &f12_meta->root_dir->children[i]);
         }
 
         fseek(fp, f12_meta->root_dir_offset, SEEK_SET);
 
-        fwrite(dir, 1, dir_size, fp);
+        if (dir_size != fwrite(dir, 1, dir_size, fp)) {
+                free(dir);
+
+                return -1;
+        }
+        free(dir);
+
+        return 0;
 }
 
 static uint16_t get_cluster_chain(struct f12_metadata *f12_meta,
