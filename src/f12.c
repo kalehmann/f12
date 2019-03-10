@@ -18,13 +18,13 @@ char *format_bytes(size_t bytes)
         char *out;
 
         if (bytes < 10000) {
-                asprintf(&out, "%d bytes", bytes);
+                asprintf(&out, "%ld bytes", bytes);
         } else if (bytes < 10000000) {
-                asprintf(&out, "%d KiB", bytes / 1024);
+                asprintf(&out, "%ld KiB", bytes / 1024);
         } else if (bytes < 10000000000) {
-                asprintf(&out, "%d MiB", bytes / (1024 * 1024));
+                asprintf(&out, "%ld MiB", bytes / (1024 * 1024));
         } else {
-                asprintf(&out, "%d GiB", bytes / (1024 * 1024 * 1024));
+                asprintf(&out, "%ld GiB", bytes / (1024 * 1024 * 1024));
         }
 
         return out;

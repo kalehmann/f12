@@ -106,6 +106,7 @@ error_t parser_get(int key, char *arg, struct argp_state *state)
         switch (key) {
                 case 'v':
                         get_arguments->verbose = 1;
+                        break;
                 case (ARGP_KEY_ARG):
                         if (get_arguments->path == 0 ||
                             get_arguments->path[0] == '\0') {
@@ -299,6 +300,8 @@ int parse_key_arg(char *arg, struct argp_state *state)
                 case COMMAND_PUT:
                         return parser_put(ARGP_KEY_ARG, arg, state);
         }
+
+        return ARGP_ERR_UNKNOWN;
 }
 
 error_t parser(int key, char *arg, struct argp_state *state)

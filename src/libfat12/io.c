@@ -440,7 +440,7 @@ static int write_to_clusterchain(FILE *fp, void *data, uint16_t first_cluster,
         }
 
         /* Check if the data is more than on cluster smaller than the clusterchain */
-        if (bytes <= chain_length - cluster_size) {
+        if (bytes + cluster_size <= chain_length) {
                 return -2;
         }
 
@@ -555,7 +555,7 @@ static char *create_fat(struct f12_metadata *f12_meta)
  *         on failure
  */
 static char *create_directory(struct f12_directory_entry *dir_entry,
-                              struct f12_metadata *f12_meta, size_t dir_size)
+                              size_t dir_size)
 {
         size_t offset;
         char *dir = malloc(dir_size);
@@ -602,7 +602,7 @@ static int write_fats(FILE *fp, struct f12_metadata *f12_meta)
 {
         struct bios_parameter_block *bpb = f12_meta->bpb;
         int fat_offset = bpb->SectorSize * bpb->ReservedForBoot;
-        int fat_size = bpb->SectorsPerFat * bpb->SectorSize;
+        size_t fat_size = bpb->SectorsPerFat * bpb->SectorSize;
         int fat_count = bpb->NumberOfFats;
         char *fat = create_fat(f12_meta);
 
@@ -648,7 +648,7 @@ static int write_directory(FILE *fp, struct f12_metadata *f12_meta,
         }
 
         size_t dir_size = get_cluster_chain_size(entry->FirstCluster, f12_meta);
-        char *dir = create_directory(entry, f12_meta, dir_size);
+        char *dir = create_directory(entry, dir_size);
         if (NULL == dir) {
                 return -1;
         }
@@ -669,7 +669,7 @@ static int write_directory(FILE *fp, struct f12_metadata *f12_meta,
 static int write_root_dir(FILE *fp, struct f12_metadata *f12_meta)
 {
         size_t dir_size = 32 * f12_meta->bpb->RootDirEntries;
-        char *dir = create_directory(f12_meta->root_dir, f12_meta, dir_size);
+        char *dir = create_directory(f12_meta->root_dir, dir_size);
 
         if (NULL == dir) {
                 return -1;
@@ -792,7 +792,6 @@ int f12_write_metadata(FILE *fp, struct f12_metadata *f12_meta)
 int f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
                   struct f12_directory_entry *entry, int soft_delete)
 {
-        struct f12_directory_entry *parent = entry->parent;
         if (f12_is_directory(entry) && f12_get_child_count(entry) > 2) {
                 return F12_DIRECTORY_NOT_EMPTY;
         }

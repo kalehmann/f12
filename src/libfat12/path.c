@@ -147,7 +147,7 @@ f12_entry_from_path(struct f12_directory_entry *entry,
  */
 int f12_parse_path(const char *input, struct f12_path **path)
 {
-        char **input_parts;
+        char **input_parts = NULL;
         int input_part_count = split_input(input, &input_parts);
 
         if (input_part_count == F12_EMPTY_PATH) {
