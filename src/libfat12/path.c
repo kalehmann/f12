@@ -14,6 +14,9 @@
 static int build_path(char **input_parts, int part_count, struct f12_path *path)
 {
         path->name = f12_convert_name(input_parts[0]);
+        if (NULL == path->name) {
+                return -1;
+        }
         path->short_file_name = path->name;
         path->short_file_extension = path->name + 8;
         path->descendant = malloc(sizeof(struct f12_path));
@@ -30,6 +33,8 @@ static int build_path(char **input_parts, int part_count, struct f12_path *path)
         int res = build_path(&input_parts[1], part_count - 1,
                              path->descendant);
         if (-1 == res) {
+                free(path->descendant);
+
                 return -1;
         }
         path->descendant->ancestor = path;

@@ -88,6 +88,11 @@ static int dump_f12_structure(FILE *fp,
                 }
 
                 char *child_name = f12_get_file_name(child_entry);
+
+                if (NULL == child_name) {
+                        return -1;
+                }
+
                 if (-1 == asprintf(&entry_path, "%s/%s",
                                    dest_path, child_name)) {
                         return -1;
@@ -153,6 +158,10 @@ static int list_f12_entry(struct f12_directory_entry *entry, char **output,
         }
 
         char *name = f12_get_file_name(entry);
+
+        if (NULL == name) {
+                return -1;
+        }
 
         char *temp = *output;
         asprintf(output,
