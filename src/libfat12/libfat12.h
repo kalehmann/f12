@@ -4,21 +4,29 @@
 #include <stdio.h>
 #include <inttypes.h>
 
+enum f12_error {
+        F12_SUCCESS = 0,
+        F12_NOT_A_DIR,
+        F12_DIR_FULL,
+        F12_ALLOCATION_ERROR,
+        F12_IO_ERROR,
+        F12_LOGIC_ERROR,
+        F12_IMAGE_FULL,
+        F12_FILE_NOT_FOUND,
+        F12_EMPTY_PATH,
+        F12_DIR_NOT_EMPTY,
+        F12_UNKNOWN_ERROR,
+};
+
+enum f12_path_relations {
+        F12_PATHS_EQUAL,
+        F12_PATHS_UNRELATED,
+        F12_PATHS_FIRST,
+        F12_PATHS_SECOND,
+};
+
 /* directory entry attributes */
 #define F12_ATTR_SUBDIRECTORY 0x10
-/* constants for describing errors */
-#define F12_EMPTY_PATH -2
-#define F12_FILE_NOT_FOUND NULL
-#define F12_DIRECTORY_NOT_EMPTY -3
-#define F12_NOT_A_FILE -4
-#define F12_NOT_A_DIR -5
-#define F12_RELATION_PROBLEM -6
-#define F12_DIR_FULL -6
-/* constants for comparing paths */
-#define F12_PATHS_SECOND 1
-#define F12_PATHS_EQUAL 0
-#define F12_PATHS_FIRST -1
-#define F12_PATHS_UNRELATED -2
 
 struct bios_parameter_block {
         char OEMLabel[8];
@@ -113,29 +121,34 @@ int f12_get_directory_count(struct f12_directory_entry *entry);
 
 void f12_free_entry(struct f12_directory_entry *entry);
 
-int f12_move_entry(struct f12_directory_entry *src,
+enum f12_error f12_move_entry(struct f12_directory_entry *src,
                    struct f12_directory_entry *dest);
 
 
+/* error.c */
+void f12_save_errno(void);
+
+char *f12_strerror(enum f12_error err);
+
 /* io.c */
-int f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta);
+enum f12_error f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta);
 
-int f12_write_metadata(FILE *fp, struct f12_metadata *f12_meta);
+enum f12_error f12_write_metadata(FILE *fp, struct f12_metadata *f12_meta);
 
-int f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
+enum f12_error f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
                   struct f12_directory_entry *entry, int hard_delete);
 
-int f12_dump_file(FILE *fp, struct f12_metadata *f12_meta,
+enum f12_error f12_dump_file(FILE *fp, struct f12_metadata *f12_meta,
                   struct f12_directory_entry *entry, FILE *dest_fp);
 
-int f12_create_entry_from_path(struct f12_metadata *f12_meta,
+enum f12_error f12_create_entry_from_path(struct f12_metadata *f12_meta,
                                struct f12_path *path,
                                struct f12_directory_entry **entry);
 
-int f12_create_file(FILE *fp, struct f12_metadata *f12_meta,
+enum f12_error f12_create_file(FILE *fp, struct f12_metadata *f12_meta,
                     struct f12_path *path, FILE *source_fp);
 
-int f12_create_directory_table(struct f12_metadata *f12_meta,
+enum f12_error f12_create_directory_table(struct f12_metadata *f12_meta,
                                struct f12_directory_entry *entry);
 
 /* metadata.c */
@@ -151,16 +164,16 @@ char *f12_get_file_name(struct f12_directory_entry *entry);
 char *f12_convert_name(char *name);
 
 /* path.c */
-int f12_parse_path(const char *input, struct f12_path **path);
+enum f12_error f12_parse_path(const char *input, struct f12_path **path);
 
 void f12_free_path(struct f12_path *path);
 
 struct f12_directory_entry *f12_entry_from_path(struct f12_directory_entry *entry,
                     struct f12_path *path);
 
-int f12_path_get_parent(struct f12_path *path_a, struct f12_path *path_b);
+enum f12_path_relations f12_path_get_parent(struct f12_path *path_a, struct f12_path *path_b);
 
-int f12_path_create_directories(struct f12_metadata *f12_meta,
+enum f12_error f12_path_create_directories(struct f12_metadata *f12_meta,
                                 struct f12_directory_entry *entry,
                                 struct f12_path *path);
 

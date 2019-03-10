@@ -92,7 +92,7 @@ int f12_get_child_count(struct f12_directory_entry *entry)
         int child_count = 0;
 
         if (!f12_is_directory(entry)) {
-                return F12_NOT_A_DIR;
+                return 0;
         }
 
         for (int i = 0; i < entry->child_count; i++) {
@@ -117,7 +117,7 @@ int f12_get_file_count(struct f12_directory_entry *entry)
         int file_count = 0;
 
         if (!f12_is_directory(entry)) {
-                return F12_NOT_A_DIR;
+                return 0;
         }
 
         for (int i = 0; i < entry->child_count; i++) {
@@ -146,7 +146,8 @@ int f12_get_directory_count(struct f12_directory_entry *entry)
         int dir_count = 0;
 
         if (!f12_is_directory(entry)) {
-                return F12_NOT_A_DIR;
+
+                return 0;
         }
 
         for (int i = 0; i < entry->child_count; i++) {
@@ -190,7 +191,7 @@ void f12_free_entry(struct f12_directory_entry *entry)
  *         F12_NOT_A_DIR if dest is a files and not a directory
  *         F12_DIR_FULL if all entries in dest are used
  */
-int f12_move_entry(struct f12_directory_entry *src,
+enum f12_error f12_move_entry(struct f12_directory_entry *src,
                    struct f12_directory_entry *dest)
 {
         int dest_free_entries;
@@ -255,5 +256,5 @@ int f12_move_entry(struct f12_directory_entry *src,
         memmove(free_entry, src, sizeof(struct f12_directory_entry));
         memset(src, 0, sizeof(struct f12_directory_entry));
 
-        return 0;
+        return F12_SUCCESS;
 }

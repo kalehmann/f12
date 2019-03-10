@@ -31,12 +31,13 @@ char *format_bytes(size_t bytes)
 }
 
 
-static int recursive_del_entry(FILE *fp,
+static enum f12_error recursive_del_entry(FILE *fp,
                                struct f12_metadata *f12_meta,
                                struct f12_directory_entry *entry,
                                int soft_delete)
 {
         struct f12_directory_entry *child;
+        enum f12_error err;
 
         if (f12_is_directory(entry) && f12_get_child_count(entry) > 2) {
                 for (int i = 0; i < entry->child_count; i++) {
@@ -46,27 +47,38 @@ static int recursive_del_entry(FILE *fp,
                                 continue;
                         }
 
-                        recursive_del_entry(fp, f12_meta, child, soft_delete);
+                        err = recursive_del_entry(fp, f12_meta, child, soft_delete);
+                        if (F12_SUCCESS != err) {
+                                return err;
+                        }
                 }
         }
 
-        f12_del_entry(fp, f12_meta, entry, soft_delete);
-
-        return 0;
+        return f12_del_entry(fp, f12_meta, entry, soft_delete);
 }
 
 static int dump_f12_structure(FILE *fp,
                               struct f12_metadata *f12_meta,
                               struct f12_directory_entry *entry,
                               char *dest_path,
-                              int verbose)
+                              int verbose,
+                              char **output)
 {
+        enum f12_error err;
         struct f12_directory_entry *child_entry;
-        char *entry_path;
+        char *entry_path, *temp;
+        int res;
 
         if (!f12_is_directory(entry)) {
                 FILE *dest_fp = fopen(dest_path, "w");
-                f12_dump_file(fp, f12_meta, entry, dest_fp);
+                err = f12_dump_file(fp, f12_meta, entry, dest_fp);
+                if (F12_SUCCESS != err) {
+                        temp = *output;
+                        asprintf(output, "%s\n%s\n", *output, f12_strerror(err));
+                        free(temp);
+                        fclose(dest_fp);
+                        return -1;
+                }
                 fclose(dest_fp);
 
                 return 0;
@@ -93,25 +105,28 @@ static int dump_f12_structure(FILE *fp,
                         return -1;
                 }
 
-                if (-1 == asprintf(&entry_path, "%s/%s",
-                                   dest_path, child_name)) {
-                        return -1;
-                }
+                asprintf(&entry_path, "%s/%s", dest_path, child_name);
 
                 if (verbose) {
-                        printf("%s\n", entry_path);
+                        temp = *output;
+                        asprintf(output, "%s\n%s\n", *output, entry_path);
+                        free(temp);
                 }
 
                 free(child_name);
-                dump_f12_structure(fp, f12_meta, child_entry, entry_path,
-                                   verbose);
+                res = dump_f12_structure(fp, f12_meta, child_entry, entry_path,
+                                   verbose, output);
                 free(entry_path);
+
+                if (res) {
+                        return res;
+                }
         }
 
         return 0;
 }
 
-static int info_dump_bpb(struct f12_metadata *f12_meta, char **output)
+static void info_dump_bpb(struct f12_metadata *f12_meta, char **output)
 {
         struct bios_parameter_block *bpb = f12_meta->bpb;
 
@@ -146,8 +161,6 @@ static int info_dump_bpb(struct f12_metadata *f12_meta, char **output)
                  bpb->LargeSectors, bpb->DriveNumber, bpb->Flags,
                  bpb->Signature,
                  bpb->VolumeID, bpb->VolumeLabel, bpb->FileSystem);
-
-        return 0;
 }
 
 static int list_f12_entry(struct f12_directory_entry *entry, char **output,
@@ -195,113 +208,145 @@ static void list_root_dir_entries(struct f12_metadata *f12_meta,
         }
 }
 
-static void walk_dir(FILE *fp, const char *path, const char *dest,
-                     struct f12_metadata *f12_meta)
+static int walk_dir(FILE *fp, char *path, const char *dest,
+                     struct f12_metadata *f12_meta, char **output)
 {
+        enum f12_error err;
+        char *temp;
         char *src_path;
         char putpath[1024];
-        char *paths[] = {path, NULL};
+        char * const paths[] = {path, NULL};
 
         FTS *ftsp = fts_open(paths, FTS_PHYSICAL | FTS_NOCHDIR, NULL);
         FTSENT *ent;
 
         if (ftsp == NULL) {
-                perror("fts_open");
-                exit(EXIT_FAILURE);
+                asprintf(output, "fts_open error: %s\n",
+                         strerror(errno));
+                return -1;
         }
 
         while (1) {
-                ent = fts_read(
-                        ftsp); // get next entry (could be file or directory).
+                ent = fts_read(ftsp);
                 if (ent == NULL) {
                         if (errno == 0)
-                                break; // No more items, bail out of while loop
+                                // No more items, leave
+                                break;
                         else {
-                                // fts_read() had an error.
-                                perror("fts_read");
-                                exit(EXIT_FAILURE);
+                                asprintf(output, "fts_read error: %s\n",
+                                         strerror(errno));
+
+                                return -1;
                         }
                 }
 
                 if (ent->fts_info & FTS_F) {
-                        int res;
                         FILE *src;
                         src_path = ent->fts_path + strlen(path);
                         memcpy(putpath, dest, strlen(dest));
                         memcpy(putpath + strlen(dest), src_path, strlen(src_path) + 1);
 
-                        printf("Putting %s -> %s\n", src_path, putpath);
+                        temp = *output;
+                        asprintf(output, "%s\nPutting %s -> %s\n", *output, src_path, putpath);
+                        free(temp);
+
                         if (NULL == (src = fopen(ent->fts_path, "r"))) {
-                                printf("Cannot open source file %s\n", ent->fts_path);
-                                exit(0);
+                                temp = *output;
+                                asprintf(output, "%s\nCannot open source file %s\n", *output, ent->fts_path);
+                                free(temp);
+
+                                return -1;
                         }
                         struct f12_path *dest;
-                        res = f12_parse_path(putpath, &dest);
-                        if (res == -1) {
-                                exit(0);
-                        }
-                        if (res == F12_EMPTY_PATH) {
-                                printf("Cannot replace root directory\n");
-                                exit(0);
+
+                        err = f12_parse_path(putpath, &dest);
+                        if (F12_SUCCESS != err) {
+                                temp = *output;
+                                asprintf(output, "%s\n%s\n", *output, f12_strerror(err));
+                                free(temp);
+
+                                return -1;
                         }
 
-                        res = f12_create_file(fp, f12_meta, dest, src);
+                        err = f12_create_file(fp, f12_meta, dest, src);
+                        if (F12_SUCCESS != err) {
+                                temp = *output;
+                                asprintf(output, "%s\nError : %s\n", *output, f12_strerror(err));
+                                free(temp);
+
+                                return -1;
+                        }
                 }
         }
 
-        // close fts and check for error closing.
-        if (fts_close(ftsp) == -1)
-                perror("fts_close");
+        if (fts_close(ftsp) == -1) {
+                temp = *output;
+                asprintf(output, "%s\nfts_close error: %s\n",
+                         *output,
+                         strerror(errno));
+                free(temp);
+
+                return -1;
+        }
+
+        return 0;
 }
 
 int f12_create(struct f12_create_arguments *args, char **output);
 
-int f12_defrag(struct f12_defrag_arguments *args, char **output);
-
 int f12_del(struct f12_del_arguments *args, char **output)
 {
         FILE *fp;
-        int res;
+        enum f12_error err;
         struct f12_metadata *f12_meta;
 
         if (NULL == (fp = fopen(args->device_path, "r+"))) {
-                return -1;
+                asprintf(output, "Error opening image: %s\n",
+                         strerror(errno));
+                return 1;
         }
 
-        res = f12_read_metadata(fp, &f12_meta);
-
-        if (res != 0) {
+        if (F12_SUCCESS != (err = f12_read_metadata(fp, &f12_meta))) {
                 fclose(fp);
-                return res;
+                asprintf(output, "Error loading image: %s\n",
+                        f12_strerror(err));
+                return 1;
         }
 
         struct f12_path *path;
 
-        res = f12_parse_path(args->path, &path);
-        if (res == -1) {
+        err = f12_parse_path(args->path, &path);
+        if (F12_SUCCESS != err) {
+                asprintf(output, "%s\n", f12_strerror(err));
                 fclose(fp);
-                return -1;
-        }
-        if (res == F12_EMPTY_PATH) {
-                asprintf(output, "Cannot delete the root dir\n");
-                fclose(fp);
-                return 0;
+
+                return 1;
         }
 
         struct f12_directory_entry *entry = f12_entry_from_path(
                 f12_meta->root_dir, path);
 
-        if (entry == F12_FILE_NOT_FOUND) {
+        if (NULL == entry) {
                 asprintf(output, "The file %s was not found on the device\n",
                          args->path);
                 fclose(fp);
-                return 0;
+                return 1;
         }
 
         if (args->recursive) {
-                recursive_del_entry(fp, f12_meta, entry, args->soft_delete);
+                err = recursive_del_entry(fp, f12_meta, entry, args->soft_delete);
         } else {
-                f12_del_entry(fp, f12_meta, entry, args->soft_delete);
+                err = f12_del_entry(fp, f12_meta, entry, args->soft_delete);
+        }
+
+        if (err != F12_SUCCESS) {
+                asprintf(output, "Error: %s\n",
+                         f12_strerror(err));
+                f12_free_path(path);
+                f12_free_metadata(f12_meta);
+                fclose(fp);
+
+                return 1;
         }
 
         f12_free_path(path);
@@ -313,67 +358,81 @@ int f12_del(struct f12_del_arguments *args, char **output)
 
 int f12_get(struct f12_get_arguments *args, char **output)
 {
+        enum f12_error err;
         FILE *fp;
         int res;
 
         struct f12_metadata *f12_meta;
 
         if (NULL == (fp = fopen(args->device_path, "r+"))) {
-                return -1;
+                asprintf(output, "Error opening image: %s\n",
+                         strerror(errno));
+                return 1;
         }
 
-        res = f12_read_metadata(fp, &f12_meta);
-
-        if (res != 0) {
+        if (F12_SUCCESS != (err = f12_read_metadata(fp, &f12_meta))) {
                 fclose(fp);
-                return res;
+                asprintf(output, "Error loading image: %s\n",
+                         f12_strerror(err));
+                return 1;
         }
 
         struct f12_path *src_path;
 
-        res = f12_parse_path(args->path, &src_path);
-        if (res == -1) {
+        err = f12_parse_path(args->path, &src_path);
+        if (F12_SUCCESS != err) {
+                asprintf(output, "%s\n", f12_strerror(err));
                 fclose(fp);
-                return -1;
+
+                return 1;
         }
 
         struct f12_directory_entry *entry = f12_entry_from_path(
                 f12_meta->root_dir,
                 src_path);
-        if (entry == F12_FILE_NOT_FOUND) {
+        if (NULL == entry) {
                 asprintf(output, "The file %s was not found on the device\n",
                          args->path);
                 fclose(fp);
-                return 0;
+
+                return 1;
         }
 
-        dump_f12_structure(fp, f12_meta, entry, args->dest, args->verbose);
+        res = dump_f12_structure(fp, f12_meta, entry, args->dest, args->verbose, output);
 
         fclose(fp);
+
+        if (res) {
+                return 1;
+        }
+
         return 0;
 }
 
 int f12_info(struct f12_info_arguments *args, char **output)
 {
+        enum f12_error err;
         FILE *fp;
-        int res;
-        char *formated_size, *formated_used_bytes;
+        char *formatted_size, *formatted_used_bytes;
         char *device_path = args->device_path;
         struct f12_metadata *f12_meta;
 
         if (NULL == (fp = fopen(device_path, "r"))) {
-                return -1;
+                asprintf(output, "Error opening image: %s\n",
+                         strerror(errno));
+                return 1;
         }
 
-        res = f12_read_metadata(fp, &f12_meta);
+        err = f12_read_metadata(fp, &f12_meta);
         fclose(fp);
-
-        if (res != 0) {
-                return res;
+        if (F12_SUCCESS != err) {
+                asprintf(output, "Error loading image: %s\n",
+                         f12_strerror(err));
+                return 1;
         }
 
-        formated_size = format_bytes(f12_get_partition_size(f12_meta));
-        formated_used_bytes = format_bytes(f12_get_used_bytes(f12_meta));
+        formatted_size = format_bytes(f12_get_partition_size(f12_meta));
+        formatted_used_bytes = format_bytes(f12_get_used_bytes(f12_meta));
 
         asprintf(output,
                  "F12 info\n"
@@ -381,17 +440,17 @@ int f12_info(struct f12_info_arguments *args, char **output)
                  "  Used bytes:\t\t\t%s\n"
                  "  Files:\t\t\t%d\n"
                  "  Directories:\t\t\t%d\n",
-                 formated_size,
-                 formated_used_bytes,
+                 formatted_size,
+                 formatted_used_bytes,
                  f12_get_file_count(f12_meta->root_dir),
                  f12_get_directory_count(f12_meta->root_dir));
 
-        free(formated_size);
-        free(formated_used_bytes);
+        free(formatted_size);
+        free(formatted_used_bytes);
 
         if (args->dump_bpb) {
                 char *bpb, *tmp;
-                res = info_dump_bpb(f12_meta, &bpb);
+                info_dump_bpb(f12_meta, &bpb);
                 asprintf(&tmp, "%s%s", *output, bpb);
                 free(bpb);
                 free(*output);
@@ -399,54 +458,62 @@ int f12_info(struct f12_info_arguments *args, char **output)
         }
 
         f12_free_metadata(f12_meta);
-        return res;
+        return 0;
 }
 
 int f12_list(struct f12_list_arguments *args, char **output)
 {
+        enum f12_error err;
         FILE *fp;
         char *device_path = args->device_path;
-        int res;
         struct f12_metadata *f12_meta;
 
         *output = malloc(1);
 
         if (NULL == *output) {
-                return -1;
+                asprintf(output, "Allocation error: %s\n",
+                         strerror(errno));
+                return 1;
         }
 
         (*output)[0] = 0;
 
         if (NULL == (fp = fopen(device_path, "r"))) {
-                return -1;
+                asprintf(output, "Error opening image: %s\n",
+                         strerror(errno));
+                return 1;
         }
 
-        res = f12_read_metadata(fp, &f12_meta);
+        err = f12_read_metadata(fp, &f12_meta);
         fclose(fp);
-
-        if (res != 0) {
-                return res;
+        if (F12_SUCCESS != err) {
+                asprintf(output, "Error loading image: %s\n",
+                         f12_strerror(err));
+                return 1;
         }
 
         if (args->path != 0 && args->path[0] != '\0') {
                 struct f12_path *path;
-                int res = f12_parse_path(args->path, &path);
-                if (res == -1) {
-                        return -1;
-                }
-                if (res == F12_EMPTY_PATH) {
+                err = f12_parse_path(args->path, &path);
+                if (F12_EMPTY_PATH == err) {
                         list_root_dir_entries(f12_meta, args, output);
 
                         return 0;
+                }
+                if (F12_SUCCESS != err) {
+                        asprintf(output, "%s\n", f12_strerror(err));
+
+                        return 1;
                 }
 
                 struct f12_directory_entry *entry = f12_entry_from_path(
                         f12_meta->root_dir, path);
                 f12_free_path(path);
 
-                if (F12_FILE_NOT_FOUND == entry) {
+                if (NULL == entry) {
                         asprintf(output, "File not found\n");
-                        return 0;
+
+                        return 1;
                 }
 
                 if (f12_is_directory(entry)) {
@@ -473,7 +540,7 @@ int f12_list(struct f12_list_arguments *args, char **output)
 int f12_move(struct f12_move_arguments *args, char **output)
 {
         FILE *fp;
-        int res;
+        enum f12_error err;
         char *device_path = args->device_path;
         struct f12_metadata *f12_meta;
         struct f12_path *src, *dest;
@@ -482,47 +549,64 @@ int f12_move(struct f12_move_arguments *args, char **output)
         *output = malloc(1);
 
         if (NULL == *output) {
-                return -1;
+                asprintf(output, "Allocation error: %s\n",
+                         strerror(errno));
+
+                return 1;
         }
 
         (*output)[0] = 0;
 
         if (NULL == (fp = fopen(device_path, "r+"))) {
-                return -1;
+                asprintf(output, "Error opening image: %s\n",
+                         strerror(errno));
+                return 1;
         }
 
-        res = f12_read_metadata(fp, &f12_meta);
-
-        if (res != 0) {
-                return res;
+        if (F12_SUCCESS != (err = f12_read_metadata(fp, &f12_meta))) {
+                fclose(fp);
+                asprintf(output, "Error loading image: %s\n",
+                         f12_strerror(err));
+                return 1;
         }
 
-        res = f12_parse_path(args->source, &src);
-        if (res == -1) {
-                return -1;
-        }
-        if (res == F12_EMPTY_PATH) {
+        err = f12_parse_path(args->source, &src);
+        if (F12_EMPTY_PATH == err) {
                 asprintf(output, "Cannot move the root directory\n");
-                return 0;
+                fclose(fp);
+
+                return 1;
+        }
+        if (F12_SUCCESS != err) {
+                asprintf(output, "%s\n", f12_strerror(err));
+                fclose(fp);
+
+                return 1;
         }
 
-        res = f12_parse_path(args->destination, &dest);
-        if (res == -1) {
-                return -1;
+        err = f12_parse_path(args->destination, &dest);
+        if (F12_SUCCESS != err && F12_EMPTY_PATH != err) {
+                asprintf(output, "Cannot move the root directory\n");
+                fclose(fp);
+
+                return 1;
         }
 
         switch (f12_path_get_parent(src, dest)) {
                 case F12_PATHS_FIRST:
                         asprintf(output,
                                  "Cannot move the directory into a child\n");
-                        return 0;
+
+                        return 1;
                 case F12_PATHS_EQUAL:
                         return 0;
+                default:
+                        break;
         }
 
         src_entry = f12_entry_from_path(f12_meta->root_dir, src);
 
-        if (src_entry == F12_FILE_NOT_FOUND) {
+        if (NULL == src_entry) {
                 asprintf(output, "File or directory %s not found\n",
                          args->source);
                 return 0;
@@ -530,23 +614,32 @@ int f12_move(struct f12_move_arguments *args, char **output)
 
         dest_entry = f12_entry_from_path(f12_meta->root_dir, dest);
 
-        if (dest_entry == F12_FILE_NOT_FOUND) {
+        if (NULL == dest_entry) {
                 asprintf(output, "File or directory %s not found\n",
                          args->destination);
                 return 0;
         }
 
-        res = f12_move_entry(src_entry, dest_entry);
+        if (F12_SUCCESS != (err = f12_move_entry(src_entry, dest_entry))) {
+                asprintf(output, "Error: %s\n", f12_strerror(err));
 
-        f12_write_metadata(fp, f12_meta);
+                return 1;
+        }
+
+        err = f12_write_metadata(fp, f12_meta);
         f12_free_metadata(f12_meta);
         fclose(fp);
+        if (F12_SUCCESS != err) {
+                asprintf(output, "Error: %s\n", f12_strerror(err));
+                return 1;
+        }
 
         return 0;
 }
 
 int f12_put(struct f12_put_arguments *args, char **output)
 {
+        enum f12_error err;
         FILE *fp, *src;
         int res;
         char *device_path = args->device_path;
@@ -556,20 +649,26 @@ int f12_put(struct f12_put_arguments *args, char **output)
         *output = malloc(1);
 
         if (NULL == *output) {
-                return -1;
+                asprintf(output, "Allocation error: %s\n",
+                         strerror(errno));
+                return 1;
         }
 
         (*output)[0] = 0;
 
         if (NULL == (fp = fopen(device_path, "r+"))) {
-                return -1;
+                asprintf(output, "Error opening image: %s\n",
+                         strerror(errno));
+                return 1;
         }
 
-        res = f12_read_metadata(fp, &f12_meta);
-
-        if (res != 0) {
-                return res;
+        if (F12_SUCCESS != (err = f12_read_metadata(fp, &f12_meta))) {
+                fclose(fp);
+                asprintf(output, "Error loading image: %s\n",
+                         f12_strerror(err));
+                return 1;
         }
+
 
         struct stat sb;
 
@@ -579,19 +678,28 @@ int f12_put(struct f12_put_arguments *args, char **output)
         }
 
         if (S_ISDIR(sb.st_mode)) {
-                walk_dir(fp, args->source, args->destination, f12_meta);
+                res = walk_dir(fp, args->source, args->destination, f12_meta, output);
+                if (res) {
+                        fclose(fp);
+                        return 1;
+                }
         } else if (S_ISREG(sb.st_mode)) {
                 if (NULL == (src = fopen(args->source, "r"))) {
                         asprintf(output, "Cannot open source file\n");
                         return 0;
                 }
-                res = f12_parse_path(args->destination, &dest);
-                if (res == -1) {
-                        return -1;
-                }
-                if (res == F12_EMPTY_PATH) {
+                err = f12_parse_path(args->destination, &dest);
+                if (F12_EMPTY_PATH == err) {
                         asprintf(output, "Cannot replace root directory\n");
-                        return 0;
+                        fclose(fp);
+
+                        return 1;
+                }
+                if (F12_SUCCESS != err) {
+                        asprintf(output, "%s\n", f12_strerror(err));
+                        fclose(fp);
+
+                        return 1;
                 }
 
                 res = f12_create_file(fp, f12_meta, dest, src);
@@ -600,12 +708,13 @@ int f12_put(struct f12_put_arguments *args, char **output)
                 return 0;
         }
 
-        f12_write_metadata(fp, f12_meta);
+        err = f12_write_metadata(fp, f12_meta);
         f12_free_metadata(f12_meta);
         fclose(fp);
+        if (F12_SUCCESS != err) {
+                asprintf(output, "Error: %s\n", f12_strerror(err));
+                return 1;
+        }
 
         return 0;
 }
-
-int f12_resize(struct f12_resize_arguments *args, char **output);
-

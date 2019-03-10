@@ -105,6 +105,7 @@ static char *load_cluster_chain(FILE *fp, uint16_t start_cluster,
         uint16_t current_cluster = start_cluster;
         uint16_t cluster_size = get_cluster_size(f12_meta);
         size_t data_size = get_cluster_chain_size(start_cluster, f12_meta);
+        int offset;
         char *data;
 
         data = malloc(data_size);
@@ -114,8 +115,15 @@ static char *load_cluster_chain(FILE *fp, uint16_t start_cluster,
         }
 
         do {
-                fseek(fp, cluster_offset(current_cluster, f12_meta), SEEK_SET);
+                offset = cluster_offset(current_cluster, f12_meta);
+                if (0 != fseek(fp, offset, SEEK_SET)) {
+                        f12_save_errno();
+
+                        return NULL;
+                }
                 if (cluster_size != fread(data, 1, cluster_size, fp)) {
+                        f12_save_errno();
+
                         return NULL;
                 }
                 data += cluster_size;
@@ -135,32 +143,42 @@ static char *load_cluster_chain(FILE *fp, uint16_t start_cluster,
  * @param first_cluster the number of the first cluster of the cluster chain
  * @return -1 on an allocation error, 0 on success
  */
-static int erase_cluster_chain(FILE *fp, struct f12_metadata *f12_meta,
-                               uint16_t first_cluster)
+static enum f12_error
+erase_cluster_chain(FILE *fp, struct f12_metadata *f12_meta,
+                    uint16_t first_cluster)
 {
         uint16_t *fat_entries = f12_meta->fat_entries;
         uint16_t current_cluster = first_cluster;
         size_t cluster_size = get_cluster_size(f12_meta);
+        int offset;
         char *zeros = malloc(cluster_size);
 
         if (NULL == zeros) {
-                return -1;
+                return F12_ALLOCATION_ERROR;
         }
 
         memset(zeros, 0, cluster_size);
 
         do {
-                fseek(fp, cluster_offset(current_cluster, f12_meta), SEEK_SET);
-                if (cluster_size != fwrite(zeros, 1, cluster_size, fp)) {
+                offset = cluster_offset(current_cluster, f12_meta);
+                if (0 != fseek(fp, offset, SEEK_SET)) {
+                        f12_save_errno();
                         free(zeros);
-                        return -1;
+
+                        return F12_IO_ERROR;
+                }
+                if (cluster_size != fwrite(zeros, 1, cluster_size, fp)) {
+                        f12_save_errno();
+                        free(zeros);
+
+                        return F12_IO_ERROR;
                 }
         } while ((current_cluster = fat_entries[current_cluster])
                  != f12_meta->end_of_chain_marker);
 
         free(zeros);
 
-        return 0;
+        return F12_SUCCESS;
 }
 
 /**
@@ -180,7 +198,7 @@ static void erase_entry(struct f12_directory_entry *entry)
  * @param entry a pointer to the f12_directory_entry structure to populate
  * @return 0 on success
  */
-static int read_dir_entry(char *data, struct f12_directory_entry *entry)
+static void read_dir_entry(char *data, struct f12_directory_entry *entry)
 {
         memcpy(&entry->ShortFileName, data, 8);
         memcpy(&entry->ShortFileExtension, data + 8, 3);
@@ -195,8 +213,6 @@ static int read_dir_entry(char *data, struct f12_directory_entry *entry)
         memcpy(&entry->LastModifiedDate, data + 24, 2);
         memcpy(&entry->FirstCluster, data + 26, 2);
         memcpy(&entry->FileSize, data + 28, 4);
-
-        return 0;
 }
 
 /**
@@ -208,28 +224,31 @@ static int read_dir_entry(char *data, struct f12_directory_entry *entry)
  *                  that should be scanned for subdirectories and files
  * @return -1 on allocation error, 0 on success
  */
-static int scan_subsequent_entries(FILE *fp, struct f12_metadata *f12_meta,
-                                   struct f12_directory_entry *dir_entry)
+static enum f12_error
+scan_subsequent_entries(FILE *fp, struct f12_metadata *f12_meta,
+                        struct f12_directory_entry *dir_entry)
 {
+        enum f12_error err;
+
         if (f12_entry_is_empty(dir_entry) ||
             !f12_is_directory(dir_entry)) {
-                return 0;
+                return F12_SUCCESS;
         }
 
         if (0 == memcmp(dir_entry->ShortFileName, ".       ", 8) &&
             0 == memcmp(dir_entry->ShortFileExtension, "   ", 3)) {
                 dir_entry->children = dir_entry->parent->children;
                 dir_entry->child_count = dir_entry->parent->child_count;
-                return 0;
+                return F12_SUCCESS;
         }
         if (0 == memcmp(dir_entry->ShortFileName, "..      ", 8) &&
             0 == memcmp(dir_entry->ShortFileExtension, "   ", 3)) {
                 if (dir_entry->parent == f12_meta->root_dir) {
-                        return 0;
+                        return F12_SUCCESS;
                 }
                 dir_entry->children = dir_entry->parent->parent->children;
                 dir_entry->child_count = dir_entry->parent->parent->child_count;
-                return 0;
+                return F12_SUCCESS;
         }
 
         size_t directory_size = get_cluster_chain_size(dir_entry->FirstCluster,
@@ -237,31 +256,31 @@ static int scan_subsequent_entries(FILE *fp, struct f12_metadata *f12_meta,
         int entry_count = directory_size / 32;
         char *directory_table = load_cluster_chain(fp, dir_entry->FirstCluster,
                                                    f12_meta);
+        if (NULL == directory_table) {
+                return F12_UNKNOWN_ERROR;
+        }
+
         struct f12_directory_entry *entries = malloc(entry_count *
                                                      sizeof(struct f12_directory_entry));
-
-        if (NULL == directory_table) {
-                return -1;
-        }
-
         if (NULL == entries) {
                 free(directory_table);
-                return -1;
+                return F12_ALLOCATION_ERROR;
         }
 
-        if (f12_is_directory(dir_entry)) {
-                dir_entry->child_count = entry_count;
-                dir_entry->children = entries;
-                for (int i = 0; i < entry_count; i++) {
-                        read_dir_entry(directory_table + i * 32, &entries[i]);
-                        entries[i].parent = dir_entry;
-                        scan_subsequent_entries(fp, f12_meta, &entries[i]);
+        dir_entry->child_count = entry_count;
+        dir_entry->children = entries;
+        for (int i = 0; i < entry_count; i++) {
+                read_dir_entry(directory_table + i * 32, &entries[i]);
+                entries[i].parent = dir_entry;
+                err = scan_subsequent_entries(fp, f12_meta, &entries[i]);
+                if (F12_SUCCESS != err) {
+                        free(directory_table);
+                        return err;
                 }
         }
-
         free(directory_table);
 
-        return 0;
+        return F12_SUCCESS;
 }
 
 /**
@@ -271,8 +290,9 @@ static int scan_subsequent_entries(FILE *fp, struct f12_metadata *f12_meta,
  * @param f12_meta a pointer to the metadata of the partition
  * @return -1 on allocation error, 0 on success
  */
-static int load_root_dir(FILE *fp, struct f12_metadata *f12_meta)
+static enum f12_error load_root_dir(FILE *fp, struct f12_metadata *f12_meta)
 {
+        enum f12_error err;
         struct bios_parameter_block *bpb = f12_meta->bpb;
 
         int root_start = f12_meta->root_dir_offset;
@@ -280,7 +300,7 @@ static int load_root_dir(FILE *fp, struct f12_metadata *f12_meta)
         char *root_data = malloc(root_size);
 
         if (NULL == root_data) {
-                return -1;
+                return F12_ALLOCATION_ERROR;
         }
 
         struct f12_directory_entry *root_dir = malloc(
@@ -288,14 +308,22 @@ static int load_root_dir(FILE *fp, struct f12_metadata *f12_meta)
 
         if (NULL == root_dir) {
                 free(root_data);
-                return -1;
+                return F12_ALLOCATION_ERROR;
         }
 
-        fseek(fp, root_start, SEEK_SET);
-        if (root_size != fread(root_data, 1, root_size, fp)) {
+        if (0 != fseek(fp, root_start, SEEK_SET)) {
+                f12_save_errno();
                 free(root_data);
                 free(root_dir);
-                return -1;
+
+                return F12_IO_ERROR;
+        }
+        if (root_size != fread(root_data, 1, root_size, fp)) {
+                f12_save_errno();
+                free(root_data);
+                free(root_dir);
+
+                return F12_IO_ERROR;
         }
 
         struct f12_directory_entry *root_entries =
@@ -305,7 +333,7 @@ static int load_root_dir(FILE *fp, struct f12_metadata *f12_meta)
         if (NULL == root_entries) {
                 free(root_data);
                 free(root_dir);
-                return -1;
+                return F12_ALLOCATION_ERROR;
         }
 
         root_dir->parent = NULL;
@@ -319,12 +347,17 @@ static int load_root_dir(FILE *fp, struct f12_metadata *f12_meta)
                 read_dir_entry(root_data + i * 32, &root_entries[i]);
                 root_entries[i].parent = root_dir;
 
-                scan_subsequent_entries(fp, f12_meta, &root_entries[i]);
+                err = scan_subsequent_entries(fp, f12_meta, &root_entries[i]);
+                if (F12_SUCCESS != err) {
+                        free(root_data);
+
+                        return err;
+                }
         }
 
         free(root_data);
 
-        return 0;
+        return F12_SUCCESS;
 }
 
 /**
@@ -334,7 +367,7 @@ static int load_root_dir(FILE *fp, struct f12_metadata *f12_meta)
  * @param f12_meta a pointer to the metadata of the partition
  * @return -1 on allocation error, 0 on success
  */
-static int read_fat_entries(FILE *fp, struct f12_metadata *f12_meta)
+static enum f12_error read_fat_entries(FILE *fp, struct f12_metadata *f12_meta)
 {
 
         struct bios_parameter_block *bpb = f12_meta->bpb;
@@ -346,20 +379,27 @@ static int read_fat_entries(FILE *fp, struct f12_metadata *f12_meta)
         char *fat = malloc(fat_size);
 
         if (NULL == fat) {
-                return -1;
+                return F12_ALLOCATION_ERROR;
         }
 
-        fseek(fp, fat_start_addr, SEEK_SET);
-        if (fat_size != fread(fat, 1, fat_size, fp)) {
+        if (0 != fseek(fp, fat_start_addr, SEEK_SET)) {
+                f12_save_errno();
                 free(fat);
-                return -1;
+
+                return F12_IO_ERROR;
+        }
+        if (fat_size != fread(fat, 1, fat_size, fp)) {
+                f12_save_errno();
+                free(fat);
+
+                return F12_IO_ERROR;
         }
 
         f12_meta->fat_entries = malloc(sizeof(uint16_t) * cluster_count);
 
         if (NULL == f12_meta->fat_entries) {
                 free(fat);
-                return -1;
+                return F12_ALLOCATION_ERROR;
         }
 
         for (int i = 0; i < cluster_count; i++) {
@@ -367,7 +407,7 @@ static int read_fat_entries(FILE *fp, struct f12_metadata *f12_meta)
         }
 
         free(fat);
-        return 0;
+        return F12_SUCCESS;
 }
 
 /**
@@ -377,13 +417,19 @@ static int read_fat_entries(FILE *fp, struct f12_metadata *f12_meta)
  * @param bpb a pointer to the bios_parameter_block structure to populate
  * @return 0 on success
  */
-static int read_bpb(FILE *fp, struct bios_parameter_block *bpb)
+static enum f12_error read_bpb(FILE *fp, struct bios_parameter_block *bpb)
 {
         char buffer[59];
 
-        fseek(fp, 3, SEEK_SET);
+        if (0 != fseek(fp, 3L, SEEK_SET)) {
+                f12_save_errno();
+
+                return F12_IO_ERROR;
+        }
         if (59 != fread(buffer, 1, 59, fp)) {
-                return -1;
+                f12_save_errno();
+
+                return F12_IO_ERROR;
         }
 
         memcpy(&(bpb->OEMLabel), buffer, 8);
@@ -408,7 +454,7 @@ static int read_bpb(FILE *fp, struct bios_parameter_block *bpb)
         memcpy(&(bpb->FileSystem), buffer + 51, 8);
         bpb->FileSystem[8] = 0;
 
-        return 0;
+        return F12_SUCCESS;
 }
 
 /**
@@ -424,8 +470,9 @@ static int read_bpb(FILE *fp, struct bios_parameter_block *bpb)
  *         -1 if the data is larger than the cluster chain.
  *          0 on success
  */
-static int write_to_clusterchain(FILE *fp, void *data, uint16_t first_cluster,
-                                 size_t bytes, struct f12_metadata *f12_meta)
+static enum f12_error
+write_to_clusterchain(FILE *fp, void *data, uint16_t first_cluster,
+                      size_t bytes, struct f12_metadata *f12_meta)
 {
         uint16_t chain_length = get_cluster_chain_size(first_cluster, f12_meta);
         uint16_t written_bytes = 0;
@@ -433,32 +480,47 @@ static int write_to_clusterchain(FILE *fp, void *data, uint16_t first_cluster,
         uint16_t cluster_size = get_cluster_size(f12_meta);
         uint16_t *fat_entries = f12_meta->fat_entries;
         uint16_t bytes_left;
+        int offset;
 
         /* Check if the data is larger than the clusterchain */
         if (bytes > chain_length) {
-                return -1;
+                return F12_LOGIC_ERROR;
         }
 
         /* Check if the data is more than on cluster smaller than the clusterchain */
         if (bytes + cluster_size <= chain_length) {
-                return -2;
+                return F12_LOGIC_ERROR;
         }
 
         while (written_bytes < bytes) {
-                fseek(fp, cluster_offset(current_cluster, f12_meta), SEEK_SET);
+                offset = cluster_offset(current_cluster, f12_meta);
+                if (0 != fseek(fp, offset, SEEK_SET)) {
+                        f12_save_errno();
+
+                        return F12_IO_ERROR;
+
+                }
                 bytes_left = bytes - written_bytes;
 
                 if (bytes_left < cluster_size) {
-                        fwrite(data, 1, bytes_left, fp);
+                        if (bytes_left != fwrite(data, 1, bytes_left, fp)) {
+                                f12_save_errno();
+
+                                return F12_IO_ERROR;
+                        }
                         char zero = 0;
                         for (uint16_t i = bytes_left; i < cluster_size; i++) {
                                 if (1 != fwrite(&zero, 1, 1, fp)) {
-                                        return -1;
+                                        f12_save_errno();
+
+                                        return F12_IO_ERROR;
                                 }
                         }
                 } else {
                         if (cluster_size != fwrite(data, 1, cluster_size, fp)) {
-                                return -1;
+                                f12_save_errno();
+
+                                return F12_IO_ERROR;
                         }
                 }
 
@@ -467,7 +529,7 @@ static int write_to_clusterchain(FILE *fp, void *data, uint16_t first_cluster,
                 current_cluster = fat_entries[current_cluster];
         }
 
-        return 0;
+        return F12_SUCCESS;
 }
 
 /**
@@ -477,7 +539,7 @@ static int write_to_clusterchain(FILE *fp, void *data, uint16_t first_cluster,
  * @param f12_meta a pointer to the metadata of the partition
  * @return 0 on success
  */
-static int write_bpb(FILE *fp, struct f12_metadata *f12_meta)
+static enum f12_error write_bpb(FILE *fp, struct f12_metadata *f12_meta)
 {
         struct bios_parameter_block *bpb = f12_meta->bpb;
         char buffer[59];
@@ -502,12 +564,18 @@ static int write_bpb(FILE *fp, struct f12_metadata *f12_meta)
         memcpy(buffer + 40, &(bpb->VolumeLabel), 11);
         memcpy(buffer + 51, &(bpb->FileSystem), 8);
 
-        fseek(fp, 3, SEEK_SET);
+        if (0 != fseek(fp, 3L, SEEK_SET)) {
+                f12_save_errno();
+
+                return F12_IO_ERROR;
+        }
         if (59 != fwrite(buffer, 1, 59, fp)) {
-                return -1;
+                f12_save_errno();
+
+                return F12_IO_ERROR;
         }
 
-        return 0;
+        return F12_SUCCESS;
 }
 
 /**
@@ -598,7 +666,7 @@ static char *create_directory(struct f12_directory_entry *dir_entry,
  * @param f12_meta a pointer to the metadata
  * @return -1 on allocation failure, 0 on success
  */
-static int write_fats(FILE *fp, struct f12_metadata *f12_meta)
+static enum f12_error write_fats(FILE *fp, struct f12_metadata *f12_meta)
 {
         struct bios_parameter_block *bpb = f12_meta->bpb;
         int fat_offset = bpb->SectorSize * bpb->ReservedForBoot;
@@ -607,23 +675,30 @@ static int write_fats(FILE *fp, struct f12_metadata *f12_meta)
         char *fat = create_fat(f12_meta);
 
         if (NULL == fat) {
-                return -1;
+                return F12_ALLOCATION_ERROR;
         }
 
-        fseek(fp, fat_offset, SEEK_SET);
+        if (0 != fseek(fp, fat_offset, SEEK_SET)) {
+                f12_save_errno();
+                free(fat);
+
+                return F12_IO_ERROR;
+        }
         for (int i = 0; i < fat_count; i++) {
                 if (fat_size != fwrite(fat, 1, fat_size, fp)) {
+                        f12_save_errno();
                         free(fat);
-                        return -1;
+
+                        return F12_IO_ERROR;
                 }
         }
 
         free(fat);
-        return 0;
+        return F12_SUCCESS;
 }
 
 /**
- * Writtes the directory described by a f12_directory_entry structure and all
+ * Writes the directory described by a f12_directory_entry structure and all
  * its children on the partition.
  *
  * @param fp the file pointer of the partition
@@ -631,64 +706,85 @@ static int write_fats(FILE *fp, struct f12_metadata *f12_meta)
  * @param entry a pointer to the f12_directory_entry structure
  * @return -1 on allocation failure, 0 on success
  */
-static int write_directory(FILE *fp, struct f12_metadata *f12_meta,
-                           struct f12_directory_entry *entry)
+static enum f12_error write_directory(FILE *fp, struct f12_metadata *f12_meta,
+                                      struct f12_directory_entry *entry)
 {
+        enum f12_error err;
+
         if (f12_entry_is_empty(entry)
+            || !f12_is_directory(entry)
             || f12_is_dot_dir(entry)
             || entry->FirstCluster == 0
                 ) {
-                return 0;
+                return F12_SUCCESS;
         }
 
         uint16_t first_cluster = entry->FirstCluster;
 
         for (int i = 0; i < entry->child_count; i++) {
-                write_directory(fp, f12_meta, &entry->children[i]);
+                err = write_directory(fp, f12_meta, &entry->children[i]);
+                if (F12_SUCCESS != err) {
+                        return err;
+                }
         }
 
         size_t dir_size = get_cluster_chain_size(entry->FirstCluster, f12_meta);
         char *dir = create_directory(entry, dir_size);
         if (NULL == dir) {
-                return -1;
+                return F12_ALLOCATION_ERROR;
         }
-        write_to_clusterchain(fp, dir, first_cluster, dir_size, f12_meta);
+        err = write_to_clusterchain(fp, dir, first_cluster, dir_size, f12_meta);
         free(dir);
+        if (F12_SUCCESS != err) {
+                return err;
+        }
 
-        return 0;
+        return F12_SUCCESS;
 }
 
 /**
- * Writtes the root directory from the metadata of a fat12 partition on the
+ * Writes the root directory from the metadata of a fat12 partition on the
  * partition.
  *
  * @param fp the file pointer of the partition
  * @param f12_meta a pointer to the metadata of the partition
  * @return -1 on allocation failure, 0 on success
  */
-static int write_root_dir(FILE *fp, struct f12_metadata *f12_meta)
+static enum f12_error write_root_dir(FILE *fp, struct f12_metadata *f12_meta)
 {
+        enum f12_error err;
+
         size_t dir_size = 32 * f12_meta->bpb->RootDirEntries;
         char *dir = create_directory(f12_meta->root_dir, dir_size);
 
         if (NULL == dir) {
-                return -1;
+                return F12_ALLOCATION_ERROR;
         }
 
         for (int i = 0; i < f12_meta->root_dir->child_count; i++) {
-                write_directory(fp, f12_meta, &f12_meta->root_dir->children[i]);
+                err = write_directory(fp, f12_meta,
+                                      &f12_meta->root_dir->children[i]);
+                if (F12_SUCCESS != err) {
+                        return err;
+                }
         }
 
-        fseek(fp, f12_meta->root_dir_offset, SEEK_SET);
-
-        if (dir_size != fwrite(dir, 1, dir_size, fp)) {
+        if (0 != fseek(fp, f12_meta->root_dir_offset, SEEK_SET)) {
+                f12_save_errno();
                 free(dir);
 
-                return -1;
+                return F12_IO_ERROR;
+        }
+
+        if (dir_size != fwrite(dir, 1, dir_size, fp)) {
+                f12_save_errno();
+                free(dir);
+
+                return F12_IO_ERROR;
         }
         free(dir);
 
-        return 0;
+        return F12_SUCCESS;
 }
 
 static uint16_t get_cluster_chain(struct f12_metadata *f12_meta,
@@ -713,7 +809,7 @@ static uint16_t get_cluster_chain(struct f12_metadata *f12_meta,
                 j++;
         }
 
-        return -1;
+        return 0;
 }
 
 /**
@@ -723,24 +819,24 @@ static uint16_t get_cluster_chain(struct f12_metadata *f12_meta,
  * @param f12_meta a pointer to a pointer to the f12_metadata structure to populate.
  * @return 0 on success, -1 on failure
  */
-int f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta)
+enum f12_error f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta)
 {
+        enum f12_error err;
         struct bios_parameter_block *bpb;
 
         *f12_meta = malloc(sizeof(struct f12_metadata));
-
         if (NULL == *f12_meta) {
-                return -1;
+                return F12_ALLOCATION_ERROR;
         }
 
         (*f12_meta)->bpb = bpb = malloc(sizeof(struct bios_parameter_block));
-
         if (NULL == (*f12_meta)->bpb) {
-                return -1;
+                return F12_ALLOCATION_ERROR;
         }
 
-        if (0 != read_bpb(fp, (*f12_meta)->bpb)) {
-                return -2;
+        if (F12_SUCCESS != (err = read_bpb(fp, (*f12_meta)->bpb))) {
+                free(f12_meta);
+                return err;
         }
 
         (*f12_meta)->root_dir_offset = bpb->SectorSize *
@@ -748,16 +844,21 @@ int f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta)
                                          bpb->SectorsPerFat) +
                                         bpb->ReservedForBoot);
 
-        read_fat_entries(fp, *f12_meta);
+        if (F12_SUCCESS != (err = read_fat_entries(fp, *f12_meta))) {
+                free((*f12_meta)->bpb);
+                free(*f12_meta);
+
+                return err;
+        }
         (*f12_meta)->fat_id = (*f12_meta)->fat_entries[0];
         (*f12_meta)->end_of_chain_marker = (*f12_meta)->fat_entries[1];
 
-        if (0 != load_root_dir(fp, *f12_meta)) {
+        if (F12_SUCCESS != (err = load_root_dir(fp, *f12_meta))) {
 
-                return -1;
+                return err;
         }
 
-        return 0;
+        return F12_SUCCESS;
 }
 
 /**
@@ -767,17 +868,30 @@ int f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta)
  * @param f12_meta a pointer to the metadata
  * @return 0 on success
  */
-int f12_write_metadata(FILE *fp, struct f12_metadata *f12_meta)
+enum f12_error f12_write_metadata(FILE *fp, struct f12_metadata *f12_meta)
 {
-        write_bpb(fp, f12_meta);
-        write_fats(fp, f12_meta);
-        write_root_dir(fp, f12_meta);
+        enum f12_error err;
 
-        return 0;
+        err = write_bpb(fp, f12_meta);
+        if (F12_SUCCESS != err) {
+                return err;
+        }
+
+        err = write_fats(fp, f12_meta);
+        if (F12_SUCCESS != err) {
+                return err;
+        }
+
+        err = write_root_dir(fp, f12_meta);
+        if (F12_SUCCESS != err) {
+                return err;
+        }
+
+        return F12_SUCCESS;
 }
 
 /**
- * Deletes a file or driectory from a fat12 partition.
+ * Deletes a file or directory from a fat12 partition.
  *
  * @param fp the file pointer of the partition
  * @param f12_meta a pointer to the metadata of the partition
@@ -789,24 +903,32 @@ int f12_write_metadata(FILE *fp, struct f12_metadata *f12_meta)
  *                                 children
  *         0 on success
  */
-int f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
-                  struct f12_directory_entry *entry, int soft_delete)
+enum f12_error f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
+                             struct f12_directory_entry *entry, int soft_delete)
 {
+        enum f12_error err;
+
         if (f12_is_directory(entry) && f12_get_child_count(entry) > 2) {
-                return F12_DIRECTORY_NOT_EMPTY;
+                return F12_DIR_NOT_EMPTY;
         }
 
         if (1 == soft_delete) {
-                return 0;
+                return F12_SUCCESS;
         }
 
         if (entry->FirstCluster) {
-                erase_cluster_chain(fp, f12_meta, entry->FirstCluster);
+                err = erase_cluster_chain(fp, f12_meta, entry->FirstCluster);
+                if (err != F12_SUCCESS) {
+                        return err;
+                }
         }
         erase_entry(entry);
-        f12_write_metadata(fp, f12_meta);
+        err = f12_write_metadata(fp, f12_meta);
+        if (F12_SUCCESS != err) {
+                return err;
+        }
 
-        return 0;
+        return F12_SUCCESS;
 }
 
 /**
@@ -820,8 +942,8 @@ int f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
  * @return -1 on failure
  *          0 on success
  */
-int f12_dump_file(FILE *fp, struct f12_metadata *f12_meta,
-                  struct f12_directory_entry *entry, FILE *dest_fp)
+enum f12_error f12_dump_file(FILE *fp, struct f12_metadata *f12_meta,
+                             struct f12_directory_entry *entry, FILE *dest_fp)
 {
         int offset = cluster_offset(entry->FirstCluster, f12_meta);
         uint16_t chain_length = get_cluster_chain_length(entry->FirstCluster,
@@ -829,12 +951,15 @@ int f12_dump_file(FILE *fp, struct f12_metadata *f12_meta,
         size_t cluster_size = get_cluster_size(f12_meta);
         uint32_t file_size = entry->FileSize;
 
-        fseek(fp, offset, SEEK_SET);
+        if (0 != fseek(fp, offset, SEEK_SET)) {
+                f12_save_errno();
+
+                return F12_IO_ERROR;
+        }
 
         void *buffer = malloc(cluster_size);
-
         if (buffer == NULL) {
-                return -1;
+                return F12_ALLOCATION_ERROR;
         }
 
         for (uint16_t i = 0; i < chain_length; i++) {
@@ -847,7 +972,7 @@ int f12_dump_file(FILE *fp, struct f12_metadata *f12_meta,
 
         free(buffer);
 
-        return 0;
+        return F12_SUCCESS;
 }
 
 /**
@@ -858,17 +983,30 @@ int f12_dump_file(FILE *fp, struct f12_metadata *f12_meta,
  * @param source_fp pointer to the file to write on the partition
  * @return
  */
-int f12_create_file(FILE *fp, struct f12_metadata *f12_meta,
-                    struct f12_path *path, FILE *source_fp)
+enum f12_error f12_create_file(FILE *fp, struct f12_metadata *f12_meta,
+                               struct f12_path *path, FILE *source_fp)
 {
+        enum f12_error err;
+
         struct f12_directory_entry *entry;
         size_t cluster_size, file_size;
         int cluster_count;
         uint16_t first_cluster;
 
         cluster_size = get_cluster_size(f12_meta);
-        fseek(source_fp, 0L, SEEK_END);
-        file_size = ftell(source_fp);
+        if (0 != fseek(source_fp, 0L, SEEK_END)) {
+                f12_save_errno();
+
+                return F12_IO_ERROR;
+        }
+        long int ftell_res = ftell(source_fp);
+        if (-1L == ftell_res) {
+                f12_save_errno();
+                fclose(fp);
+
+                return F12_IO_ERROR;
+        }
+        file_size = (size_t) ftell_res;
         rewind(source_fp);
 
         cluster_count = file_size / cluster_size;
@@ -879,42 +1017,51 @@ int f12_create_file(FILE *fp, struct f12_metadata *f12_meta,
         first_cluster = get_cluster_chain(f12_meta, cluster_count);
 
         if (0 == first_cluster) {
-                // Partition full
-                return -1;
+                // Image full
+                return F12_IMAGE_FULL;
         }
 
         char *data = malloc(file_size);
-
         if (NULL == data) {
-                return -1;
+                return F12_ALLOCATION_ERROR;
         }
 
         if (file_size != fread(data, 1, file_size, source_fp)) {
+                f12_save_errno();
                 free(data);
-                return -1;
+
+                return F12_IO_ERROR;
         }
 
-        write_to_clusterchain(fp, data, first_cluster, file_size, f12_meta);
+        err = write_to_clusterchain(fp, data, first_cluster, file_size,
+                                    f12_meta);
+        if (F12_SUCCESS != err) {
+                free(data);
+                return err;
+        }
 
-        f12_create_entry_from_path(f12_meta, path, &entry);
+        err = f12_create_entry_from_path(f12_meta, path, &entry);
+        if (err != F12_SUCCESS) {
+                free(data);
+                return err;
+        }
         entry->FirstCluster = first_cluster;
         entry->FileSize = file_size;
 
         free(data);
 
-        return 0;
+        return F12_SUCCESS;
 }
 
-int f12_create_directory_table(struct f12_metadata *f12_meta,
-                               struct f12_directory_entry *entry)
+enum f12_error f12_create_directory_table(struct f12_metadata *f12_meta,
+                                          struct f12_directory_entry *entry)
 {
         size_t children_size = 224 * sizeof(struct f12_directory_entry);
         size_t table_size = 244 * 32;
 
         struct f12_directory_entry *children = malloc(children_size);
-
         if (NULL == children) {
-                return -1;
+                return F12_ALLOCATION_ERROR;
         }
 
         uint16_t cluster_count = table_size / get_cluster_size(f12_meta);
@@ -923,6 +1070,9 @@ int f12_create_directory_table(struct f12_metadata *f12_meta,
         entry->child_count = 224;
         entry->FileAttributes = F12_ATTR_SUBDIRECTORY;
         entry->FirstCluster = get_cluster_chain(f12_meta, cluster_count);
+        if (0 == entry->FirstCluster) {
+                return F12_IMAGE_FULL;
+        }
 
         memset(children, 0, table_size);
 
@@ -940,13 +1090,15 @@ int f12_create_directory_table(struct f12_metadata *f12_meta,
         children[1].parent = entry;
         children[1].FirstCluster = 0;
 
-        return 0;
+        return F12_SUCCESS;
 }
 
-int f12_create_entry_from_path(struct f12_metadata *f12_meta,
-                               struct f12_path *path,
-                               struct f12_directory_entry **entry)
+enum f12_error f12_create_entry_from_path(struct f12_metadata *f12_meta,
+                                          struct f12_path *path,
+                                          struct f12_directory_entry **entry)
 {
+        enum f12_error err;
+
         struct f12_path *tmp_path = path, *original_descendant;
         struct f12_directory_entry *parent_entry;
 
@@ -962,11 +1114,16 @@ int f12_create_entry_from_path(struct f12_metadata *f12_meta,
                 tmp_path = tmp_path->ancestor;
                 original_descendant = tmp_path->descendant;
                 tmp_path->descendant = NULL;
-                f12_path_create_directories(f12_meta, f12_meta->root_dir, path);
+                err = f12_path_create_directories(f12_meta, f12_meta->root_dir,
+                                                  path);
+                if (F12_SUCCESS != err) {
+                        return err;
+                }
+
                 parent_entry = f12_entry_from_path(f12_meta->root_dir, path);
 
-                if (parent_entry == F12_FILE_NOT_FOUND) {
-                        return -1;
+                if (NULL == parent_entry) {
+                        return F12_FILE_NOT_FOUND;
                 }
                 path = original_descendant;
         }
@@ -992,11 +1149,11 @@ int f12_create_entry_from_path(struct f12_metadata *f12_meta,
         }
 
         if (NULL == *entry) {
-                return -1;
+                return F12_DIR_FULL;
         }
 
         memcpy((*entry)->ShortFileName, path->short_file_name, 8);
         memcpy((*entry)->ShortFileExtension, path->short_file_extension, 3);
 
-        return 0;
+        return F12_SUCCESS;
 }
