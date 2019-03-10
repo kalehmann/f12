@@ -95,7 +95,7 @@ static size_t get_cluster_chain_size(uint16_t start_cluster,
  * @param fp the file descriptor of the fat12 partition
  * @param start_cluster the number of the first cluster in the cluster chain
  * @param f12_meta a pointer to the metadata of the partition
- * @return a pointer to the contents of the clsuter chain in the memory. Must be
+ * @return a pointer to the contents of the cluster chain in the memory. Must be
  *         freed.
  */
 static char *load_cluster_chain(FILE *fp, uint16_t start_cluster,
@@ -115,7 +115,9 @@ static char *load_cluster_chain(FILE *fp, uint16_t start_cluster,
 
         do {
                 fseek(fp, cluster_offset(current_cluster, f12_meta), SEEK_SET);
-                fread(data, 1, cluster_size, fp);
+                if (cluster_size != fread(data, 1, cluster_size, fp)) {
+                        return NULL;
+                }
                 data += cluster_size;
         } while ((current_cluster = fat_entries[current_cluster])
                  != f12_meta->end_of_chain_marker);
@@ -287,7 +289,11 @@ static int load_root_dir(FILE *fp, struct f12_metadata *f12_meta)
         }
 
         fseek(fp, root_start, SEEK_SET);
-        fread(root_data, 1, root_size, fp);
+        if (root_size != fread(root_data, 1, root_size, fp)) {
+                free(root_data);
+                free(root_dir);
+                return -1;
+        }
 
         struct f12_directory_entry *root_entries =
                 malloc(sizeof(struct f12_directory_entry) *
@@ -341,7 +347,10 @@ static int read_fat_entries(FILE *fp, struct f12_metadata *f12_meta)
         }
 
         fseek(fp, fat_start_addr, SEEK_SET);
-        fread(fat, 1, fat_size, fp);
+        if (fat_size != fread(fat, 1, fat_size, fp)) {
+                free(fat);
+                return -1;
+        }
 
         f12_meta->fat_entries = malloc(sizeof(uint16_t) * cluster_count);
 
@@ -367,28 +376,33 @@ static int read_fat_entries(FILE *fp, struct f12_metadata *f12_meta)
  */
 static int read_bpb(FILE *fp, struct bios_parameter_block *bpb)
 {
-        fseek(fp, 3, SEEK_SET);
+        char buffer[59];
 
-        fread(&(bpb->OEMLabel), 1, 8, fp);
-        fread(&(bpb->SectorSize), 1, 2, fp);
-        fread(&(bpb->SectorsPerCluster), 1, 1, fp);
-        fread(&(bpb->ReservedForBoot), 1, 2, fp);
-        fread(&(bpb->NumberOfFats), 1, 1, fp);
-        fread(&(bpb->RootDirEntries), 1, 2, fp);
-        fread(&(bpb->LogicalSectors), 1, 2, fp);
-        fread(&(bpb->MediumByte), 1, 1, fp);
-        fread(&(bpb->SectorsPerFat), 1, 2, fp);
-        fread(&(bpb->SectorsPerTrack), 1, 2, fp);
-        fread(&(bpb->NumberOfHeads), 1, 2, fp);
-        fread(&(bpb->HiddenSectors), 1, 4, fp);
-        fread(&(bpb->LargeSectors), 1, 4, fp);
-        fread(&(bpb->DriveNumber), 1, 1, fp);
-        fread(&(bpb->Flags), 1, 1, fp);
-        fread(&(bpb->Signature), 1, 1, fp);
-        fread(&(bpb->VolumeID), 1, 4, fp);
-        fread(&(bpb->VolumeLabel), 1, 11, fp);
+        fseek(fp, 3, SEEK_SET);
+        if (59 != fread(buffer, 1, 59, fp)) {
+                return -1;
+        }
+
+        memcpy(&(bpb->OEMLabel), buffer, 8);
+        memcpy(&(bpb->SectorSize), buffer + 8, 2);
+        memcpy(&(bpb->SectorsPerCluster), buffer + 10, 1);
+        memcpy(&(bpb->ReservedForBoot), buffer + 11, 2);
+        memcpy(&(bpb->NumberOfFats), buffer + 13, 1);
+        memcpy(&(bpb->RootDirEntries), buffer + 14, 2);
+        memcpy(&(bpb->LogicalSectors), buffer + 16, 2);
+        memcpy(&(bpb->MediumByte), buffer + 18, 1);
+        memcpy(&(bpb->SectorsPerFat), buffer + 19, 2);
+        memcpy(&(bpb->SectorsPerTrack), buffer + 21, 2);
+        memcpy(&(bpb->NumberOfHeads), buffer + 23, 2);
+        memcpy(&(bpb->HiddenSectors), buffer + 25, 4);
+        memcpy(&(bpb->LargeSectors), buffer + 29, 4);
+        memcpy(&(bpb->DriveNumber), buffer + 33, 1);
+        memcpy(&(bpb->Flags), buffer + 34, 1);
+        memcpy(&(bpb->Signature), buffer + 35, 1);
+        memcpy(&(bpb->VolumeID), buffer + 36, 4);
+        memcpy(&(bpb->VolumeLabel), buffer + 40, 11);
         bpb->VolumeLabel[11] = 0;
-        fread(&(bpb->FileSystem), 1, 8, fp);
+        memcpy(&(bpb->FileSystem), buffer + 51, 8);
         bpb->FileSystem[8] = 0;
 
         return 0;
@@ -459,28 +473,32 @@ static int write_to_clusterchain(FILE *fp, void *data, uint16_t first_cluster,
 static int write_bpb(FILE *fp, struct f12_metadata *f12_meta)
 {
         struct bios_parameter_block *bpb = f12_meta->bpb;
+        char buffer[59];
+
+        memcpy(buffer, &(bpb->OEMLabel), 8);
+        memcpy(buffer + 8, &(bpb->SectorSize), 2);
+        memcpy(buffer + 10, &(bpb->SectorsPerCluster), 1);
+        memcpy(buffer + 11, &(bpb->ReservedForBoot), 2);
+        memcpy(buffer + 13, &(bpb->NumberOfFats), 1);
+        memcpy(buffer + 14, &(bpb->RootDirEntries), 2);
+        memcpy(buffer + 16, &(bpb->LogicalSectors), 2);
+        memcpy(buffer + 18, &(bpb->MediumByte), 1);
+        memcpy(buffer + 19, &(bpb->SectorsPerFat), 2);
+        memcpy(buffer + 21, &(bpb->SectorsPerTrack), 2);
+        memcpy(buffer + 23, &(bpb->NumberOfHeads), 2);
+        memcpy(buffer + 25, &(bpb->HiddenSectors), 4);
+        memcpy(buffer + 29, &(bpb->LargeSectors), 4);
+        memcpy(buffer + 33, &(bpb->DriveNumber), 1);
+        memcpy(buffer + 34, &(bpb->Flags), 1);
+        memcpy(buffer + 35, &(bpb->Signature), 1);
+        memcpy(buffer + 36, &(bpb->VolumeID), 4);
+        memcpy(buffer + 40, &(bpb->VolumeLabel), 11);
+        memcpy(buffer + 51, &(bpb->FileSystem), 8);
 
         fseek(fp, 3, SEEK_SET);
-
-        fwrite(&(bpb->OEMLabel), 1, 8, fp);
-        fwrite(&(bpb->SectorSize), 1, 2, fp);
-        fwrite(&(bpb->SectorsPerCluster), 1, 1, fp);
-        fwrite(&(bpb->ReservedForBoot), 1, 2, fp);
-        fwrite(&(bpb->NumberOfFats), 1, 1, fp);
-        fwrite(&(bpb->RootDirEntries), 1, 2, fp);
-        fwrite(&(bpb->LogicalSectors), 1, 2, fp);
-        fwrite(&(bpb->MediumByte), 1, 1, fp);
-        fwrite(&(bpb->SectorsPerFat), 1, 2, fp);
-        fwrite(&(bpb->SectorsPerTrack), 1, 2, fp);
-        fwrite(&(bpb->NumberOfHeads), 1, 2, fp);
-        fwrite(&(bpb->HiddenSectors), 1, 4, fp);
-        fwrite(&(bpb->LargeSectors), 1, 4, fp);
-        fwrite(&(bpb->DriveNumber), 1, 1, fp);
-        fwrite(&(bpb->Flags), 1, 1, fp);
-        fwrite(&(bpb->Signature), 1, 1, fp);
-        fwrite(&(bpb->VolumeID), 1, 4, fp);
-        fwrite(&(bpb->VolumeLabel), 1, 11, fp);
-        fwrite(&(bpb->FileSystem), 1, 8, fp);
+        if (59 != fwrite(buffer, 1, 59, fp)) {
+                return -1;
+        }
 
         return 0;
 }
@@ -851,7 +869,10 @@ int f12_create_file(FILE *fp, struct f12_metadata *f12_meta,
                 return -1;
         }
 
-        fread(data, file_size, 1, source_fp);
+        if (file_size != fread(data, 1, file_size, source_fp)) {
+                free(data);
+                return -1;
+        }
 
         write_to_clusterchain(fp, data, first_cluster, file_size, f12_meta);
 
