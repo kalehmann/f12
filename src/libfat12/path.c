@@ -19,15 +19,15 @@ static int build_path(char **input_parts, int part_count, struct f12_path *path)
         }
         path->short_file_name = path->name;
         path->short_file_extension = path->name + 8;
-        path->descendant = malloc(sizeof(struct f12_path));
-
-        if (NULL == path->descendant) {
-                return -1;
-        }
 
         if (1 == part_count) {
                 path->descendant = NULL;
                 return 0;
+        }
+
+        path->descendant = malloc(sizeof(struct f12_path));
+        if (NULL == path->descendant) {
+                return -1;
         }
 
         int res = build_path(&input_parts[1], part_count - 1,
@@ -64,7 +64,6 @@ static int split_input(const char *input, char ***input_parts)
 
         int input_len = strlen(input) + 1, input_part_count = 1;
         char *rawpath = malloc(input_len);
-
         if (NULL == rawpath) {
                 return -1;
         }
@@ -160,6 +159,7 @@ int f12_parse_path(const char *input, struct f12_path **path)
         if (*path == NULL) {
                 free(input_parts[0]);
                 free(input_parts);
+
                 return -1;
         }
 
@@ -213,21 +213,21 @@ int f12_path_get_parent(struct f12_path *path_a, struct f12_path *path_b)
  * @param path a pointer to the f12_path structure
  * @return 0 on success
  */
-int f12_free_path(struct f12_path *path)
+void f12_free_path(struct f12_path *path)
 {
         if (path->descendant != NULL) {
                 f12_free_path(path->descendant);
         }
         free(path->name);
         free(path);
-
-        return 0;
 }
 
 int f12_path_create_directories(struct f12_metadata *f12_meta,
                                 struct f12_directory_entry *entry,
                                 struct f12_path *path)
 {
+        int res;
+
         for (int i = 0; i < entry->child_count; i++) {
                 if (0 == memcmp(entry->children[i].ShortFileName,
                                 path->short_file_name, 8) &&
@@ -248,7 +248,11 @@ int f12_path_create_directories(struct f12_metadata *f12_meta,
                         memcpy(&(entry->children[i].ShortFileName), path->short_file_name, 8);
                         memcpy(&(entry->children[i].ShortFileExtension), path->short_file_extension, 3);
                         entry->children[i].parent = entry;
-                        f12_create_directory_table(f12_meta, &(entry->children[i]));
+                        res = f12_create_directory_table(f12_meta, &(entry->children[i]));
+                        if (res != 0) {
+                                return res;
+                        }
+
 
                         if (path->descendant == NULL) {
                                 return 0;

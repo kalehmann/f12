@@ -111,7 +111,7 @@ int f12_get_file_count(struct f12_directory_entry *entry);
 
 int f12_get_directory_count(struct f12_directory_entry *entry);
 
-int f12_free_entry(struct f12_directory_entry *entry);
+void f12_free_entry(struct f12_directory_entry *entry);
 
 int f12_move_entry(struct f12_directory_entry *src,
                    struct f12_directory_entry *dest);
@@ -143,7 +143,7 @@ size_t f12_get_partition_size(struct f12_metadata *f12_meta);
 
 size_t f12_get_used_bytes(struct f12_metadata *f12_meta);
 
-int f12_free_metadata(struct f12_metadata *f12_meta);
+void f12_free_metadata(struct f12_metadata *f12_meta);
 
 /* name.c */
 char *f12_get_file_name(struct f12_directory_entry *entry);
@@ -153,7 +153,7 @@ char *f12_convert_name(char *name);
 /* path.c */
 int f12_parse_path(const char *input, struct f12_path **path);
 
-int f12_free_path(struct f12_path *path);
+void f12_free_path(struct f12_path *path);
 
 struct f12_directory_entry *f12_entry_from_path(struct f12_directory_entry *entry,
                     struct f12_path *path);

@@ -166,18 +166,16 @@ int f12_get_directory_count(struct f12_directory_entry *entry)
  * @param entry a pointer to the f12_directory_entry structure to free
  * @return 0
  */
-int f12_free_entry(struct f12_directory_entry *entry)
+void f12_free_entry(struct f12_directory_entry *entry)
 {
         if (!f12_is_directory(entry) || f12_is_dot_dir(entry)) {
-                return 0;
+                return;
         }
 
         for (int i = 0; i < entry->child_count; i++) {
                 f12_free_entry(&entry->children[i]);
         }
         free(entry->children);
-
-        return 0;
 }
 
 /**
@@ -257,4 +255,5 @@ int f12_move_entry(struct f12_directory_entry *src,
         memmove(free_entry, src, sizeof(struct f12_directory_entry));
         memset(src, 0, sizeof(struct f12_directory_entry));
 
+        return 0;
 }
