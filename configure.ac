@@ -1,7 +1,7 @@
 # AC_INIT - perform the initialization and verification
 # Required arguments: package name and version
 # Optional arguments: bug-report address, tarname and url.
-AC_INIT([f12], [1.0], [ka.lehmann@yahoo.com])
+AC_INIT([f12], [1.0], [mail@kalehmann.de])
 # Is needed to use the archiver.
 AM_PROG_AR
 
