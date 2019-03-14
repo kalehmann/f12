@@ -141,9 +141,6 @@ END_TEST
 
 START_TEST(test_f12_move_entry)
 {
-        struct f12_directory_entry *subdir2 = &dir->children[1];
-        struct f12_directory_entry *subdir2_data0 = &dir->children[1].children[2];
-
         /* try to move a directory into a file */
         ck_assert_int_eq(f12_move_entry(&dir->children[0], &dir->children[3]),
                          F12_NOT_A_DIR);

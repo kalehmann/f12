@@ -11,30 +11,38 @@
  * @return -1 on failure
  *          0 on success
  */
-static int build_path(char **input_parts, int part_count, struct f12_path *path)
+static enum f12_error build_path(char **input_parts, int part_count, struct f12_path *path)
 {
+        enum f12_error err;
+
         path->name = f12_convert_name(input_parts[0]);
+        if (NULL == path->name) {
+                return F12_ALLOCATION_ERROR;
+        }
         path->short_file_name = path->name;
         path->short_file_extension = path->name + 8;
-        path->descendant = malloc(sizeof(struct f12_path));
-
-        if (NULL == path->descendant) {
-                return -1;
-        }
 
         if (1 == part_count) {
                 path->descendant = NULL;
-                return 0;
+                return F12_SUCCESS;
         }
 
-        int res = build_path(&input_parts[1], part_count - 1,
+        path->descendant = malloc(sizeof(struct f12_path));
+        if (NULL == path->descendant) {
+                return F12_ALLOCATION_ERROR;
+        }
+
+        err = build_path(&input_parts[1], part_count - 1,
                              path->descendant);
-        if (-1 == res) {
-                return -1;
+        if (F12_SUCCESS != err) {
+                free(path->name);
+                free(path->descendant);
+
+                return err;
         }
         path->descendant->ancestor = path;
 
-        return 0;
+        return F12_SUCCESS;
 }
 
 /**
@@ -44,10 +52,10 @@ static int build_path(char **input_parts, int part_count, struct f12_path *path)
  * @param input_parts a pointer a array of string pointers. That array will be filled with
  *                    the components of the input. After use free must be called on the
  *                    first element of the array and the array itself.
- * @return the number of directories and files in the path and therefore the length
- *         of the input_parts array
+ * @param part_count a pointer to the variable the number of parts gets written into
+ * @return the error if any
  */
-static int split_input(const char *input, char ***input_parts)
+static enum f12_error split_input(const char *input, char ***input_parts, int *part_count)
 {
         if (input[0] == '/') {
                 /* omit leading slash */
@@ -57,11 +65,11 @@ static int split_input(const char *input, char ***input_parts)
                 return F12_EMPTY_PATH;
         }
 
-        int input_len = strlen(input) + 1, input_part_count = 1;
+        int input_len = strlen(input) + 1;
+        *part_count = 1;
         char *rawpath = malloc(input_len);
-
         if (NULL == rawpath) {
-                return -1;
+                return F12_ALLOCATION_ERROR;
         }
 
         memcpy(rawpath, input, input_len);
@@ -78,15 +86,15 @@ static int split_input(const char *input, char ***input_parts)
          */
         for (int i = 0; i < input_len; i++) {
                 if (rawpath[i] == '/') {
-                        input_part_count++;
+                        (*part_count)++;
                         rawpath[i] = '\0';
                 }
         }
 
-        *input_parts = malloc(sizeof(char *) * input_part_count);
+        *input_parts = malloc(sizeof(char *) * (*part_count));
         if (NULL == *input_parts) {
                 free(rawpath);
-                return -1;
+                return F12_ALLOCATION_ERROR;
         }
 
         (*input_parts)[0] = rawpath;
@@ -98,7 +106,7 @@ static int split_input(const char *input, char ***input_parts)
                 }
         }
 
-        return input_part_count;
+        return F12_SUCCESS;
 }
 
 /**
@@ -111,21 +119,24 @@ static int split_input(const char *input, char ***input_parts)
  *         or subdirectory or F12_FILE_NOT_FOUND if the path matches no file in
  *         the given directory
  */
-struct f12_directory_entry *f12_entry_from_path(struct f12_directory_entry *entry,
-                                                struct f12_path *path)
+struct f12_directory_entry *
+f12_entry_from_path(struct f12_directory_entry *entry,
+                    struct f12_path *path)
 {
         for (int i = 0; i < entry->child_count; i++) {
-                if (0 == memcmp(entry->children[i].ShortFileName, path->short_file_name, 8) &&
+                if (0 == memcmp(entry->children[i].ShortFileName,
+                                path->short_file_name, 8) &&
                     0 == memcmp(entry->children[i].ShortFileExtension,
                                 path->short_file_extension, 3)) {
                         if (NULL == path->descendant) {
                                 return &entry->children[i];
                         }
-                        return f12_entry_from_path(&entry->children[i], path->descendant);
+                        return f12_entry_from_path(&entry->children[i],
+                                                   path->descendant);
                 }
         }
 
-        return F12_FILE_NOT_FOUND;
+        return NULL;
 }
 
 /**
@@ -138,13 +149,17 @@ struct f12_directory_entry *f12_entry_from_path(struct f12_directory_entry *entr
  *         -1 on allocation failure
  *          0 on success
  */
-int f12_parse_path(const char *input, struct f12_path **path)
+enum f12_error f12_parse_path(const char *input, struct f12_path **path)
 {
-        char **input_parts;
-        int input_part_count = split_input(input, &input_parts);
+        enum f12_error err;
 
-        if (input_part_count == F12_EMPTY_PATH) {
-                return F12_EMPTY_PATH;
+        char **input_parts = NULL;
+        int input_part_count  = 0;
+
+        err = split_input(input, &input_parts, &input_part_count);
+
+        if (F12_SUCCESS != err) {
+                return err;
         }
 
         *path = malloc(sizeof(struct f12_path));
@@ -152,15 +167,21 @@ int f12_parse_path(const char *input, struct f12_path **path)
         if (*path == NULL) {
                 free(input_parts[0]);
                 free(input_parts);
-                return -1;
+
+                return F12_ALLOCATION_ERROR;
         }
 
-        build_path(input_parts, input_part_count, *path);
-
+        err = build_path(input_parts, input_part_count, *path);
         free(input_parts[0]);
         free(input_parts);
 
-        return 0;
+        if (F12_SUCCESS != err) {
+                free(path);
+
+                return err;
+        }
+
+        return F12_SUCCESS;
 }
 
 
@@ -176,7 +197,7 @@ int f12_parse_path(const char *input, struct f12_path **path)
  *         F12_PATHS_FIRST if the first path describes a parent directory of the
  *         second path
  */
-int f12_path_get_parent(struct f12_path *path_a, struct f12_path *path_b)
+enum f12_path_relations f12_path_get_parent(struct f12_path *path_a, struct f12_path *path_b)
 {
         while (0 == memcmp(path_a->name, path_b->name, 11)) {
                 if (path_b->descendant == NULL) {
@@ -205,13 +226,56 @@ int f12_path_get_parent(struct f12_path *path_a, struct f12_path *path_b)
  * @param path a pointer to the f12_path structure
  * @return 0 on success
  */
-int f12_free_path(struct f12_path *path)
+void f12_free_path(struct f12_path *path)
 {
         if (path->descendant != NULL) {
                 f12_free_path(path->descendant);
         }
         free(path->name);
         free(path);
+}
 
-        return 0;
+enum f12_error f12_path_create_directories(struct f12_metadata *f12_meta,
+                                struct f12_directory_entry *entry,
+                                struct f12_path *path)
+{
+        enum f12_error err;
+
+        for (int i = 0; i < entry->child_count; i++) {
+                if (0 == memcmp(entry->children[i].ShortFileName,
+                                path->short_file_name, 8) &&
+                    0 == memcmp(entry->children[i].ShortFileExtension,
+                                path->short_file_extension, 3)) {
+                        if (NULL == path->descendant) {
+                                return F12_SUCCESS;
+                        }
+                        return f12_path_create_directories(f12_meta,
+                                                           &entry->children[i],
+                                                           path->descendant);
+                }
+        }
+
+        // This directory does not exist, lets create it
+        for (int i = 0; i < entry->child_count; i++) {
+                if (entry->children[i].ShortFileName[0] == 0) {
+                        memcpy(&(entry->children[i].ShortFileName), path->short_file_name, 8);
+                        memcpy(&(entry->children[i].ShortFileExtension), path->short_file_extension, 3);
+                        entry->children[i].parent = entry;
+                        err = f12_create_directory_table(f12_meta, &(entry->children[i]));
+                        if (err != F12_SUCCESS) {
+                                return err;
+                        }
+
+
+                        if (path->descendant == NULL) {
+                                return F12_SUCCESS;
+                        }
+
+                        return f12_path_create_directories(f12_meta,
+                                                           &entry->children[i],
+                                                           path->descendant);
+                }
+        }
+
+        return F12_DIR_FULL;
 }

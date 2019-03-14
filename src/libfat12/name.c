@@ -3,16 +3,12 @@
 
 #include "libfat12.h"
 
-
-/*
- * Function: f12_get_file_name
- * -----------------------
+/**
  * Generates a human readable filename in the format name.extension from a fat12
- * directory entry. 
- * 
- * entry: pointer to the f12_directory_entry structure to generate the filename from.
+ * directory entry.
  *
- * returns: a pointer to the human readable filename which must be freed after use.
+ * @param entry the directory entry to generate the file name from
+ * @return a pointer to the file name that must be freed
  */
 char *f12_get_file_name(struct f12_directory_entry *entry) {
     char name[13], *result;
@@ -47,15 +43,12 @@ char *f12_get_file_name(struct f12_directory_entry *entry) {
     return result;
 }
 
-/*
- * Function: f12_convert_name
- * ----------------------
+/**
  * Converts a human readable filename to the 8.3 format
  *
- * name: a pointer to the human readable filename
- *
- * returns: a pointer to an array of 11 chars with the filename in the 8.3 format,
- *          that must be freed after use.
+ * @param name a pointer to the human readable filename
+ * @return a pointer to an array of 11 chars with the filename in the 8.3 format,
+ *         that must be freed after use.
  */
 char *f12_convert_name(char *name) {
     int i = 0;
