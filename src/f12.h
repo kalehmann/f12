@@ -47,18 +47,67 @@ struct f12_put_arguments {
     char *destination;
 };
 
-extern int f12_create(struct f12_create_arguments *, char **output);
+/**
+ * Create a new fat12 image
+ *
+ * @param args the arguments for the function
+ * @param output the output to show the user.
+ * @return EXIT_SUCCESS on success and EXIT_FAILURE on failure
+ */
+int f12_create(struct f12_create_arguments *, char **output);
 
-extern int f12_del(struct f12_del_arguments *, char **output);
+/**
+ * Deletes a file or directory on a fat12 image
+ *
+ * @param args the arguments for the function
+ * @param output the output to show the user.
+ * @return EXIT_SUCCESS on success and EXIT_FAILURE on failure
+ */
+int f12_del(struct f12_del_arguments *args, char **output);
 
-extern int f12_get(struct f12_get_arguments *, char **output);
+/**
+ * Dump a file or directory from a fat12 image
+ *
+ * @param args the arguments for the function
+ * @param output the output to show the user.
+ * @return EXIT_SUCCESS on success and EXIT_FAILURE on failure
+ */
+int f12_get(struct f12_get_arguments *args, char **output);
 
-extern int f12_info(struct f12_info_arguments *, char **output);
+/**
+ * Get information about a fat12 image
+ *
+ * @param args the arguments for the function
+ * @param output the output to show the user.
+ * @return EXIT_SUCCESS on success and EXIT_FAILURE on failure
+ */
+int f12_info(struct f12_info_arguments *args, char **output);
 
-extern int f12_list(struct f12_list_arguments *, char **output);
+/**
+ * List the contents of a directory on a fat12 image
+ *
+ * @param args the arguments for the function
+ * @param output the output to show the user.
+ * @return EXIT_SUCCESS on success and EXIT_FAILURE on failure
+ */
+int f12_list(struct f12_list_arguments *args, char **output);
 
-extern int f12_move(struct f12_move_arguments *, char **output);
+/**
+ * Move a file on directory on a fat12 image
+ *
+ * @param args the arguments for the function
+ * @param output the output to show the user.
+ * @return EXIT_SUCCESS on success and EXIT_FAILURE on failure
+ */
+int f12_move(struct f12_move_arguments *args, char **output);
 
-extern int f12_put(struct f12_put_arguments *, char **output);
+/**
+ * Put a file or directory onto a fat12 image
+ *
+ * @param args the arguments for the function
+ * @param output the output to show the user.
+ * @return EXIT_SUCCESS on success and EXIT_FAILURE on failure
+ */
+int f12_put(struct f12_put_arguments *args, char **output);
 
 #endif
