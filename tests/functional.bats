@@ -212,3 +212,9 @@ teardown() {
     run cat tests/tmp/test.txt
     [[ "$output" == "foo" ]]
 }
+
+@test "I can not use a file as directory when I put a file on a fat12 image" {
+    run ./src/f12 put tests/fixtures/test.img tests/fixtures/TEST/TEST.DAT FOLDER1/DATA.DAT/NEWFILE
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Not a directory"* ]]
+}

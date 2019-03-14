@@ -207,9 +207,14 @@ enum f12_error f12_path_create_directories(struct f12_metadata *f12_meta,
                                 path->short_file_name, 8) &&
                     0 == memcmp(entry->children[i].ShortFileExtension,
                                 path->short_file_extension, 3)) {
+                        if (!f12_is_directory(&entry->children[i])) {
+                                return F12_NOT_A_DIR;
+                        }
+
                         if (NULL == path->descendant) {
                                 return F12_SUCCESS;
                         }
+
                         return f12_path_create_directories(f12_meta,
                                                            &entry->children[i],
                                                            path->descendant);

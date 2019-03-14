@@ -674,35 +674,50 @@ int f12_put(struct f12_put_arguments *args, char **output)
 
         if (0 != stat(args->source, &sb)) {
                 asprintf(output, "Cannot open source file\n");
+                f12_free_metadata(f12_meta);
+
                 return EXIT_SUCCESS;
         }
 
         if (S_ISDIR(sb.st_mode)) {
                 res = walk_dir(fp, args->source, args->destination, f12_meta, output);
                 if (res) {
+                        f12_free_metadata(f12_meta);
                         fclose(fp);
+
                         return EXIT_FAILURE;
                 }
         } else if (S_ISREG(sb.st_mode)) {
                 if (NULL == (src = fopen(args->source, "r"))) {
                         asprintf(output, "Cannot open source file\n");
-                        return EXIT_SUCCESS;
+                        f12_free_metadata(f12_meta);
+
+                        return EXIT_FAILURE;
                 }
                 err = f12_parse_path(args->destination, &dest);
                 if (F12_EMPTY_PATH == err) {
                         asprintf(output, "Cannot replace root directory\n");
+                        f12_free_metadata(f12_meta);
                         fclose(fp);
 
                         return EXIT_FAILURE;
                 }
                 if (F12_SUCCESS != err) {
                         asprintf(output, "%s\n", f12_strerror(err));
+                        f12_free_metadata(f12_meta);
                         fclose(fp);
 
                         return EXIT_FAILURE;
                 }
 
-                res = f12_create_file(fp, f12_meta, dest, src);
+                err = f12_create_file(fp, f12_meta, dest, src);
+                if (F12_SUCCESS != err) {
+                        asprintf(output, "%s\n", f12_strerror(err));
+                        f12_free_metadata(f12_meta);
+                        fclose(fp);
+
+                        return EXIT_FAILURE;
+                }
         } else {
                 asprintf(output, "Source file has unsupported type\n");
                 return EXIT_SUCCESS;
