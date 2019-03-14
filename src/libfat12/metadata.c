@@ -2,12 +2,6 @@
 
 #include "libfat12.h"
 
-/**
- * Get the size of a fat12 partition in bytes
- *
- * @param f12_meta a pointer to the metadata of the partition
- * @return the size of the partition in bytes
- */
 size_t f12_get_partition_size(struct f12_metadata *f12_meta)
 {
         struct bios_parameter_block *bpb = f12_meta->bpb;
@@ -15,12 +9,6 @@ size_t f12_get_partition_size(struct f12_metadata *f12_meta)
         return bpb->SectorSize * bpb->LogicalSectors;
 }
 
-/**
- * Get the number of used bytes of a fat12 partition
- *
- * @param f12_meta a pointer to the metadata of the partition
- * @return the number of used bytes of the partition
- */
 size_t f12_get_used_bytes(struct f12_metadata *f12_meta)
 {
         struct bios_parameter_block *bpb = f12_meta->bpb;
@@ -37,12 +25,6 @@ size_t f12_get_used_bytes(struct f12_metadata *f12_meta)
         return used_bytes;
 }
 
-/**
- * Free all the metadata of a fat12 partition
- *
- * @param f12_meta a pointer to the metadata of the fat12 partition
- * @return
- */
 void f12_free_metadata(struct f12_metadata *f12_meta)
 {
         free(f12_meta->bpb);

@@ -6,6 +6,7 @@
 #include "libfat12.h"
 
 /**
+ * Get the value for a position in the file allocation table.
  *
  * @param fat a pointer to the compressed file allocation table
  * @param n the number of the entry to readout
@@ -23,11 +24,11 @@ static uint16_t read_fat_entry(char *fat, int n)
 }
 
 /**
- * Get the offset of a cluster on a fat12 partition in bytes.
+ * Get the position of a cluster on a fat12 partition.
  *
  * @param cluster the number of the cluster
  * @param f12_meta a pointer to the metadata of the partition
- * @return the offset of the cluster on the partition in bytes
+ * @return the position of the cluster on the partition
  */
 static int cluster_offset(uint16_t cluster, struct f12_metadata *f12_meta)
 {
@@ -64,7 +65,7 @@ static uint16_t get_cluster_chain_length(uint16_t start_cluster,
 }
 
 /**
- * Get the size of a cluster on a fat12 partition
+ * Get the cluster size of the image
  *
  * @param f12_meta a pointer to the metadata of the partition
  * @return the size of a cluster on the partition in bytes
@@ -79,7 +80,7 @@ static size_t get_cluster_size(struct f12_metadata *f12_meta)
  *
  * @param start_cluster the number of the first cluster of the cluster chain
  * @param f12_meta a pointer to the metadata of the fat12 partition
- * @return the size of the clusterchain in bytes
+ * @return the size of the cluster chain in bytes
  */
 static size_t get_cluster_chain_size(uint16_t start_cluster,
                                      struct f12_metadata *f12_meta)
@@ -92,7 +93,7 @@ static size_t get_cluster_chain_size(uint16_t start_cluster,
 /**
  * Load the contents of a cluster chain into memory.
  *
- * @param fp the file descriptor of the fat12 partition
+ * @param fp the file descriptor of the fat12 image
  * @param start_cluster the number of the first cluster in the cluster chain
  * @param f12_meta a pointer to the metadata of the partition
  * @return a pointer to the contents of the cluster chain in the memory. Must be
@@ -141,7 +142,7 @@ static char *load_cluster_chain(FILE *fp, uint16_t start_cluster,
  * @param fp file pointer of the partition
  * @param f12_meta a pointer to the metadata of the partition
  * @param first_cluster the number of the first cluster of the cluster chain
- * @return -1 on an allocation error, 0 on success
+ * @return F12_SUCCESS or any error that occurred
  */
 static enum f12_error
 erase_cluster_chain(FILE *fp, struct f12_metadata *f12_meta,
@@ -182,7 +183,7 @@ erase_cluster_chain(FILE *fp, struct f12_metadata *f12_meta,
 }
 
 /**
-* Fill a f12_directory_entry structure with zeros.
+* Erase a f12_directory_entry structure
  *
 * @param entry a pointer to the f12_directory_entry structure
 */
@@ -196,7 +197,6 @@ static void erase_entry(struct f12_directory_entry *entry)
  *
  * @param data a pointer to the raw data
  * @param entry a pointer to the f12_directory_entry structure to populate
- * @return 0 on success
  */
 static void read_dir_entry(char *data, struct f12_directory_entry *entry)
 {
@@ -220,9 +220,9 @@ static void read_dir_entry(char *data, struct f12_directory_entry *entry)
  *
  * @param fp file pointer of the fat12 partition
  * @param f12_meta a pointer to the metadata of the partition
- * @param dir_entry a pointer to a f12_directory_entry structure describing the directory,
- *                  that should be scanned for subdirectories and files
- * @return -1 on allocation error, 0 on success
+ * @param dir_entry a pointer to a f12_directory_entry structure describing the
+ * directory, that should be scanned for subdirectories and files
+ * @return F12_SUCCESS or any error that occurred
  */
 static enum f12_error
 scan_subsequent_entries(FILE *fp, struct f12_metadata *f12_meta,
@@ -284,11 +284,11 @@ scan_subsequent_entries(FILE *fp, struct f12_metadata *f12_meta,
 }
 
 /**
- * Load the root directory of a fat12 partition.
+ * Loads the root directory of a fat12 partition.
  *
  * @param fp file pointer of the partition
  * @param f12_meta a pointer to the metadata of the partition
- * @return -1 on allocation error, 0 on success
+ * @return F12_SUCCESS or any error that occurred
  */
 static enum f12_error load_root_dir(FILE *fp, struct f12_metadata *f12_meta)
 {
@@ -365,7 +365,7 @@ static enum f12_error load_root_dir(FILE *fp, struct f12_metadata *f12_meta)
  *
  * @param fp file pointer of the partition
  * @param f12_meta a pointer to the metadata of the partition
- * @return -1 on allocation error, 0 on success
+ * @return F12_SUCCESS or any other error that occurred
  */
 static enum f12_error read_fat_entries(FILE *fp, struct f12_metadata *f12_meta)
 {
@@ -411,11 +411,11 @@ static enum f12_error read_fat_entries(FILE *fp, struct f12_metadata *f12_meta)
 }
 
 /**
- * Populates a bios_parameter_block structure with data from the partition.
+ * Populates a bios_parameter_block structure with data from the image.
  *
- * @param fp file pointer of the partition
+ * @param fp file pointer of the image
  * @param bpb a pointer to the bios_parameter_block structure to populate
- * @return 0 on success
+ * @return F12_SUCCESS or any other error that occurred
  */
 static enum f12_error read_bpb(FILE *fp, struct bios_parameter_block *bpb)
 {
@@ -460,18 +460,15 @@ static enum f12_error read_bpb(FILE *fp, struct bios_parameter_block *bpb)
 /**
  * Writes data to a cluster chain.
  *
- * @param fp the file pointer of the partition
+ * @param fp the file pointer of the image
  * @param data a pointer to the data to write
  * @param first_cluster the number of the first cluster of the cluster chain
  * @param bytes the number of bytes to write
  * @param f12_meta a pointer to the metadata of the partition
- * @return -2 if the data is more than on cluster_size smaller than the cluster
- *            chain. It would be a waste of space to write it on the chain.
- *         -1 if the data is larger than the cluster chain.
- *          0 on success
+ * @return F12_SUCCESS or any other error that occurred
  */
 static enum f12_error
-write_to_clusterchain(FILE *fp, void *data, uint16_t first_cluster,
+write_to_cluster_chain(FILE *fp, void *data, uint16_t first_cluster,
                       size_t bytes, struct f12_metadata *f12_meta)
 {
         uint16_t chain_length = get_cluster_chain_size(first_cluster, f12_meta);
@@ -533,11 +530,11 @@ write_to_clusterchain(FILE *fp, void *data, uint16_t first_cluster,
 }
 
 /**
- * Write the bios_parameter_block structure to the partition.
+ * Write the bios_parameter_block structure to the image.
  *
  * @param fp file pointer of the partition
- * @param f12_meta a pointer to the metadata of the partition
- * @return 0 on success
+ * @param f12_meta a pointer to the metadata of the image
+ * @return F12_SUCCESS or any other error that occurred
  */
 static enum f12_error write_bpb(FILE *fp, struct f12_metadata *f12_meta)
 {
@@ -579,9 +576,9 @@ static enum f12_error write_bpb(FILE *fp, struct f12_metadata *f12_meta)
 }
 
 /**
- * Creates a compressed file allocation table from the metadata of a partition.
+ * Creates a compressed file allocation table from the metadata of a image.
  *
- * @param f12_meta a pointer to the metadata of the partition
+ * @param f12_meta a pointer to the metadata of the image
  * @return a pointer to the compressed fat that must be freed or NULL on failure
  */
 static char *create_fat(struct f12_metadata *f12_meta)
@@ -613,14 +610,13 @@ static char *create_fat(struct f12_metadata *f12_meta)
 }
 
 /**
- * Compress all the child (but not their childs) of a directory entry, so that
- * it can be written on the partition.
+ * Compress all the childrens (but not their childrens) of a directory entry,
+ * so that it can be written on the partition.
  *
  * @param dir_entry a pointer to the f12_directory_entry structure
- * @param f12_meta a pointer to the metadata of the partition
- * @param dir_size the size of the directory on the partition in bytes
+ * @param dir_size the size of the directory on the image in bytes
  * @return a pointer to the compressed directory, that must be freed or NULL
- *         on failure
+ * on failure
  */
 static char *create_directory(struct f12_directory_entry *dir_entry,
                               size_t dir_size)
@@ -660,11 +656,11 @@ static char *create_directory(struct f12_directory_entry *dir_entry,
 }
 
 /**
- * Writtes the file allocation tables from the metadata on the partition.
+ * Writes the file allocation table from the metadata on the partition.
  *
- * @param fp the file pointer of the partition
+ * @param fp the file pointer of the image
  * @param f12_meta a pointer to the metadata
- * @return -1 on allocation failure, 0 on success
+ * @return F12_SUCCESS or any other error that occurred
  */
 static enum f12_error write_fats(FILE *fp, struct f12_metadata *f12_meta)
 {
@@ -699,12 +695,12 @@ static enum f12_error write_fats(FILE *fp, struct f12_metadata *f12_meta)
 
 /**
  * Writes the directory described by a f12_directory_entry structure and all
- * its children on the partition.
+ * its children on the image.
  *
- * @param fp the file pointer of the partition
- * @param f12_meta a pointer to the metadata of the partition
+ * @param fp the file pointer of the image
+ * @param f12_meta a pointer to the metadata of the image
  * @param entry a pointer to the f12_directory_entry structure
- * @return -1 on allocation failure, 0 on success
+ * @return F12_SUCCESS or any other error that occurred
  */
 static enum f12_error write_directory(FILE *fp, struct f12_metadata *f12_meta,
                                       struct f12_directory_entry *entry)
@@ -733,7 +729,7 @@ static enum f12_error write_directory(FILE *fp, struct f12_metadata *f12_meta,
         if (NULL == dir) {
                 return F12_ALLOCATION_ERROR;
         }
-        err = write_to_clusterchain(fp, dir, first_cluster, dir_size, f12_meta);
+        err = write_to_cluster_chain(fp, dir, first_cluster, dir_size, f12_meta);
         free(dir);
         if (F12_SUCCESS != err) {
                 return err;
@@ -743,12 +739,12 @@ static enum f12_error write_directory(FILE *fp, struct f12_metadata *f12_meta,
 }
 
 /**
- * Writes the root directory from the metadata of a fat12 partition on the
- * partition.
+ * Writes the root directory from the metadata of a fat12 image on the
+ * image.
  *
- * @param fp the file pointer of the partition
- * @param f12_meta a pointer to the metadata of the partition
- * @return -1 on allocation failure, 0 on success
+ * @param fp the file pointer of the image
+ * @param f12_meta a pointer to the metadata of the image
+ * @return F12_SUCCESS or any other error that occurred
  */
 static enum f12_error write_root_dir(FILE *fp, struct f12_metadata *f12_meta)
 {
@@ -787,6 +783,14 @@ static enum f12_error write_root_dir(FILE *fp, struct f12_metadata *f12_meta)
         return F12_SUCCESS;
 }
 
+/**
+ * Create a new cluster chain in the file allocation table of the metadata.
+ *
+ * @param f12_meta a pointer to the metadata of a fat12 image
+ * @param cluster_count the number of clusters to allocate
+ * @return the first cluster in the new cluster chain or zero if the file
+ * allocation table is full
+ */
 static uint16_t get_cluster_chain(struct f12_metadata *f12_meta,
                                   int cluster_count)
 {
@@ -812,13 +816,6 @@ static uint16_t get_cluster_chain(struct f12_metadata *f12_meta,
         return 0;
 }
 
-/**
- * Populates a f12_metadata structure with data from a fat12 partition.
- *
- * @param fp the file pointer of the partition
- * @param f12_meta a pointer to a pointer to the f12_metadata structure to populate.
- * @return 0 on success, -1 on failure
- */
 enum f12_error f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta)
 {
         enum f12_error err;
@@ -861,13 +858,6 @@ enum f12_error f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta)
         return F12_SUCCESS;
 }
 
-/**
- * Writtes the data from a f12_metadata structure on a fat12 partition.
- *
- * @param fp the file pointer of the partition
- * @param f12_meta a pointer to the metadata
- * @return 0 on success
- */
 enum f12_error f12_write_metadata(FILE *fp, struct f12_metadata *f12_meta)
 {
         enum f12_error err;
@@ -890,19 +880,6 @@ enum f12_error f12_write_metadata(FILE *fp, struct f12_metadata *f12_meta)
         return F12_SUCCESS;
 }
 
-/**
- * Deletes a file or directory from a fat12 partition.
- *
- * @param fp the file pointer of the partition
- * @param f12_meta a pointer to the metadata of the partition
- * @param entry a pointer to a f12_directory_entry structure, that describes the file
- *              or direcotry that should be removed; Note that the entry will also be
- *              removed from the metadata.
- * @param soft_delete if true the entry is not erased, but marked as deleted
- * @return F12_DIRECTORY_NOT_EMPTY if the entry describes a subdirectory with
- *                                 children
- *         0 on success
- */
 enum f12_error f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
                              struct f12_directory_entry *entry, int soft_delete)
 {
@@ -931,17 +908,6 @@ enum f12_error f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
         return F12_SUCCESS;
 }
 
-/**
- * Dump a file from the fat 12 image onto the host file system.
- *
- * @param fp the file pointer of the partition
- * @param f12_meta a pointer to the metadata of the partition
- * @param entry a pointer to the f12_directory_entry structure of the file that should be
- *              be dumped
- * @param dest_fp the file pointer of the destination file.
- * @return -1 on failure
- *          0 on success
- */
 enum f12_error f12_dump_file(FILE *fp, struct f12_metadata *f12_meta,
                              struct f12_directory_entry *entry, FILE *dest_fp)
 {
@@ -975,14 +941,6 @@ enum f12_error f12_dump_file(FILE *fp, struct f12_metadata *f12_meta,
         return F12_SUCCESS;
 }
 
-/**
- *
- * @param fp the file pointer of the partition
- * @param f12_meta a pointer to the metadata of the partition
- * @param path the path for the newly created file
- * @param source_fp pointer to the file to write on the partition
- * @return
- */
 enum f12_error f12_create_file(FILE *fp, struct f12_metadata *f12_meta,
                                struct f12_path *path, FILE *source_fp)
 {
@@ -1033,7 +991,7 @@ enum f12_error f12_create_file(FILE *fp, struct f12_metadata *f12_meta,
                 return F12_IO_ERROR;
         }
 
-        err = write_to_clusterchain(fp, data, first_cluster, file_size,
+        err = write_to_cluster_chain(fp, data, first_cluster, file_size,
                                     f12_meta);
         if (F12_SUCCESS != err) {
                 free(data);
