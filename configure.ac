@@ -14,7 +14,7 @@ PKG_CHECK_MODULES([CHECK], [check >= 0.9.6])
 
 # Required for the generate makefiles.
 # Only argument is a space seperated list of compiler options.
-AM_INIT_AUTOMAKE([subdir-objects -Wall])
+AM_INIT_AUTOMAKE([subdir-objects -Wall foreign])
 
 AC_CONFIG_MACRO_DIRS([m4])
 

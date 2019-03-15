@@ -13,9 +13,8 @@
 !tests/fixtures/*.txt
 !createDummyImage.sh
 
-# Do not ignore the files needed for dron
+# Do not ignore the files needed for drone
 !.drone.yml
-!*Dockerfile.*
 
 # Do not ignore the files for autoconf and automake
 !*Makefile.am
