@@ -911,29 +911,17 @@ enum f12_error f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
 enum f12_error f12_dump_file(FILE *fp, struct f12_metadata *f12_meta,
                              struct f12_directory_entry *entry, FILE *dest_fp)
 {
-        int offset = cluster_offset(entry->FirstCluster, f12_meta);
-        uint16_t chain_length = get_cluster_chain_length(entry->FirstCluster,
-                                                         f12_meta);
-        size_t cluster_size = get_cluster_size(f12_meta);
         uint32_t file_size = entry->FileSize;
+        char *buffer = load_cluster_chain(fp, entry->FirstCluster, f12_meta);
 
-        if (0 != fseek(fp, offset, SEEK_SET)) {
+        if (NULL == buffer) {
+                return F12_UNKNOWN_ERROR;
+        }
+
+        if (file_size != fwrite(buffer, 1, file_size, dest_fp)) {
                 f12_save_errno();
 
                 return F12_IO_ERROR;
-        }
-
-        void *buffer = malloc(cluster_size);
-        if (buffer == NULL) {
-                return F12_ALLOCATION_ERROR;
-        }
-
-        for (uint16_t i = 0; i < chain_length; i++) {
-                fread(buffer, cluster_size, 1, fp);
-                if (i == chain_length - 1) {
-                        // Last cluster
-                        fwrite(buffer, file_size % cluster_size, 1, dest_fp);
-                }
         }
 
         free(buffer);
