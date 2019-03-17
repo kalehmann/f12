@@ -69,6 +69,14 @@ teardown() {
     [[ "$output" == "12345678" ]]
 }
 
+@test "I can get a large file from a fat12 image" {
+    checksum=$(md5sum LICENSE.txt | awk '{ print $1 }')
+    run ./src/f12 put tests/fixtures/test.img LICENSE.txt TEXT.TXT
+    run ./src/f12 get tests/fixtures/test.img TEXT.TXT tests/tmp/license.txt
+    [[ "$status" -eq 0 ]]
+    [[ "$checksum" == $(md5sum tests/tmp/license.txt | awk '{ print $1 }') ]]
+}
+
 @test "I can get a directory from a fat12 image" {
     run ./src/f12 get tests/fixtures/test.img FOLDER1/SUBDIR tests/tmp/subdir
     [[ "$status" -eq 0 ]]
