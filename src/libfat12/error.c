@@ -14,6 +14,7 @@ static char *ERR_EMPTY_PATH = "Operation not permitted on the root directory";
 static char *ERR_DIR_NOT_EMPTY = "Directory is not empty";
 static char *ERR_SUCCESS = "Success";
 static char *ERR_UNKNOWN = "Error unknown";
+static char *ERR_DIR = "Target is a directory. Maybe use the recursive flag";
 
 static int saved_errno = 0;
 static int has_saved = 0;
@@ -54,6 +55,8 @@ char *f12_strerror(enum f12_error err)
                         return ERR_DIR_NOT_EMPTY;
                 case F12_SUCCESS:
                         return ERR_SUCCESS;
+                case F12_IS_DIR:
+                        return ERR_DIR;
                 default:
                         break;
         }

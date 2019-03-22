@@ -606,6 +606,7 @@ int main(int argc, char *argv[])
                         break;
                 case COMMAND_GET:
                         get_arguments.device_path = arguments.device_path;
+                        get_arguments.recursive = arguments.recursive;
                         res = f12_get(&get_arguments, &output);
                         break;
                 case COMMAND_INFO:
@@ -619,10 +620,12 @@ int main(int argc, char *argv[])
                         break;
                 case COMMAND_MOVE:
                         move_arguments.device_path = arguments.device_path;
+                        move_arguments.recursive = arguments.recursive;
                         res = f12_move(&move_arguments, &output);
                         break;
                 case COMMAND_PUT:
                         put_arguments.device_path = arguments.device_path;
+                        put_arguments.recursive = arguments.recursive;
                         res = f12_put(&put_arguments, &output);
                         break;
                 default:

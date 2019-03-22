@@ -78,7 +78,7 @@ teardown() {
 }
 
 @test "I can get a directory from a fat12 image" {
-    run ./src/f12 get tests/fixtures/test.img FOLDER1/SUBDIR tests/tmp/subdir
+    run ./src/f12 get tests/fixtures/test.img FOLDER1/SUBDIR tests/tmp/subdir --recursive
     [[ "$status" -eq 0 ]]
     [[ -d tests/tmp/subdir ]]
     [[ -f tests/tmp/subdir/SECRET.TXT ]]
@@ -193,7 +193,7 @@ teardown() {
 }
 
 @test "I can put a directory on a fat12 image" {
-    run ./src/f12 put tests/fixtures/test.img tests/fixtures/TEST NEW/TESTDIR
+    run ./src/f12 put --recursive tests/fixtures/test.img tests/fixtures/TEST NEW/TESTDIR
     [[ "$status" -eq 0 ]]
     run ./src/f12 list tests/fixtures/test.img NEW/TESTDIR
     #[[ "${#lines[@]}" == "6" ]]
