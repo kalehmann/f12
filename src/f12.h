@@ -20,6 +20,7 @@ struct f12_get_arguments {
     char *device_path;
     char *path;
     char *dest;
+    int recursive;
     int verbose;
 };
 
@@ -39,12 +40,14 @@ struct f12_move_arguments {
     char *device_path;
     char *source;
     char *destination;
+    int recursive;
 };
 
 struct f12_put_arguments {
     char *device_path;
     char *source;
     char *destination;
+    int recursive;
 };
 
 /**

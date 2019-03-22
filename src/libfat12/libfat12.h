@@ -16,6 +16,7 @@ enum f12_error {
         F12_EMPTY_PATH,
         F12_DIR_NOT_EMPTY,
         F12_UNKNOWN_ERROR,
+        F12_IS_DIR,
 };
 
 enum f12_path_relations {
