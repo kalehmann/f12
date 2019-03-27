@@ -34,10 +34,13 @@ char *format_bytes(size_t bytes)
 static enum f12_error recursive_del_entry(FILE *fp,
                                           struct f12_metadata *f12_meta,
                                           struct f12_directory_entry *entry,
-                                          int soft_delete)
+                                          struct f12_del_arguments *args,
+                                          char **output)
 {
         struct f12_directory_entry *child;
         enum f12_error err;
+        char *entry_path, *temp;
+        int verbose = args->verbose;
 
         if (f12_is_directory(entry) && f12_get_child_count(entry) > 2) {
                 for (int i = 0; i < entry->child_count; i++) {
@@ -47,15 +50,129 @@ static enum f12_error recursive_del_entry(FILE *fp,
                                 continue;
                         }
 
-                        err = recursive_del_entry(fp, f12_meta, child,
-                                                  soft_delete);
+                        err = recursive_del_entry(fp, f12_meta, child, args,
+                                                  output);
                         if (F12_SUCCESS != err) {
                                 return err;
                         }
                 }
+        } else if (verbose) {
+                err = f12_get_entry_path(entry, &entry_path);
+                if (F12_SUCCESS != err) {
+                        return err;
+                }
+                temp = *output;
+                if (NULL != *output) {
+                        asprintf(output, "%s%s\n", *output, entry_path);
+
+                } else {
+                        asprintf(output, "%s\n", entry_path);
+                }
+                free(temp);
+                free(entry_path);
         }
 
-        return f12_del_entry(fp, f12_meta, entry, soft_delete);
+
+        return f12_del_entry(fp, f12_meta, entry, args->soft_delete);
+}
+
+static enum f12_error dump_move(struct f12_directory_entry *src,
+				struct f12_directory_entry *dest,
+				char **output)
+{
+	enum f12_error err;
+        char *tmp = NULL, *path = NULL, *dest_path = NULL, *src_path = NULL;
+	struct f12_directory_entry *tmp_entry = src, *child = NULL;
+	int i = 0;
+	size_t src_offset = 0;
+	
+	err = f12_get_entry_path(dest, &dest_path);
+	if (F12_SUCCESS != err) {
+	        return err;
+	}
+
+	if (!f12_is_directory(tmp_entry)) {
+		err = f12_get_entry_path(src, &src_path);
+		if (err != F12_SUCCESS) {
+			free(dest_path);
+
+			return err;
+		}
+		if (*output) {
+			tmp = *output;
+			asprintf(output, "%s%s -> %s\n", *output, src_path,
+				 dest_path);
+		        free(tmp);
+		} else {
+			asprintf(output, "%s -> %s\n", src_path,
+				 dest_path);
+		}
+		free(src_path);
+		free(dest_path);
+
+		return F12_SUCCESS;
+	}
+
+	err = f12_get_entry_path(src, &tmp);
+	if (err != F12_SUCCESS) {
+		free(dest_path);
+
+		return err;
+	}
+	src_offset = strlen(tmp);
+	free(tmp);
+
+	
+	do {
+		child = &tmp_entry->children[i];
+
+		if (f12_is_dot_dir(child) || f12_entry_is_empty(child)) {
+			i++;
+			continue;
+		}
+		err = f12_get_entry_path(child, &src_path);
+		if (err != F12_SUCCESS) {
+			free(dest_path);
+
+			return err;
+		}
+		tmp = *output;
+		if (tmp) {
+			asprintf(output, "%s%s", *output, src_path);
+			free(tmp);
+		} else {
+			asprintf(output, "%s", src_path);
+		}
+		
+		tmp = *output;
+		asprintf(output, "%s -> %s/%s%s\n", *output,
+		         dest_path, f12_get_file_name(src) ,src_path + src_offset);
+		free(tmp);
+	        free(src_path);
+
+		if (f12_is_directory(child) && f12_get_child_count(child) > 2
+		    && !f12_is_dot_dir(child)) {
+			tmp_entry = child;
+			i = 0;
+
+			continue;
+		}
+
+		i++;
+		if (i >=  tmp_entry->child_count) {
+			i = 0;
+			while (&tmp_entry->parent->children[i] != tmp_entry) {
+				i++;
+			}
+			i++;
+			tmp_entry = tmp_entry->parent;
+		}
+
+	} while (i < tmp_entry->child_count && tmp_entry != dest);
+
+	free(dest_path);
+	
+	return F12_SUCCESS;
 }
 
 static int dump_f12_structure(FILE *fp,
@@ -122,7 +239,7 @@ static int dump_f12_structure(FILE *fp,
                         char *format_str;
                         temp = *output;
                         if (NULL != *output) {
-                                asprintf(output, "%s\n", *output, entry_path);
+                                asprintf(output, "%s%s\n", *output, entry_path);
 
                         } else {
                                 asprintf(output, "%s\n", entry_path);
@@ -225,10 +342,12 @@ static void list_root_dir_entries(struct f12_metadata *f12_meta,
         }
 }
 
-static int walk_dir(FILE *fp, char *path, const char *dest,
+static int walk_dir(FILE *fp, struct f12_put_arguments *args,
                     struct f12_metadata *f12_meta, char **output)
 {
         enum f12_error err;
+	char *path = args->source;
+	char *dest = args->destination;
         char *temp;
         char *src_path;
         char putpath[1024];
@@ -264,10 +383,12 @@ static int walk_dir(FILE *fp, char *path, const char *dest,
                         memcpy(putpath + strlen(dest), src_path,
                                strlen(src_path) + 1);
 
-                        temp = *output;
-                        asprintf(output, "%s\nPutting %s -> %s\n", *output,
-                                 src_path, putpath);
-                        free(temp);
+			if (args->verbose) {
+				temp = *output;
+				asprintf(output, "%s%s -> %s\n", *output,
+					 src_path, putpath);
+				free(temp);
+			}
 
                         if (NULL == (src = fopen(ent->fts_path, "r"))) {
                                 temp = *output;
@@ -362,23 +483,18 @@ int f12_del(struct f12_del_arguments *args, char **output)
                 return EXIT_FAILURE;
         }
 
-        if (f12_is_directory(entry) && entry->child_count > 2) {
-                if (!args->recursive) {
-                        asprintf(output, "Error: %s\n",
-                                 f12_strerror(F12_IS_DIR));
-                        f12_free_path(path);
-                        f12_free_metadata(f12_meta);
-                        fclose(fp);
+        if (f12_is_directory(entry) && entry->child_count > 2 &&
+	    !args->recursive) {
+		asprintf(output, "Error: %s\n",
+                         f12_strerror(F12_IS_DIR));
+                f12_free_path(path);
+                f12_free_metadata(f12_meta);
+                fclose(fp);
 
-                        return EXIT_FAILURE;
-                }
-
-                err = recursive_del_entry(fp, f12_meta, entry,
-                                          args->soft_delete);
-        } else {
-                err = recursive_del_entry(fp, f12_meta, entry,
-                                          args->soft_delete);
+                return EXIT_FAILURE;
         }
+	
+	err = recursive_del_entry(fp, f12_meta, entry, args, output);
 
         if (err != F12_SUCCESS) {
                 asprintf(output, "Error: %s\n",
@@ -670,15 +786,30 @@ int f12_move(struct f12_move_arguments *args, char **output)
                 return EXIT_FAILURE;
         }
 
+	if (args->verbose) {
+		err = dump_move(src_entry, dest_entry, output);
+		if (err != F12_SUCCESS) {
+			asprintf(output, "Error: %s\n", f12_strerror(err));
+
+			return EXIT_FAILURE;
+		}
+	}
         if (F12_SUCCESS != (err = f12_move_entry(src_entry, dest_entry))) {
                 asprintf(output, "Error: %s\n", f12_strerror(err));
 
                 return EXIT_FAILURE;
         }
 
+	if (F12_SUCCESS != err) {
+                asprintf(output, "Error: %s\n", f12_strerror(err));
+
+                return EXIT_FAILURE;
+        }
+	
         err = f12_write_metadata(fp, f12_meta);
         f12_free_metadata(f12_meta);
         fclose(fp);
+	
         if (F12_SUCCESS != err) {
                 asprintf(output, "Error: %s\n", f12_strerror(err));
                 return EXIT_FAILURE;
@@ -737,8 +868,7 @@ int f12_put(struct f12_put_arguments *args, char **output)
 
                         return EXIT_FAILURE;
                 }
-                res = walk_dir(fp, args->source, args->destination, f12_meta,
-                               output);
+                res = walk_dir(fp, args, f12_meta, output);
                 if (res) {
                         asprintf(output, "%s\n", f12_strerror(err));
                         f12_free_metadata(f12_meta);
@@ -777,6 +907,9 @@ int f12_put(struct f12_put_arguments *args, char **output)
 
                         return EXIT_FAILURE;
                 }
+		if (args->verbose) {
+			asprintf(output, "%s -> %s\n", args->source, args->destination);
+		}
         } else {
                 asprintf(output, "Source file has unsupported type\n");
                 return EXIT_SUCCESS;

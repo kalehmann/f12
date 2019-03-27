@@ -14,6 +14,7 @@ struct f12_del_arguments {
     char *path;
     int recursive;
     int soft_delete;
+    int verbose;
 };
 
 struct f12_get_arguments {
@@ -41,6 +42,7 @@ struct f12_move_arguments {
     char *source;
     char *destination;
     int recursive;
+    int verbose;
 };
 
 struct f12_put_arguments {
@@ -48,6 +50,7 @@ struct f12_put_arguments {
     char *source;
     char *destination;
     int recursive;
+    int verbose;
 };
 
 /**

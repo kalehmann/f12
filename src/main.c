@@ -37,6 +37,7 @@ struct arguments {
         struct f12_put_arguments *put_arguments;
         char *device_path;
         int recursive;
+        int verbose;
         enum f12_command command;
 };
 
@@ -153,9 +154,6 @@ error_t parser_get(int key, char *arg, struct argp_state *state)
         struct f12_get_arguments *get_arguments = args->get_arguments;
 
         switch (key) {
-                case 'v':
-                        get_arguments->verbose = 1;
-                        break;
                 case (ARGP_KEY_ARG):
                         if (NULL == get_arguments->path) {
                                 get_arguments->path = arg;
@@ -445,6 +443,14 @@ static struct argp_option options[] = {
                 .doc = NULL,
                 .group = -3
         },
+        {
+                .name = "verbose",
+                .key = 'v',
+                .arg = NULL,
+                .flags = 0,
+                .doc = NULL,
+                .group = -3
+        },
         {0}
 };
 
@@ -524,6 +530,9 @@ error_t parser(int key, char *arg, struct argp_state *state)
                 case 'r':
                         arguments->recursive = 1;
                         break;
+                case 'v':
+                        arguments->verbose = 1;
+                        break;
                 case ARGP_KEY_ARG:
                         if (COMMAND_NONE != arguments->command) {
                                 if (NULL == arguments->device_path) {
@@ -602,11 +611,13 @@ int main(int argc, char *argv[])
                 case COMMAND_DEL:
                         del_arguments.device_path = arguments.device_path;
                         del_arguments.recursive = arguments.recursive;
+                        del_arguments.verbose = arguments.verbose;
                         res = f12_del(&del_arguments, &output);
                         break;
                 case COMMAND_GET:
                         get_arguments.device_path = arguments.device_path;
                         get_arguments.recursive = arguments.recursive;
+                        get_arguments.verbose = arguments.verbose;
                         res = f12_get(&get_arguments, &output);
                         break;
                 case COMMAND_INFO:
@@ -621,11 +632,13 @@ int main(int argc, char *argv[])
                 case COMMAND_MOVE:
                         move_arguments.device_path = arguments.device_path;
                         move_arguments.recursive = arguments.recursive;
+                        move_arguments.verbose = arguments.verbose;
                         res = f12_move(&move_arguments, &output);
                         break;
                 case COMMAND_PUT:
                         put_arguments.device_path = arguments.device_path;
                         put_arguments.recursive = arguments.recursive;
+                        put_arguments.verbose = arguments.verbose;
                         res = f12_put(&put_arguments, &output);
                         break;
                 default:
