@@ -281,6 +281,15 @@ enum f12_error f12_create_entry_from_path(struct f12_metadata *f12_meta,
                                struct f12_path *path,
                                struct f12_directory_entry **entry);
 
+/**
+ * Create a new (empty) fat12 image
+ *
+ * @param fp a pointer to the file for the image to create
+ * @param f12_meta a pointer to the metadata of the image
+ * @return F12_SUCCESS or any error that occured
+ */
+enum f12_error f12_create_image(FILE *fp, struct f12_metadata *f12_meta);
+
 // metadata.c
 /**
  * Get the size of a fat12 image in bytes by its metadata
@@ -299,11 +308,32 @@ size_t f12_get_partition_size(struct f12_metadata *f12_meta);
 size_t f12_get_used_bytes(struct f12_metadata *f12_meta);
 
 /**
+ * Creates new metadata 
+ *
+ * @param f12_meta a pointer to the memory the pointer to the 
+ * newly created metadata gets written into
+ * @return F12_SUCCESS or any error that occurred
+ */
+enum f12_error f12_create_metadata(struct f12_metadata **f12_meta);
+/**
+ * Initializes the empty root directory metadata
+ * 
+ * @param f12_meta a pointer to the metadata of the partition
+ */
+enum f12_error f12_create_root_dir_meta(struct f12_metadata *f12_meta);
+/**
  * Free the metadata of a fat12 image
  *
  * @param f12_meta a pointer to the metadata of the fat12 image
  */
 void f12_free_metadata(struct f12_metadata *f12_meta);
+/**
+ * Initialize the bios parameter block for an image with the given size.
+ * 
+ * @param f12_meta a pointer to the metadata of the image
+ * @param size the size of the image
+ */
+void f12_init_bpb(struct f12_metadata *f12_meta, size_t size);
 
 // name.c
 /**

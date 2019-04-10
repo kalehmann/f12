@@ -303,49 +303,29 @@ static enum f12_error load_root_dir(FILE *fp, struct f12_metadata *f12_meta)
                 return F12_ALLOCATION_ERROR;
         }
 
-        struct f12_directory_entry *root_dir = malloc(
-                sizeof(struct f12_directory_entry));
-
-        if (NULL == root_dir) {
-                free(root_data);
-                return F12_ALLOCATION_ERROR;
-        }
-
         if (0 != fseek(fp, root_start, SEEK_SET)) {
                 f12_save_errno();
                 free(root_data);
-                free(root_dir);
 
                 return F12_IO_ERROR;
         }
         if (root_size != fread(root_data, 1, root_size, fp)) {
                 f12_save_errno();
                 free(root_data);
-                free(root_dir);
 
                 return F12_IO_ERROR;
         }
 
-        struct f12_directory_entry *root_entries =
-                malloc(sizeof(struct f12_directory_entry) *
-                       bpb->RootDirEntries);
+	err = f12_create_root_dir_meta(f12_meta);
+	if (F12_SUCCESS != err) {
+		free(root_data);
 
-        if (NULL == root_entries) {
-                free(root_data);
-                free(root_dir);
-                return F12_ALLOCATION_ERROR;
-        }
+		return err;
+	}
+	struct f12_directory_entry *root_entries = f12_meta->root_dir->children;
 
-        root_dir->parent = NULL;
-        root_dir->FileAttributes |= F12_ATTR_SUBDIRECTORY;
-        root_dir->children = root_entries;
-        root_dir->child_count = f12_meta->bpb->RootDirEntries;
-
-        f12_meta->root_dir = root_dir;
-
-        for (int i = 0; i < f12_meta->bpb->RootDirEntries; i++) {
+        for (int i = 0; i < bpb->RootDirEntries; i++) {
                 read_dir_entry(root_data + i * 32, &root_entries[i]);
-                root_entries[i].parent = root_dir;
 
                 err = scan_subsequent_entries(fp, f12_meta, &root_entries[i]);
                 if (F12_SUCCESS != err) {
@@ -821,16 +801,12 @@ enum f12_error f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta)
         enum f12_error err;
         struct bios_parameter_block *bpb;
 
-        *f12_meta = malloc(sizeof(struct f12_metadata));
-        if (NULL == *f12_meta) {
-                return F12_ALLOCATION_ERROR;
-        }
-
-        (*f12_meta)->bpb = bpb = malloc(sizeof(struct bios_parameter_block));
-        if (NULL == (*f12_meta)->bpb) {
-                return F12_ALLOCATION_ERROR;
-        }
-
+	err = f12_create_metadata(f12_meta);
+	if (F12_SUCCESS != err) {
+		return err;
+	}
+	bpb = (*f12_meta)->bpb;
+	
         if (F12_SUCCESS != (err = read_bpb(fp, (*f12_meta)->bpb))) {
                 free(f12_meta);
                 return err;
@@ -851,7 +827,10 @@ enum f12_error f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta)
         (*f12_meta)->end_of_chain_marker = (*f12_meta)->fat_entries[1];
 
         if (F12_SUCCESS != (err = load_root_dir(fp, *f12_meta))) {
-
+		free((*f12_meta)->bpb);
+		free((*f12_meta)->fat_entries);
+		free(*f12_meta);
+		
                 return err;
         }
 
@@ -1102,4 +1081,24 @@ enum f12_error f12_create_entry_from_path(struct f12_metadata *f12_meta,
         memcpy((*entry)->ShortFileExtension, path->short_file_extension, 3);
 
         return F12_SUCCESS;
+}
+
+enum f12_error f12_create_image(FILE *fp, struct f12_metadata *f12_meta)
+{
+	struct bios_parameter_block *bpb = f12_meta->bpb;
+	size_t file_size = bpb->LargeSectors * bpb->SectorSize;
+
+	void *sector = calloc(bpb->SectorSize, 1);
+
+	if (NULL == sector) {
+		return F12_ALLOCATION_ERROR;
+	}
+
+	for (int i = 0; i < bpb->LargeSectors; i++) {
+		fwrite(sector, 1, bpb->SectorSize, fp);
+	}
+
+	f12_write_metadata(fp, f12_meta);
+	
+	return F12_SUCCESS;
 }

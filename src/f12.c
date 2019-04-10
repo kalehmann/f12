@@ -1,4 +1,4 @@
-/* Use the not posix conform function asprintf */
+ /* Use the not posix conform function asprintf */
 #define _GNU_SOURCE
 
 #include <errno.h>
@@ -163,6 +163,81 @@ static void info_dump_bpb(struct f12_metadata *f12_meta, char **output)
                  bpb->VolumeID, bpb->VolumeLabel, bpb->FileSystem);
 }
 
+static uint16_t sectorsPerFat(uint16_t sectors, uint16_t sector_size,
+		uint16_t sectors_per_cluster)
+{
+	unsigned int fat_size = (sectors  / sectors_per_cluster) * 3 / 2;
+	uint16_t fat_sectors =  fat_size / sector_size;
+	if (fat_size % sector_size) {
+		fat_sectors++;
+	}
+
+	return fat_sectors;
+}
+
+static void initialize_bpb(struct bios_parameter_block *bpb,
+		           struct f12_create_arguments *args)
+{
+	size_t size = 1440 * 1024;
+	memcpy(&(bpb->OEMLabel), "f12     ", 8);
+	if (args->volume_size) {
+		size = args->volume_size * 1024;
+	}
+	
+	if (args->sector_size) {
+		bpb->SectorSize = args->sector_size;
+	} else {
+		bpb->SectorSize = 512;
+	}
+	if (args->sectors_per_cluster) {
+		bpb->SectorsPerCluster  = args->sectors_per_cluster;
+	} else {
+		bpb->SectorsPerCluster = 1;
+	}
+	bpb->ReservedForBoot = 1;
+	if (args->number_of_fats) {
+		bpb->NumberOfFats = args->number_of_fats;
+	} else {
+		bpb->NumberOfFats = 2;
+	}
+	if (args->root_dir_entries) {
+		bpb->RootDirEntries = args->root_dir_entries;
+	} else {
+		bpb->RootDirEntries = 224;
+	}
+	
+	if (args->drive_number) {
+		bpb->DriveNumber = args->drive_number;
+	} else {
+	        bpb->DriveNumber = 0x80;
+	}
+	bpb->LogicalSectors = size / bpb->SectorSize;
+	bpb->MediumByte = 0;
+	bpb->SectorsPerFat = sectorsPerFat(bpb->LogicalSectors, bpb->SectorSize,
+		bpb->SectorsPerCluster);
+	bpb->SectorsPerTrack = 0;
+	bpb->NumberOfHeads = 0;
+	bpb->HiddenSectors = 0;
+	bpb->LargeSectors = bpb->LogicalSectors;
+	bpb->Flags = 0;
+	bpb->Signature = 0;
+	bpb->VolumeID = 0;
+	
+	if (NULL != args->volume_label) {
+		if (strlen(args->volume_label) < 12) {
+			memcpy(&(bpb->VolumeLabel), args->volume_label,
+					strlen(args->volume_label));
+		} else {
+			memcpy(&(bpb->VolumeLabel), args->volume_label, 12);
+		}
+	} else {
+		memcpy(&(bpb->VolumeLabel), "NO NAME     ", 12);
+	}
+	
+	
+	memcpy(&(bpb->FileSystem), "FAT12    ", 9);
+}
+
 static int list_f12_entry(struct f12_directory_entry *entry, char **output,
                           struct f12_list_arguments *args, int depth)
 {
@@ -292,7 +367,49 @@ static int walk_dir(FILE *fp, char *path, const char *dest,
         return 0;
 }
 
-int f12_create(struct f12_create_arguments *args, char **output);
+int f12_create(struct f12_create_arguments *args, char **output)
+{
+	FILE *fp;
+	enum f12_error err;
+	struct bios_parameter_block *bpb;
+	struct f12_metadata *f12_meta;
+	
+	if (NULL == (fp = fopen(args->device_path, "w"))) {
+                asprintf(output, "Error opening image: %s\n",
+                         strerror(errno));
+		
+                return EXIT_FAILURE;
+	}
+
+	if (F12_SUCCESS != (err = f12_create_metadata(&f12_meta))) {
+		fclose(fp);
+		
+		return err;
+	}
+
+	bpb = f12_meta->bpb;
+	initialize_bpb(bpb, args);
+	f12_meta->root_dir_offset = bpb->SectorSize *
+		((bpb->NumberOfFats * bpb->SectorsPerFat) + bpb->ReservedForBoot);
+
+	err = f12_create_root_dir_meta(f12_meta);
+	if (F12_SUCCESS != err) {
+		f12_free_metadata(f12_meta);
+
+		return err;
+	}
+	 
+	if (F12_SUCCESS != (err = f12_create_image(fp, f12_meta))) {
+		fclose(fp);
+		f12_free_metadata(f12_meta);
+
+		return err;
+	}
+       
+	fclose(fp);
+	
+	return EXIT_SUCCESS;
+}
 
 int f12_del(struct f12_del_arguments *args, char **output)
 {
