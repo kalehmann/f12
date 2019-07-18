@@ -28,4 +28,8 @@
 !*.md
 !LICENSE.txt
 
+# Do not ignore files for docker
+!Dockerfile
+!.dockerignore
+
 *~

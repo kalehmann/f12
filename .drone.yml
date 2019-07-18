@@ -1,10 +1,14 @@
-platform: linux/arm
+kind: pipeline
+name: default
 
-pipeline:
-  tests:
-    image: registry.banana.pi:5000/f12-testing:arm
+steps:
+  - name: test
+    image: registry.kalehmann.de/testing/f12:latest
     commands:
       - autoreconf --install
       - ./configure
       - make check || (cat tests/test-suite.log && exit 1)
       - /usr/local/bin/bats --tap tests/functional.bats
+
+image_pull_secrets:
+  - dockerconfigjson
