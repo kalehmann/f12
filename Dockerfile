@@ -8,7 +8,9 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 	curl \
 	git \
 	libtool \
+	libtool-bin \
 	pkg-config \
+	valgrind \
 	&& rm -rf /var/lib/apt/lists/*
 
 RUN curl -L https://github.com/libcheck/check/releases/download/0.12.0/check-0.12.0.tar.gz | tar zx \

@@ -581,8 +581,8 @@ static struct argp argp = {
 };
 
 int main(int argc, char *argv[])
-{
-        struct arguments arguments = {0};
+{       
+	struct arguments arguments = {0};
         struct f12_create_arguments create_arguments = {0};
         struct f12_del_arguments del_arguments = {0};
         struct f12_get_arguments get_arguments = {0};

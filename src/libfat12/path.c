@@ -30,7 +30,7 @@ static enum f12_error build_path(char **input_parts, int part_count, struct f12_
         if (NULL == path->descendant) {
                 return F12_ALLOCATION_ERROR;
         }
-
+ 
         err = build_path(&input_parts[1], part_count - 1,
                              path->descendant);
         if (F12_SUCCESS != err) {
@@ -165,12 +165,13 @@ enum f12_error f12_parse_path(const char *input, struct f12_path **path)
 }
 
 void f12_free_path(struct f12_path *path)
-{
-        if (path->descendant != NULL) {
-                f12_free_path(path->descendant);
-        }
-        free(path->name);
-        free(path);
+{		
+	if (NULL != path->descendant) {
+		f12_free_path(path->descendant);
+	}
+
+	free(path->name);
+	free(path);
 }
 
 enum f12_path_relations f12_path_get_parent(struct f12_path *path_a, struct f12_path *path_b)
