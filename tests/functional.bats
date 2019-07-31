@@ -23,7 +23,7 @@
 #
 # The tests can be configured with the following variables:
 #  TMP_DIR: A directory for temporary files during the test. This should be set when
-#           multiple instances of this script are run in parallel to prevent
+#           multiple instances of this script are ruen in parallel to prevent
 #           complications
 #  VALGRIND: Set this variable to run every call to f12 with valgrind.
 #  VALGRIND_TAP: If this variable is set, a tap <https://testanything.org/> compliant
@@ -35,6 +35,9 @@ TMP_DIR=${TMP_DIR:-tests/tmp}
 TEST_IMAGE=${TMP_DIR}/test.img
 VALGRIND="${VALGRIND}"
 VALGRIND_TAP="${VALGRIND_TAP}"
+
+FILE_COUNT_REGEX="Files:[[:space:]]+([[:digit:]]+)"
+DIR_COUNT_REGEX="Directories:[[:space:]]+([[:digit:]]+)"
 
 load tap_helper
 
@@ -111,27 +114,6 @@ fi
     [[ "$output" == *"del DEVICE"* ]]
 }
 
-@test "I can get info about a fat12 image" {
-    _run ./src/f12 info "${TEST_IMAGE}"
-    [[ "$status" -eq 0 ]]
-    [[ "$output" == *"Partition size"* ]]
-    [[ "$output" == *"Used bytes"* ]]
-    [[ "$output" == *"Files"* ]]
-    [[ "$output" == *"Directories"* ]]
-}
-
-@test "I can dump the bios parameter block of a fat12 image" {
-    _run ./src/f12 info --dump-bpb "${TEST_IMAGE}"
-    [[ "$status" -eq 0 ]]
-    [[ "$output" == *"Bios Parameter Block"* ]]
-    [[ "$output" == *"OEMLabel"* ]]
-    [[ "$output" == *"Sector size"* ]]
-    [[ "$output" == *"Sectors per cluster"* ]]
-    [[ "$output" == *"VolumeID"* ]]
-    [[ "$output" == *"Volume label"* ]]
-    [[ "$output" == *"File system"* ]]
-}
-
 @test "I can delete a file from a fat12 image" {
     _run ./src/f12 del "${TEST_IMAGE}" FOLDER1/DATA.DAT
     [[ "$status" -eq 0 ]]
@@ -144,6 +126,54 @@ fi
     [[ "$status" -eq 0 ]]
     _run ./src/f12 list "${TEST_IMAGE}"
     [[ "$output" != *"FOLDER1"* ]]
+}
+
+@test "I get an error when I try to delete a nonexistant file" {
+    _run ./src/f12 del "${TEST_IMAGE}" NON/EXISTANT/FILE
+    [[ "$status" -eq 1 ]]
+    [[ "$output" ==  *"The file NON/EXISTANT/FILE was not found"* ]]
+}
+
+@test "I get an error when I try to delete a file from a nonexistant image" {
+    _run ./src/f12 del no_image FILE1
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Error opening image: No such file or directory"* ]]
+}
+
+@test "I can not delete a directory without the recursive flag" {
+    _run ./src/f12 del "${TEST_IMAGE}" FOLDER1
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Error: Target is a directory. Maybe use the recursive flag"* ]]
+    _run ./src/f12 list "${TEST_IMAGE}"
+    [[ "$output" == *"FOLDER1"* ]]
+}
+
+@test "I can decrease the number of files by deleting one" {
+    _run ./src/f12 info "${TEST_IMAGE}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ ${FILE_COUNT_REGEX} ]]
+    OLD_FILE_COUNT="${BASH_REMATCH[1]}"
+    _run ./src/f12 del "${TEST_IMAGE}" FOLDER1/DATA.DAT
+    [[ "$status" -eq 0 ]]
+    _run ./src/f12 info "${TEST_IMAGE}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ ${FILE_COUNT_REGEX} ]]
+    NEW_FILE_COUNT="${BASH_REMATCH[1]}"
+    [[ $(( ${OLD_FILE_COUNT} - ${NEW_FILE_COUNT} )) -eq 1 ]]
+}
+
+@test "I can decrease the number of directories by deleting one" {
+    _run ./src/f12 info "${TEST_IMAGE}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ ${DIR_COUNT_REGEX} ]]
+    OLD_DIR_COUNT="${BASH_REMATCH[1]}"
+    _run ./src/f12 del "${TEST_IMAGE}" --recursive FOLDER2
+    [[ "$status" -eq 0 ]]
+    _run ./src/f12 info "${TEST_IMAGE}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ ${DIR_COUNT_REGEX} ]]
+    NEW_DIR_COUNT="${BASH_REMATCH[1]}"
+    [[ $(( ${OLD_DIR_COUNT} - ${NEW_DIR_COUNT} )) -eq 1 ]]
 }
 
 @test "I can get a file from a fat12 image" {
@@ -168,6 +198,51 @@ fi
     [[ -f "${TMP_DIR}"/subdir/SECRET.TXT ]]
     run cat "${TMP_DIR}"/subdir/SECRET.TXT
     [[ "$output" == "12345678" ]]
+}
+
+@test "I get an error when I try to get a nonexistant file" {
+    _run ./src/f12 get "${TEST_IMAGE}" NON/EXISTANT/FILE "${TMP_DIR}"/non.file
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"The file NON/EXISTANT/FILE was not found on the device"* ]]
+}
+
+@test "I get an error when I try to get a file from a nonexistant image" {
+    _run ./src/f12 get no_image FILE1.TXT "${TMP_DIR}"/file1.txt
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Error opening image: No such file or directory"* ]]
+}
+
+@test "I can not get a directory without the recursive flag" {
+    _run ./src/f12 get "${TEST_IMAGE}" FOLDER1 "${TMP_DIR}"/folder1
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Target is a directory. Maybe use the recursive flag"* ]]
+}
+
+@test "I can get info about a fat12 image" {
+    _run ./src/f12 info "${TEST_IMAGE}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Partition size"* ]]
+    [[ "$output" == *"Used bytes"* ]]
+    [[ "$output" == *"Files"* ]]
+    [[ "$output" == *"Directories"* ]]
+}
+
+@test "I get an error when I request info about a nonexistant image" {
+    _run ./src/f12 info no_image
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Error opening image: No such file or directory"* ]]
+}
+
+@test "I can dump the bios parameter block of a fat12 image" {
+    _run ./src/f12 info --dump-bpb "${TEST_IMAGE}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"Bios Parameter Block"* ]]
+    [[ "$output" == *"OEMLabel"* ]]
+    [[ "$output" == *"Sector size"* ]]
+    [[ "$output" == *"Sectors per cluster"* ]]
+    [[ "$output" == *"VolumeID"* ]]
+    [[ "$output" == *"Volume label"* ]]
+    [[ "$output" == *"File system"* ]]
 }
 
 @test "I can list the content of a fat12 image" {
@@ -209,6 +284,24 @@ fi
     [[ "${lines[6]}" == "|-> DATA.DAT" ]]
 }
 
+@test "I can list a single file" {
+    _run ./src/f12 list "${TEST_IMAGE}" FILE.BIN
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"FILE.BIN"* ]]
+}
+
+@test "I get an error when I list the contents of a nonexistant image" {
+    _run ./src/f12 list no_image
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Error opening image: No such file or directory"* ]]
+}
+
+@test "I get an error when I list the contents of a nonexistant directory" {
+    _run ./src/f12 list "${TEST_IMAGE}" NON/EXISTANT/DIRECTORY
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"File not found"* ]]
+}
+
 @test "I can move a file on a fat12 image" {
     _run ./src/f12 move "${TEST_IMAGE}" FILE.BIN FOLDER2
     [[ "$status" -eq 0 ]]
@@ -228,6 +321,64 @@ fi
     [[ "$status" -eq 0 ]]
     run cat "${TMP_DIR}"/secret.txt
     [[ "$output" == "12345678" ]]
+}
+
+@test "I can move a subdirectory into the root directory" {
+    _run ./src/f12 move --recursive "${TEST_IMAGE}" FOLDER1/SUBDIR /
+    [[ "$status" -eq 0 ]]
+    _run ./src/f12 list "${TEST_IMAGE}" SUBDIR
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"SECRET.TXT"* ]]
+    _run ./src/f12 list "${TEST_IMAGE}" FOLDER1/SUBDIR
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"File not found"* ]]
+}
+
+@test "I can not move a file on a non existant image" {
+    _run ./src/f12 move no_image FILE1 FILE2
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Error opening image: No such file or directory"* ]]
+}
+
+@test "I can not move a nonexistant file" {
+    _run ./src/f12 move "${TEST_IMAGE}" FILE1 FOLDER2
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"File or directory FILE1 not found"* ]]
+}
+
+@test "I can not move a file into a nonexistant directory" {
+    _run ./src/f12 move "${TEST_IMAGE}" FILE.BIN NOFOLDER
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"File or directory NOFOLDER not found"* ]]
+}
+
+@test "I can not move a directory without the recursive flag" {
+    _run ./src/f12 move "${TEST_IMAGE}" FOLDER1 FOLDER2
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Target is a directory. Maybe use the recursive flag"* ]]
+}
+
+@test "I can not move a directory into a file" {
+    _run ./src/f12 move "${TEST_IMAGE}" --recursive FOLDER1 FILE.BIN
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Not a directory"* ]]
+}
+
+@test "I can not move the root directory into a subdirectory" {
+    _run ./src/f12 move --recursive "${TEST_IMAGE}" / /FOLDER1
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Can not move the root directory"* ]]
+}
+
+@test "I can not move a directory into a subdirectory of it" {
+    _run ./src/f12 move --recursive "${TEST_IMAGE}" FOLDER1 FOLDER1/SUBDIR
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Can not move the directory into a child"* ]]
+}
+
+@test "I can have source and destination be the same directory when using move" {
+    _run ./src/f12 move --recursive "${TEST_IMAGE}" FOLDER1 FOLDER1
+    [[ "$status" -eq 0 ]]
 }
 
 @test "I can put a single file in the root directory of a fat12 image" {
@@ -309,4 +460,66 @@ fi
     _run ./src/f12 put "${TEST_IMAGE}" tests/fixtures/TEST/TEST.DAT FOLDER1/DATA.DAT/NEWFILE
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Not a directory"* ]]
+}
+
+@test "I can not put a file to a nonexistent image" {
+    _run ./src/f12 put no_image tests/fixtures/TEST/TEST.DAT TESTF.ILE
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Error opening image: No such file or directory"* ]]
+}
+
+@test "I can not put a nonexistent file to an image" {
+    _run ./src/f12 put "${TEST_IMAGE}" non-existant.file TESTF.ILE
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Can not open source file"* ]]
+}
+
+@test "I can not put a directory on an image without the recursive flag" {
+    _run ./src/f12 put "${TEST_IMAGE}" tests/fixtures/TEST TEST
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Target is a directory. Maybe use the recursive flag"* ]]
+}
+
+@test "I can not overwrite the root directory by putting a directory in its place" {
+    _run ./src/f12 put "${TEST_IMAGE}" tests/fixtures/TEST /
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Can not replace root directory"* ]]
+}
+
+@test "I can increase the number of files by putting one to the image" {
+    _run ./src/f12 info "${TEST_IMAGE}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ ${FILE_COUNT_REGEX} ]]
+    OLD_FILE_COUNT="${BASH_REMATCH[1]}"
+    _run ./src/f12 put "${TEST_IMAGE}" tests/fixtures/TEST/DATA.BIN NEWF.ILE
+    [[ "$status" -eq 0 ]]
+    _run ./src/f12 info "${TEST_IMAGE}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ ${FILE_COUNT_REGEX} ]]
+    NEW_FILE_COUNT="${BASH_REMATCH[1]}"
+    [[ $(( ${NEW_FILE_COUNT} - ${OLD_FILE_COUNT} )) -eq 1 ]]
+}
+
+
+@test "I can increase the number of directories by putting one to the image" {
+    _run ./src/f12 info "${TEST_IMAGE}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ ${DIR_COUNT_REGEX} ]]
+    OLD_DIR_COUNT="${BASH_REMATCH[1]}"
+    _run ./src/f12 put "${TEST_IMAGE}" --recursive tests/fixtures/TEST/SUBDIR1 NEWDIR1
+    [[ "$status" -eq 0 ]]
+    _run ./src/f12 info "${TEST_IMAGE}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ ${DIR_COUNT_REGEX} ]]
+    NEW_DIR_COUNT="${BASH_REMATCH[1]}"
+    [[ $(( ${NEW_DIR_COUNT} - ${OLD_DIR_COUNT} )) -eq 1 ]]
+}
+
+@test "I see the paths of all new files when I put a directory on a fat12 image with the vverbose flag" {
+    _run ./src/f12 put "${TEST_IMAGE}" --recursive --verbose tests/fixtures/TEST NEWDIR
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"NEWDIR/SUBDIR1/FILE1.TXT"* ]]
+    [[ "$output" == *"NEWDIR/DATA.BIN"* ]]
+    [[ "$output" == *"NEWDIR/SUBDIR2/FILE2.TXT"* ]]
+    [[ "$output" == *"NEWDIR/TEST.DAT"* ]]
 }

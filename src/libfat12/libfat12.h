@@ -353,6 +353,9 @@ f12_entry_from_path(struct f12_directory_entry *entry,
 /**
  * Creates a f12_path structure from a string with a filepath.
  *
+ * If input is empty or "/" then *path is set to NULL and F12_EMPTY_PATH
+ * returned.
+ *
  * @param input a pointer to a string with the filepath to parse
  * @param path a pointer to a pointer to a f12_path structure with the parsed
  * path, that must be freed.
@@ -371,8 +374,8 @@ void f12_free_path(struct f12_path *path);
  * Determines if one of two given f12_path structure describes a parent
  * directory of the file or directory described by the other path.
  *
- * @param path_a a pointer to a f12_path structure
- * @param path_b a pointer to a f12_path structure
+ * @param path_a a pointer to a f12_path structure or NULL for the root directory
+ * @param path_b a pointer to a f12_path structure or NULL for the root directory
  * @return F12_PATHS_EQUAL if both structures describe the same file path
  *         F12_PATHS_SECOND if the second path describes a parent directory of the
  *         first path

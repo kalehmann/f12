@@ -1,4 +1,4 @@
-#include <stdlib.h>
+ #include <stdlib.h>
 #include <string.h>
 #include "libfat12.h"
 
@@ -113,6 +113,10 @@ struct f12_directory_entry *
 f12_entry_from_path(struct f12_directory_entry *entry,
                     struct f12_path *path)
 {
+	if (NULL == path) {
+		return entry;
+	}
+
         for (int i = 0; i < entry->child_count; i++) {
                 if (0 == memcmp(entry->children[i].ShortFileName,
                                 path->short_file_name, 8) &&
@@ -136,10 +140,11 @@ enum f12_error f12_parse_path(const char *input, struct f12_path **path)
         char **input_parts = NULL;
         int input_part_count  = 0;
 
+	*path = NULL;
         err = split_input(input, &input_parts, &input_part_count);
 
         if (F12_SUCCESS != err) {
-                return err;
+		return err;
         }
 
         *path = malloc(sizeof(struct f12_path));
@@ -165,7 +170,11 @@ enum f12_error f12_parse_path(const char *input, struct f12_path **path)
 }
 
 void f12_free_path(struct f12_path *path)
-{		
+{
+	if (NULL == path) {
+		return;
+	}
+
 	if (NULL != path->descendant) {
 		f12_free_path(path->descendant);
 	}
@@ -176,6 +185,17 @@ void f12_free_path(struct f12_path *path)
 
 enum f12_path_relations f12_path_get_parent(struct f12_path *path_a, struct f12_path *path_b)
 {
+	if (NULL == path_a) {
+		if (NULL == path_b) {
+			return F12_PATHS_EQUAL;
+		}
+
+		return F12_PATHS_FIRST;
+	}
+	if (NULL == path_b) {
+		return F12_PATHS_SECOND;
+	}
+
         while (0 == memcmp(path_a->name, path_b->name, 11)) {
                 if (path_b->descendant == NULL) {
                         if (path_a->descendant == NULL) {

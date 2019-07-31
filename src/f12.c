@@ -193,8 +193,7 @@ static int dump_f12_structure(FILE *fp,
                 err = f12_dump_file(fp, f12_meta, entry, dest_fp);
                 if (F12_SUCCESS != err) {
                         temp = *output;
-                        asprintf(output, "%s\n", *output,
-                                 f12_strerror(err));
+                        asprintf(output, "%s\n", f12_strerror(err));
                         free(temp);
                         fclose(dest_fp);
                         return -1;
@@ -206,7 +205,7 @@ static int dump_f12_structure(FILE *fp,
 
         if (!recursive) {
                 temp = *output;
-                asprintf(output, "%s\n", *output, f12_strerror(err));
+                asprintf(output, "%s\n", f12_strerror(F12_IS_DIR));
                 free(temp);
 
                 return -1;
@@ -477,6 +476,7 @@ int f12_del(struct f12_del_arguments *args, char **output)
 
         struct f12_directory_entry *entry = f12_entry_from_path(
                 f12_meta->root_dir, path);
+	f12_free_path(path);
 
         if (NULL == entry) {
                 asprintf(output, "The file %s was not found on the device\n",
@@ -486,11 +486,11 @@ int f12_del(struct f12_del_arguments *args, char **output)
                 return EXIT_FAILURE;
         }
 
+
         if (f12_is_directory(entry) && entry->child_count > 2 &&
 	    !args->recursive) {
 		asprintf(output, "Error: %s\n",
                          f12_strerror(F12_IS_DIR));
-                f12_free_path(path);
                 f12_free_metadata(f12_meta);
                 fclose(fp);
 
@@ -509,7 +509,6 @@ int f12_del(struct f12_del_arguments *args, char **output)
                 return EXIT_FAILURE;
         }
 
-        f12_free_path(path);
         f12_free_metadata(f12_meta);
         fclose(fp);
 
@@ -683,7 +682,7 @@ int f12_list(struct f12_list_arguments *args, char **output)
 			free(*output);
                         asprintf(output, "File not found\n");
 			f12_free_metadata(f12_meta);
-			
+
                         return EXIT_FAILURE;
                 }
 
@@ -698,7 +697,8 @@ int f12_list(struct f12_list_arguments *args, char **output)
                 }
 
                 list_f12_entry(entry, output, args, 0);
-
+		f12_free_metadata(f12_meta);
+		
                 return EXIT_SUCCESS;
         }
 
@@ -730,27 +730,33 @@ int f12_move(struct f12_move_arguments *args, char **output)
         (*output)[0] = 0;
 
         if (NULL == (fp = fopen(device_path, "r+"))) {
+		free(*output);
                 asprintf(output, "Error opening image: %s\n",
                          strerror(errno));
+
                 return EXIT_FAILURE;
         }
 
         if (F12_SUCCESS != (err = f12_read_metadata(fp, &f12_meta))) {
                 fclose(fp);
+		free(*output);
                 asprintf(output, "Error loading image: %s\n",
                          f12_strerror(err));
+		
                 return EXIT_FAILURE;
         }
 
         err = f12_parse_path(args->source, &src);
         if (F12_EMPTY_PATH == err) {
-                asprintf(output, "Cannot move the root directory\n");
+		free(*output);
+                asprintf(output, "Can not move the root directory\n");
 		f12_free_metadata(f12_meta);
                 fclose(fp);
 
                 return EXIT_FAILURE;
         }
         if (F12_SUCCESS != err) {
+		free(*output);
                 asprintf(output, "%s\n", f12_strerror(err));
 		f12_free_path(src);
 		f12_free_metadata(f12_meta);
@@ -760,8 +766,10 @@ int f12_move(struct f12_move_arguments *args, char **output)
         }
 
         err = f12_parse_path(args->destination, &dest);
-        if (F12_SUCCESS != err && F12_EMPTY_PATH != err) {
-                asprintf(output, "Cannot move the root directory\n");
+
+	if (F12_SUCCESS != err && F12_EMPTY_PATH != err) {
+		free(*output);
+                asprintf(output, "%s\n", f12_strerror(err));
 		f12_free_path(src);
 		f12_free_metadata(f12_meta);
                 fclose(fp);
@@ -771,8 +779,9 @@ int f12_move(struct f12_move_arguments *args, char **output)
 
         switch (f12_path_get_parent(src, dest)) {
                 case F12_PATHS_FIRST:
+			free(*output);
                         asprintf(output,
-                                 "Cannot move the directory into a child\n");
+                                 "Can not move the directory into a child\n");
 			f12_free_path(src);
 			f12_free_path(dest);
 			f12_free_metadata(f12_meta);
@@ -792,6 +801,7 @@ int f12_move(struct f12_move_arguments *args, char **output)
 
         src_entry = f12_entry_from_path(f12_meta->root_dir, src);
         if (NULL == src_entry) {
+		free(*output);
                 asprintf(output, "File or directory %s not found\n",
                          args->source);
 		f12_free_path(src);
@@ -805,6 +815,7 @@ int f12_move(struct f12_move_arguments *args, char **output)
 
         if (0 == args->recursive && f12_is_directory(src_entry)
             && src_entry->child_count > 2) {
+		free(*output);
                 asprintf(output, "%s\n", f12_strerror(F12_IS_DIR));
 		f12_free_path(dest);
 		f12_free_metadata(f12_meta);
@@ -815,6 +826,7 @@ int f12_move(struct f12_move_arguments *args, char **output)
 
         dest_entry = f12_entry_from_path(f12_meta->root_dir, dest);
         if (NULL == dest_entry) {
+		free(*output);
                 asprintf(output, "File or directory %s not found\n",
                          args->destination);
 		f12_free_path(dest);
@@ -828,6 +840,7 @@ int f12_move(struct f12_move_arguments *args, char **output)
 	if (args->verbose) {
 		err = dump_move(src_entry, dest_entry, output);
 		if (err != F12_SUCCESS) {
+			free(*output);
 			asprintf(output, "Error: %s\n", f12_strerror(err));
 			f12_free_metadata(f12_meta);
 			fclose(fp);
@@ -836,6 +849,7 @@ int f12_move(struct f12_move_arguments *args, char **output)
 		}
 	}
         if (F12_SUCCESS != (err = f12_move_entry(src_entry, dest_entry))) {
+		free(*output);
                 asprintf(output, "Error: %s\n", f12_strerror(err));
 		f12_free_metadata(f12_meta);
 		fclose(fp);
@@ -844,6 +858,7 @@ int f12_move(struct f12_move_arguments *args, char **output)
         }
 
 	if (F12_SUCCESS != err) {
+		free(*output);
                 asprintf(output, "Error: %s\n", f12_strerror(err));
 		f12_free_metadata(f12_meta);
 		fclose(fp);
@@ -856,6 +871,7 @@ int f12_move(struct f12_move_arguments *args, char **output)
         fclose(fp);
 	
         if (F12_SUCCESS != err) {
+		free(*output);
                 asprintf(output, "Error: %s\n", f12_strerror(err));
                 return EXIT_FAILURE;
         }
@@ -903,16 +919,35 @@ int f12_put(struct f12_put_arguments *args, char **output)
 
         if (0 != stat(args->source, &sb)) {
 		free(*output);
-		asprintf(output, "Cannot open source file\n");
+		asprintf(output, "Can not open source file\n");
                 f12_free_metadata(f12_meta);
 
-                return EXIT_SUCCESS;
+                return EXIT_FAILURE;
         }
+
+        err = f12_parse_path(args->destination, &dest);
+        if (F12_EMPTY_PATH == err) {
+		free(*output);
+                asprintf(output, "Can not replace root directory\n");
+                f12_free_metadata(f12_meta);
+                fclose(fp);
+
+		return EXIT_FAILURE;
+	}
+	if (F12_SUCCESS != err) {
+		free(*output);
+		asprintf(output, "%s\n", f12_strerror(err));
+		f12_free_metadata(f12_meta);
+		fclose(fp);
+
+		return EXIT_FAILURE;
+	}
 
         if (S_ISDIR(sb.st_mode)) {
                 if (!args->recursive) {
 			free(*output);
 			asprintf(output, "%s\n", f12_strerror(F12_IS_DIR));
+			f12_free_path(dest);
                         f12_free_metadata(f12_meta);
                         fclose(fp);
 
@@ -922,7 +957,8 @@ int f12_put(struct f12_put_arguments *args, char **output)
                 if (res) {
 			free(*output);
                         asprintf(output, "%s\n", f12_strerror(err));
-                        f12_free_metadata(f12_meta);
+			f12_free_path(dest);
+			f12_free_metadata(f12_meta);
                         fclose(fp);
 
                         return EXIT_FAILURE;
@@ -930,25 +966,9 @@ int f12_put(struct f12_put_arguments *args, char **output)
         } else if (S_ISREG(sb.st_mode)) {
                 if (NULL == (src = fopen(args->source, "r"))) {
 			free(*output);
-			asprintf(output, "Cannot open source file\n");
-                        f12_free_metadata(f12_meta);
-
-                        return EXIT_FAILURE;
-                }
-                err = f12_parse_path(args->destination, &dest);
-                if (F12_EMPTY_PATH == err) {
-			free(*output);
-                        asprintf(output, "Cannot replace root directory\n");
-                        f12_free_metadata(f12_meta);
-                        fclose(fp);
-
-                        return EXIT_FAILURE;
-                }
-                if (F12_SUCCESS != err) {
-			free(*output);
-                        asprintf(output, "%s\n", f12_strerror(err));
-                        f12_free_metadata(f12_meta);
-                        fclose(fp);
+			asprintf(output, "Can not open source file\n");
+			f12_free_path(dest);
+			f12_free_metadata(f12_meta);
 
                         return EXIT_FAILURE;
                 }
@@ -967,13 +987,17 @@ int f12_put(struct f12_put_arguments *args, char **output)
 			free(*output);
 			asprintf(output, "%s -> %s\n", args->source, args->destination);
 		}
-		f12_free_path(dest);
         } else {
 		free(*output);
                 asprintf(output, "Source file has unsupported type\n");
+		f12_free_path(dest);
+		f12_free_metadata(f12_meta);
+		fclose(fp);
+
                 return EXIT_SUCCESS;
         }
 
+	f12_free_path(dest);
         err = f12_write_metadata(fp, f12_meta);
         f12_free_metadata(f12_meta);
         fclose(fp);
