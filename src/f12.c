@@ -554,7 +554,8 @@ int f12_create(struct f12_create_arguments *args, char **output)
 
 		return err;
 	}
-       
+
+	f12_free_metadata(f12_meta);
 	fclose(fp);
 	
 	return EXIT_SUCCESS;

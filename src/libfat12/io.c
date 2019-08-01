@@ -316,12 +316,6 @@ static enum f12_error load_root_dir(FILE *fp, struct f12_metadata *f12_meta)
                 return F12_IO_ERROR;
         }
 
-	err = f12_create_root_dir_meta(f12_meta);
-	if (F12_SUCCESS != err) {
-		free(root_data);
-
-		return err;
-	}
 	struct f12_directory_entry *root_entries = f12_meta->root_dir->children;
 
         for (int i = 0; i < bpb->RootDirEntries; i++) {
@@ -354,7 +348,6 @@ static enum f12_error read_fat_entries(FILE *fp, struct f12_metadata *f12_meta)
         int fat_start_addr = bpb->SectorSize * bpb->ReservedForBoot;
         size_t fat_size = bpb->SectorsPerFat * bpb->SectorSize;
         uint16_t cluster_count = fat_size / 3 * 2;
-        f12_meta->entry_count = cluster_count;
 
         char *fat = malloc(fat_size);
 
@@ -373,13 +366,6 @@ static enum f12_error read_fat_entries(FILE *fp, struct f12_metadata *f12_meta)
                 free(fat);
 
                 return F12_IO_ERROR;
-        }
-
-        f12_meta->fat_entries = malloc(sizeof(uint16_t) * cluster_count);
-
-        if (NULL == f12_meta->fat_entries) {
-                free(fat);
-                return F12_ALLOCATION_ERROR;
         }
 
         for (int i = 0; i < cluster_count; i++) {
@@ -817,12 +803,18 @@ enum f12_error f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta)
                                          bpb->SectorsPerFat) +
                                         bpb->ReservedForBoot);
 
+	err = f12_create_root_dir_meta(*f12_meta);
+	if (F12_SUCCESS != err) {
+		return err;
+	}
+	
         if (F12_SUCCESS != (err = read_fat_entries(fp, *f12_meta))) {
                 free((*f12_meta)->bpb);
                 free(*f12_meta);
 
                 return err;
         }
+
         (*f12_meta)->fat_id = (*f12_meta)->fat_entries[0];
         (*f12_meta)->end_of_chain_marker = (*f12_meta)->fat_entries[1];
 
@@ -830,7 +822,7 @@ enum f12_error f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta)
 		free((*f12_meta)->bpb);
 		free((*f12_meta)->fat_entries);
 		free(*f12_meta);
-		
+
                 return err;
         }
 
@@ -1094,7 +1086,6 @@ enum f12_error f12_create_image(FILE *fp, struct f12_metadata *f12_meta)
 	size_t file_size = bpb->LargeSectors * bpb->SectorSize;
 
 	void *sector = calloc(bpb->SectorSize, 1);
-
 	if (NULL == sector) {
 		return F12_ALLOCATION_ERROR;
 	}
@@ -1102,8 +1093,9 @@ enum f12_error f12_create_image(FILE *fp, struct f12_metadata *f12_meta)
 	for (int i = 0; i < bpb->LargeSectors; i++) {
 		fwrite(sector, 1, bpb->SectorSize, fp);
 	}
+	free(sector);
 
 	f12_write_metadata(fp, f12_meta);
-	
+
 	return F12_SUCCESS;
 }

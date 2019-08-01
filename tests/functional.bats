@@ -38,6 +38,7 @@ VALGRIND_TAP="${VALGRIND_TAP}"
 
 FILE_COUNT_REGEX="Files:[[:space:]]+([[:digit:]]+)"
 DIR_COUNT_REGEX="Directories:[[:space:]]+([[:digit:]]+)"
+VOLUME_LABEL_REGEX="Volume[[:space:]]label:[[:space:]]+([[:blank:][:alnum:]]+)"
 
 load tap_helper
 
@@ -112,6 +113,21 @@ fi
     [[ "$output" == *"info DEVICE"* ]]
     [[ "$output" == *"get DEVICE"* ]]
     [[ "$output" == *"del DEVICE"* ]]
+}
+
+@test "I can not create a fat12 image at an inaccessible path" {
+    _run ./src/f12 create non/existing/directory/test.img
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Error opening image: No such file or directory"* ]]
+}
+
+@test "I can create a fat12 image with a volume label" {
+    _run ./src/f12 create "${TEST_IMAGE}" --volume-label="NEWF12IMAGE"
+    [[ "$status" -eq 0 ]]
+    _run ./src/f12 info "${TEST_IMAGE}" --dump-bpb
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ ${VOLUME_LABEL_REGEX} ]]
+    [[ "${BASH_REMATCH[1]}" == "NEWF12IMAGE" ]]
 }
 
 @test "I can delete a file from a fat12 image" {

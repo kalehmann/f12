@@ -7,17 +7,17 @@ enum f12_error f12_create_root_dir_meta(struct f12_metadata *f12_meta)
 {
 	enum f12_error err;
 	struct bios_parameter_block *bpb = f12_meta->bpb;
+	size_t fat_size = bpb->SectorsPerFat * bpb->SectorSize;
+	uint16_t cluster_count = fat_size / 3 * 2;
+	struct f12_directory_entry *root_dir = NULL;
+	struct f12_directory_entry *root_entries = NULL;
 
-	struct f12_directory_entry *root_dir =
-		calloc(1, sizeof(struct f12_directory_entry));
-
+	root_dir = calloc(1, sizeof(struct f12_directory_entry));
 	if (NULL == root_dir) {
 		return F12_ALLOCATION_ERROR;
 	}
-	
-	struct f12_directory_entry *root_entries =
-		calloc(bpb->RootDirEntries, sizeof(struct f12_directory_entry));
 
+	root_entries = calloc(bpb->RootDirEntries, sizeof(struct f12_directory_entry));
 	if (NULL == root_entries) {
 		free(root_dir);
 		
@@ -32,8 +32,16 @@ enum f12_error f12_create_root_dir_meta(struct f12_metadata *f12_meta)
 	f12_meta->root_dir = root_dir;
 
 	for (int i = 0; i < bpb->RootDirEntries; i++) {
-		memset(&root_entries[i], 0, sizeof(struct f12_directory_entry *));
 		root_entries[i].parent = root_dir;
+	}
+
+	f12_meta->entry_count = cluster_count;
+	f12_meta->fat_entries = calloc(cluster_count, sizeof(uint16_t));
+	if (NULL == f12_meta->fat_entries) {
+		free(root_entries);
+		free(root_dir);
+
+		return F12_ALLOCATION_ERROR;
 	}
 	
 	return F12_SUCCESS;
