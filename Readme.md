@@ -1,5 +1,7 @@
 ## f12
 
+[![Build Status](https://drone.kalehmann.de/api/badges/karsten/f12/status.svg)](https://drone.kalehmann.de/karsten/f12)
+
 f12 is an experimental tool to access fat12 images without requiring superuser
 privileges for mounting them.
 
