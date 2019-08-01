@@ -4,6 +4,7 @@
 # Do not ignore code
 !*.c
 !*.h
+!*.bash
 !*/
 !src
 !tests
@@ -27,5 +28,9 @@
 # Do not ignore files with information for this project
 !*.md
 !LICENSE.txt
+
+# Do not ignore files for docker
+!Dockerfile
+!.dockerignore
 
 *~

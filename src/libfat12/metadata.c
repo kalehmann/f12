@@ -9,14 +9,14 @@ enum f12_error f12_create_root_dir_meta(struct f12_metadata *f12_meta)
 	struct bios_parameter_block *bpb = f12_meta->bpb;
 
 	struct f12_directory_entry *root_dir =
-		malloc(sizeof(struct f12_directory_entry));
+		calloc(1, sizeof(struct f12_directory_entry));
 
 	if (NULL == root_dir) {
 		return F12_ALLOCATION_ERROR;
 	}
 	
 	struct f12_directory_entry *root_entries =
-		malloc(sizeof(struct f12_directory_entry) * bpb->RootDirEntries);
+		calloc(bpb->RootDirEntries, sizeof(struct f12_directory_entry));
 
 	if (NULL == root_entries) {
 		free(root_dir);

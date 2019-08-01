@@ -1,10 +1,47 @@
-platform: linux/arm
+---
+kind: pipeline
+name: default
 
-pipeline:
-  tests:
-    image: registry.banana.pi:5000/f12-testing:arm
+steps:
+  - name: build
+    image: registry.kalehmann.de/testing/f12:latest
     commands:
       - autoreconf --install
       - ./configure
+      - make
+  - name: unit-tests
+    image: registry.kalehmann.de/testing/f12:latest
+    commands:
       - make check || (cat tests/test-suite.log && exit 1)
+    depends_on:
+     - build
+  - name: bats
+    image: registry.kalehmann.de/testing/f12:latest
+    commands:
+     - /usr/local/bin/bats --tap tests/functional.bats
+    depends_on:
+     - build
+    environment:
+      TMP_DIR: /tmp/bats
+  - name: bats-valgrind
+    image: registry.kalehmann.de/testing/f12:latest
+    commands:
       - /usr/local/bin/bats --tap tests/functional.bats
+    depends_on:
+     - build
+    environment:
+      TMP_DIR: /tmp/bats-valgrind
+      VALGRIND: "1"
+      VALGRIND_TAP: "valgrind.tap"
+  - name: valgrind-log
+    image: registry.kalehmann.de/testing/f12:latest
+    commands:
+      - cat valgrind.tap
+    depends_on:
+      - bats-valgrind
+    when:
+      status:
+        - failure
+image_pull_secrets:
+  - dockerconfigjson
+...

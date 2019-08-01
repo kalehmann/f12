@@ -260,8 +260,8 @@ scan_subsequent_entries(FILE *fp, struct f12_metadata *f12_meta,
                 return F12_UNKNOWN_ERROR;
         }
 
-        struct f12_directory_entry *entries = malloc(entry_count *
-                                                     sizeof(struct f12_directory_entry));
+        struct f12_directory_entry *entries =
+		calloc(entry_count, sizeof(struct f12_directory_entry));
         if (NULL == entries) {
                 free(directory_table);
                 return F12_ALLOCATION_ERROR;
@@ -602,7 +602,7 @@ static char *create_directory(struct f12_directory_entry *dir_entry,
                               size_t dir_size)
 {
         size_t offset;
-        char *dir = malloc(dir_size);
+        char *dir = calloc(1, dir_size);
         struct f12_directory_entry *entry;
 
         if (NULL == dir) {
@@ -878,6 +878,9 @@ enum f12_error f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
                         return err;
                 }
         }
+	if (entry->children) {
+		free(entry->children);
+	}
         erase_entry(entry);
         err = f12_write_metadata(fp, f12_meta);
         if (F12_SUCCESS != err) {
@@ -981,10 +984,10 @@ enum f12_error f12_create_file(FILE *fp, struct f12_metadata *f12_meta,
 enum f12_error f12_create_directory_table(struct f12_metadata *f12_meta,
                                           struct f12_directory_entry *entry)
 {
-        size_t children_size = 224 * sizeof(struct f12_directory_entry);
         size_t table_size = 244 * 32;
 
-        struct f12_directory_entry *children = malloc(children_size);
+        struct f12_directory_entry *children =
+		calloc(224, sizeof(struct f12_directory_entry));
         if (NULL == children) {
                 return F12_ALLOCATION_ERROR;
         }
@@ -998,8 +1001,6 @@ enum f12_error f12_create_directory_table(struct f12_metadata *f12_meta,
         if (0 == entry->FirstCluster) {
                 return F12_IMAGE_FULL;
         }
-
-        memset(children, 0, table_size);
 
         // Create first dot dir
         memcpy(&children[0], entry, sizeof(struct f12_directory_entry));
@@ -1024,7 +1025,7 @@ enum f12_error f12_create_entry_from_path(struct f12_metadata *f12_meta,
 {
         enum f12_error err;
 
-        struct f12_path *tmp_path = path, *original_descendant;
+        struct f12_path *tmp_path = path, *last_element = path;
         struct f12_directory_entry *parent_entry;
 
         *entry = NULL;
@@ -1037,28 +1038,32 @@ enum f12_error f12_create_entry_from_path(struct f12_metadata *f12_meta,
                         tmp_path = tmp_path->descendant;
                 } while (tmp_path->descendant != NULL);
                 tmp_path = tmp_path->ancestor;
-                original_descendant = tmp_path->descendant;
+                last_element = tmp_path->descendant;
                 tmp_path->descendant = NULL;
                 err = f12_path_create_directories(f12_meta, f12_meta->root_dir,
                                                   path);
                 if (F12_SUCCESS != err) {
+			tmp_path->descendant = last_element;
+			
                         return err;
                 }
 
                 parent_entry = f12_entry_from_path(f12_meta->root_dir, path);
 
                 if (NULL == parent_entry) {
+			tmp_path->descendant = last_element;
+			
                         return F12_FILE_NOT_FOUND;
                 }
-                path = original_descendant;
+                tmp_path->descendant = last_element;
         }
 
         // Check if the file exists
         for (int i = 0; i < parent_entry->child_count; i++) {
                 if (0 == memcmp(parent_entry->children[i].ShortFileName,
-                                path->short_file_name, 8) &&
+                                last_element->short_file_name, 8) &&
                     0 == memcmp(parent_entry->children[i].ShortFileExtension,
-                                path->short_file_extension, 3)) {
+                                last_element->short_file_extension, 3)) {
                         *entry = &parent_entry->children[i];
                         break;
                 }
@@ -1077,9 +1082,9 @@ enum f12_error f12_create_entry_from_path(struct f12_metadata *f12_meta,
                 return F12_DIR_FULL;
         }
 
-        memcpy((*entry)->ShortFileName, path->short_file_name, 8);
-        memcpy((*entry)->ShortFileExtension, path->short_file_extension, 3);
-
+	memcpy((*entry)->ShortFileName, last_element->short_file_name, 8);
+        memcpy((*entry)->ShortFileExtension, last_element->short_file_extension, 3);
+	
         return F12_SUCCESS;
 }
 

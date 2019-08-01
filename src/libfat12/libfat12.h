@@ -16,6 +16,7 @@ enum f12_error {
         F12_EMPTY_PATH,
         F12_DIR_NOT_EMPTY,
         F12_UNKNOWN_ERROR,
+        F12_IS_DIR,
 };
 
 enum f12_path_relations {
@@ -107,7 +108,6 @@ struct f12_path {
 
 
 // directory_entry.c
-
 /**
  * Check whether a f12_directory_entry structure describes a file or a
  * directory.
@@ -180,7 +180,7 @@ void f12_free_entry(struct f12_directory_entry *entry);
  * @return F12_SUCCESS or any error that occurred
  */
 enum f12_error f12_move_entry(struct f12_directory_entry *src,
-                   struct f12_directory_entry *dest);
+                              struct f12_directory_entry *dest);
 
 
 // error.c
@@ -231,7 +231,8 @@ enum f12_error f12_write_metadata(FILE *fp, struct f12_metadata *f12_meta);
  * @return F12_SUCCESS or any other error that occurred
  */
 enum f12_error f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
-                  struct f12_directory_entry *entry, int hard_delete);
+                             struct f12_directory_entry *entry,
+                             int hard_delete);
 
 /**
  * Dump a file from the fat 12 image onto the host file system.
@@ -244,7 +245,7 @@ enum f12_error f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
  * @return F12_SUCCESS or any other error that occurred
  */
 enum f12_error f12_dump_file(FILE *fp, struct f12_metadata *f12_meta,
-                  struct f12_directory_entry *entry, FILE *dest_fp);
+                             struct f12_directory_entry *entry, FILE *dest_fp);
 
 /**
  * Write a file to the given path on an image
@@ -278,8 +279,8 @@ enum f12_error f12_create_directory_table(struct f12_metadata *f12_meta,
  * @return F12_SUCCESS or any other error that occurred
  */
 enum f12_error f12_create_entry_from_path(struct f12_metadata *f12_meta,
-                               struct f12_path *path,
-                               struct f12_directory_entry **entry);
+                                          struct f12_path *path,
+                                          struct f12_directory_entry **entry);
 
 /**
  * Create a new (empty) fat12 image
@@ -354,6 +355,17 @@ char *f12_get_file_name(struct f12_directory_entry *entry);
  */
 char *f12_convert_name(char *name);
 
+/**
+ * Get the full path of a directory entry in the image.
+ *
+ * @param entry the entry to get the path for
+ * @param path a pointer to the variable where a pointer to the path gets
+ *        written into. The pointer to the path must be freed.
+ * @return F12_SUCCESS or any error that occurred
+ */
+enum f12_error f12_get_entry_path(struct f12_directory_entry *entry,
+                                  char **path);
+
 // path.c
 /**
  * Find a file or subdirectory in a directory on the image from a path.
@@ -364,11 +376,15 @@ char *f12_convert_name(char *name);
  * @return a pointer to a f12_directory_entry structure describing the file
  * or subdirectory or NULL if the path matches no file in the given directory
  */
-struct f12_directory_entry *f12_entry_from_path(struct f12_directory_entry *entry,
-                                                struct f12_path *path);
+struct f12_directory_entry *
+f12_entry_from_path(struct f12_directory_entry *entry,
+                    struct f12_path *path);
 
 /**
  * Creates a f12_path structure from a string with a filepath.
+ *
+ * If input is empty or "/" then *path is set to NULL and F12_EMPTY_PATH
+ * returned.
  *
  * @param input a pointer to a string with the filepath to parse
  * @param path a pointer to a pointer to a f12_path structure with the parsed
@@ -388,8 +404,8 @@ void f12_free_path(struct f12_path *path);
  * Determines if one of two given f12_path structure describes a parent
  * directory of the file or directory described by the other path.
  *
- * @param path_a a pointer to a f12_path structure
- * @param path_b a pointer to a f12_path structure
+ * @param path_a a pointer to a f12_path structure or NULL for the root directory
+ * @param path_b a pointer to a f12_path structure or NULL for the root directory
  * @return F12_PATHS_EQUAL if both structures describe the same file path
  *         F12_PATHS_SECOND if the second path describes a parent directory of the
  *         first path
@@ -397,7 +413,8 @@ void f12_free_path(struct f12_path *path);
  *         second path
  *         F12_PATHS_UNRELATED if they have no common ancestors
  */
-enum f12_path_relations f12_path_get_parent(struct f12_path *path_a, struct f12_path *path_b);
+enum f12_path_relations
+f12_path_get_parent(struct f12_path *path_a, struct f12_path *path_b);
 
 /**
  * Create the directory entries for the given path in a directory. Does nothing
@@ -410,7 +427,7 @@ enum f12_path_relations f12_path_get_parent(struct f12_path *path_a, struct f12_
  * @return F12_SUCCESS or any other error that occurred
  */
 enum f12_error f12_path_create_directories(struct f12_metadata *f12_meta,
-                                struct f12_directory_entry *entry,
-                                struct f12_path *path);
+                                           struct f12_directory_entry *entry,
+                                           struct f12_path *path);
 
 #endif
