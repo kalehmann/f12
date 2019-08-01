@@ -8,7 +8,7 @@ enum f12_error f12_create_root_dir_meta(struct f12_metadata *f12_meta)
 	enum f12_error err;
 	struct bios_parameter_block *bpb = f12_meta->bpb;
 	size_t fat_size = bpb->SectorsPerFat * bpb->SectorSize;
-	uint16_t cluster_count = fat_size / 3 * 2;
+	uint16_t cluster_count = bpb->LogicalSectors / bpb->SectorsPerCluster;
 	struct f12_directory_entry *root_dir = NULL;
 	struct f12_directory_entry *root_entries = NULL;
 
@@ -43,6 +43,10 @@ enum f12_error f12_create_root_dir_meta(struct f12_metadata *f12_meta)
 
 		return F12_ALLOCATION_ERROR;
 	}
+	f12_meta->fat_id = (uint16_t)bpb->MediumByte;
+	f12_meta->fat_entries[0] = (uint16_t)bpb->MediumByte;
+	f12_meta->end_of_chain_marker = 0xfff;
+	f12_meta->fat_entries[1] = 0xfff;
 	
 	return F12_SUCCESS;
 }
@@ -58,13 +62,14 @@ size_t f12_get_partition_size(struct f12_metadata *f12_meta)
 size_t f12_get_used_bytes(struct f12_metadata *f12_meta)
 {
         struct bios_parameter_block *bpb = f12_meta->bpb;
+	uint16_t cluster_count = bpb->LogicalSectors / bpb->SectorsPerCluster;
 
         size_t used_bytes = bpb->SectorSize *
                             (bpb->ReservedForBoot + bpb->NumberOfFats * bpb->SectorsPerFat)
                             + bpb->RootDirEntries * 32;
 
-        for (int i = 0; i < bpb->LogicalSectors; i++) {
-                if (f12_meta->fat_entries[i + 2])
+        for (int i = 2; i < cluster_count; i++) {
+                if (f12_meta->fat_entries[i])
                         used_bytes++;
         }
 

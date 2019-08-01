@@ -10,6 +10,7 @@ struct f12_create_arguments {
     unsigned int volume_size;
     uint16_t sector_size;
     uint16_t sectors_per_cluster;
+    uint16_t reserved_sectors;
     uint8_t number_of_fats;
     uint16_t root_dir_entries;
     uint8_t drive_number;

@@ -23,6 +23,7 @@ enum opts {
 	OPT_CREATE_SIZE,
 	OPT_CREATE_SECTOR_SIZE,
 	OPT_CREATE_SECTORS_PER_CLUSTER,
+	OPT_CREATE_RESERVED_SECTORS,
 	OPT_CREATE_NUMBER_OF_FATS,
 	OPT_CREATE_ROOT_DIR_ENTRIES,
 	OPT_CREATE_DRIVE_NUMBER,
@@ -131,6 +132,18 @@ error_t parser_create(int key, char *arg, struct argp_state *state)
 			create_arguments->sectors_per_cluster = (uint16_t)temp;
 			
 			return 0;
+	        case (OPT_CREATE_RESERVED_SECTORS):
+			temp = parse_long(arg);
+			if (temp < 1 || temp > 65535) {
+				fprintf(
+					stderr,
+					"Reserved sectors out of range\n"
+				);
+				exit(EXIT_FAILURE);
+			}
+			create_arguments->reserved_sectors = (uint16_t)temp;
+
+			return 0;
 	        case (OPT_CREATE_NUMBER_OF_FATS):
 		        temp = parse_long(arg);
 			if (temp < 1 || temp > 2) {
@@ -143,7 +156,7 @@ error_t parser_create(int key, char *arg, struct argp_state *state)
 		        return 0;
 	        case (OPT_CREATE_ROOT_DIR_ENTRIES):
 			temp = parse_long(arg);
-			if (temp == 112 || temp == 224 || temp == 512) {
+			if (temp != 64 && temp != 112 && temp != 224 && temp != 512) {
 				fprintf(stderr, "Invalid number of root dir entries\n");
 				exit(EXIT_FAILURE);
 			}
@@ -194,6 +207,14 @@ static struct argp_option create_options[] = {
 	{
 		.name = "sectors-per-cluster",
 		.key = OPT_CREATE_SECTORS_PER_CLUSTER,
+		.arg = "N",
+		.flags = 0,
+		.doc = NULL,
+		.group = 0
+	},
+	{
+		.name = "reserved-sectors",
+		.key = OPT_CREATE_RESERVED_SECTORS,
 		.arg = "N",
 		.flags = 0,
 		.doc = NULL,

@@ -30,7 +30,9 @@ enum f12_path_relations {
 #define F12_ATTR_SUBDIRECTORY 0x10
 
 struct bios_parameter_block {
-        char OEMLabel[8];
+	// Label of the software that created the image, 8 bytes plus the termination
+	// character \0
+        char OEMLabel[9];
         // Bytes per logical sector
         uint16_t SectorSize;
         // Logical sectors per cluster
@@ -63,9 +65,9 @@ struct bios_parameter_block {
         char Signature;
         // Volume serial number
         uint32_t VolumeID;
-        // Volume label
+        // Volume label, 11 bytes plus the termination character \0
         char VolumeLabel[12];
-        // File-system type
+        // File-system type, 8 bytes plus the termination character \0
         char FileSystem[9];
 };
 

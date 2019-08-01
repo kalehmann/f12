@@ -36,15 +36,56 @@ TEST_IMAGE=${TMP_DIR}/test.img
 VALGRIND="${VALGRIND}"
 VALGRIND_TAP="${VALGRIND_TAP}"
 
-FILE_COUNT_REGEX="Files:[[:space:]]+([[:digit:]]+)"
-DIR_COUNT_REGEX="Directories:[[:space:]]+([[:digit:]]+)"
-VOLUME_LABEL_REGEX="Volume[[:space:]]label:[[:space:]]+([[:blank:][:alnum:]]+)"
-
 load tap_helper
 
 if [[ -n "${VALGRIND_TAP}" ]]; then
     tap_set_file "${VALGRIND_TAP}"
 fi
+
+####
+# This generates a regex for extrating the specified information from the output
+# of f12's info command with the --dump-bpb option.
+#
+# Arguments:
+#  the information to extract
+#  all POSIX character classes for the match seperated by spaces (no brackets or colons)
+# Globals:
+#  None
+# Returns:
+#  the regex to extract the given information through command substitution
+###
+info_regex() {
+    read -a parts <<< "${1}"
+    read -a classes <<< "${2}"
+    
+    REGEX="${parts[0]}"
+    for part in ${parts[@]:1}
+    do
+	REGEX="${REGEX}[[:space:]]${part}"
+    done
+    REGEX="${REGEX}:[[:space:]]+(["
+    for class in ${classes}
+    do
+	REGEX="${REGEX}[:${class}:]"
+    done
+    REGEX="${REGEX}]+)"
+
+    echo "${REGEX}"
+}
+
+DIR_COUNT_REGEX="$(info_regex Directories digit)"
+FAT_COUNT_REGEX="$(info_regex "Number of fats" digit)"
+FILE_COUNT_REGEX="$(info_regex Files digit)"
+HEAD_COUNT_REGEX="$(info_regex "Number of heads" digit)"
+MEDIUM_BYTE_REGEX="$(info_regex "Medium byte" alnum)"
+ROOT_DIR_ENTRIES_REGEX="$(info_regex "Root directory entries" digit)"
+SECTOR_SIZE_REGEX="$(info_regex "Sector size" digit)"
+SECTORS_CLUSTER_REGEX="$(info_regex "Sectors per cluster" digit)"
+SECTORS_TRACK_REGEX="$(info_regex "Sectors per track" digit)"
+VOLUME_LABEL_REGEX="$(info_regex "Volume label" alnum)"
+
+echo ${SECTORS_CLUSTER_REGEX} > sc.out
+echo ${SECTOR_SIZE_REGEX} > ss.out
 
 setup() {
     if [[ "${BATS_TEST_NUMBER}" -eq 1 ]]; then
@@ -113,6 +154,7 @@ fi
     [[ "$output" == *"info DEVICE"* ]]
     [[ "$output" == *"get DEVICE"* ]]
     [[ "$output" == *"del DEVICE"* ]]
+    [[ "$output" == *"create DEVICE"* ]]
 }
 
 @test "I can not create a fat12 image at an inaccessible path" {
@@ -128,6 +170,112 @@ fi
     [[ "$status" -eq 0 ]]
     [[ "$output" =~ ${VOLUME_LABEL_REGEX} ]]
     [[ "${BASH_REMATCH[1]}" == "NEWF12IMAGE" ]]
+}
+
+@test "I can set the drive number when I create a fat12 image" {
+}
+
+@test "I can specify the number of root directory entries when I create a fat12 image" {
+    _run ./src/f12 create "${TEST_IMAGE}" --root-dir-entries=112
+    [[ "$status" -eq 0 ]]
+    _run ./src/f12 info "${TEST_IMAGE}" --dump-bpb
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ ${ROOT_DIR_ENTRIES_REGEX} ]]
+    [[ "${BASH_REMATCH[1]}" -eq 112 ]]
+    for i in {1..112}
+    do
+	run ./src/f12 put "${TEST_IMAGE}" tests/fixtures/TEST/DATA.BIN FILE"${i}".BIN
+	[[ "$status" -eq 0 ]]
+    done
+    _run ./src/f12 put "${TEST_IMAGE}" tests/fixtures/TEST/DATA.BIN DATA.BIN
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Directory full"* ]]
+}
+
+@test "I can specify the sector size when I create a fat12 image" {
+    _run ./src/f12 create "${TEST_IMAGE}" --sector-size=4096
+    [[ "$status" -eq 0 ]]
+    _run ./src/f12 info --dump-bpb "${TEST_IMAGE}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ ${SECTOR_SIZE_REGEX} ]]
+    [[ "${BASH_REMATCH[1]}" -eq 4096 ]]
+}
+
+@test "I can specify the number of sectors per cluster when I create a fat12 image" {
+    _run ./src/f12 create "${TEST_IMAGE}" --sectors-per-cluster=4
+    [[ "$status" -eq 0 ]]
+    _run ./src/f12 info --dump-bpb "${TEST_IMAGE}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ ${SECTORS_CLUSTER_REGEX} ]]
+    [[ "${BASH_REMATCH[1]}" -eq 4 ]]
+}
+
+@test "I can specify the number of file allocation tables when I create a fat12 image" {
+    _run ./src/f12 create "${TEST_IMAGE}" --number-of-fats=1
+    [[ "$status" -eq 0 ]]
+    _run ./src/f12 info --dump-bpb "${TEST_IMAGE}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ ${FAT_COUNT_REGEX} ]]
+    [[ "${BASH_REMATCH[1]}" -eq 1 ]]
+}
+
+@test "I change the geometry and medium byte when I create a fat12 image with a specified size" {
+    _run ./src/f12 create "${TEST_IMAGE}" --size=2880
+    [[ "$status" -eq 0 ]]
+    _run ./src/f12 info --dump-bpb "${TEST_IMAGE}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ ${SECTOR_SIZE_REGEX} ]]
+    [[ "${BASH_REMATCH[1]}" -eq 512 ]]
+    [[ "$output" =~ ${SECTORS_TRACK_REGEX} ]]
+    [[ "${BASH_REMATCH[1]}" -eq 36 ]]
+    [[ "$output" =~ ${HEAD_COUNT_REGEX} ]]
+    [[ "${BASH_REMATCH[1]}" -eq 2 ]]
+    [[ "$output" =~ ${MEDIUM_BYTE_REGEX} ]]
+    [[ "${BASH_REMATCH[1]}" == "0xf0" ]]
+
+    _run ./src/f12 create "${TEST_IMAGE}" --size=160
+    [[ "$status" -eq 0 ]]
+    _run ./src/f12 info --dump-bpb "${TEST_IMAGE}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ ${SECTOR_SIZE_REGEX} ]]
+    [[ "${BASH_REMATCH[1]}" -eq 512 ]]
+    [[ "$output" =~ ${SECTORS_TRACK_REGEX} ]]
+    [[ "${BASH_REMATCH[1]}" -eq 8 ]]
+    [[ "$output" =~ ${HEAD_COUNT_REGEX} ]]
+    [[ "${BASH_REMATCH[1]}" -eq 1 ]]
+    [[ "$output" =~ ${MEDIUM_BYTE_REGEX} ]]
+    [[ "${BASH_REMATCH[1]}" == "0xfe" ]]
+}
+
+@test "I can use a local folder as root directory when I create a fat12 image" {
+    _run ./src/f12 create "${TEST_IMAGE}" --root-dir=tests/fixtures/TEST
+    [[ "$status" -eq 0 ]]
+    _run ./src/f12 list --recursive "${TEST_IMAGE}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"SUBDIR1"* ]]
+    [[ "$output" == *"FILE1.TXT"* ]]
+    [[ "$output" == *"SUBDIR2"* ]]
+    [[ "$output" == *"FILE2.TXT"* ]]
+    [[ "$output" == *"DATA.BIN"* ]]
+    [[ "$output" == *"TEST.DAT"* ]]
+    _run ./src/f12 get "${TEST_IMAGE}" SUBDIR1/FILE1.TXT "${TMP_DIR}"/file1.txt
+    run cat "${TMP_DIR}"/file1.txt
+    [[ "$output" == "test" ]]
+    _run ./src/f12 get "${TEST_IMAGE}" TEST.DAT "${TMP_DIR}"/test.dat
+    run cat "${TMP_DIR}"/test.dat
+    [[ "$output" == "1234" ]]
+}
+
+@test "I get an error when I speficy a nonexistent directory as root directory during the creation of a fat12 image" {
+    _run ./src/f12 create "${TEST_IMAGE}" --root-dir=root-dir
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Can not open source file"* ]]
+}
+
+@test "I get an error when I specify a regular file as root directory during the creation of a fat12 image" {
+    _run ./src/f12 create "${TEST_IMAGE}" --root-dir=Readme.md
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Expected the root dir to be a directory"* ]]
 }
 
 @test "I can delete a file from a fat12 image" {

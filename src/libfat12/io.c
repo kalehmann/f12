@@ -347,7 +347,7 @@ static enum f12_error read_fat_entries(FILE *fp, struct f12_metadata *f12_meta)
         struct bios_parameter_block *bpb = f12_meta->bpb;
         int fat_start_addr = bpb->SectorSize * bpb->ReservedForBoot;
         size_t fat_size = bpb->SectorsPerFat * bpb->SectorSize;
-        uint16_t cluster_count = fat_size / 3 * 2;
+        uint16_t cluster_count = bpb->LogicalSectors / bpb->SectorsPerCluster;
 
         char *fat = malloc(fat_size);
 
@@ -399,6 +399,7 @@ static enum f12_error read_bpb(FILE *fp, struct bios_parameter_block *bpb)
         }
 
         memcpy(&(bpb->OEMLabel), buffer, 8);
+	bpb->OEMLabel[8] = '\0';
         memcpy(&(bpb->SectorSize), buffer + 8, 2);
         memcpy(&(bpb->SectorsPerCluster), buffer + 10, 1);
         memcpy(&(bpb->ReservedForBoot), buffer + 11, 2);
@@ -551,10 +552,10 @@ static char *create_fat(struct f12_metadata *f12_meta)
 {
         struct bios_parameter_block *bpb = f12_meta->bpb;
         int fat_size = bpb->SectorsPerFat * bpb->SectorSize;
-        int cluster_count = fat_size / 3 * 2;
+        int cluster_count = bpb->LogicalSectors / bpb->SectorsPerCluster;
         uint16_t cluster;
 
-        char *fat = malloc(fat_size);
+        char *fat = calloc(1, fat_size);
 
         if (NULL == fat) {
                 return NULL;
@@ -566,6 +567,7 @@ static char *create_fat(struct f12_metadata *f12_meta)
                         cluster = (f12_meta->fat_entries[i] << 4) |
                                   (f12_meta->fat_entries[i - 1] >> 8);
                         memmove(fat + i * 3 / 2, &cluster, 2);
+
                         continue;
                 }
                 cluster = f12_meta->fat_entries[i];
@@ -984,7 +986,9 @@ enum f12_error f12_create_directory_table(struct f12_metadata *f12_meta,
                 return F12_ALLOCATION_ERROR;
         }
 
-        uint16_t cluster_count = table_size / get_cluster_size(f12_meta);
+
+	size_t cluster_size = get_cluster_size(f12_meta);
+        uint16_t cluster_count = (table_size + cluster_size - 1) / cluster_size;
 
         entry->children = children;
         entry->child_count = 224;
