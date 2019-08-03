@@ -53,8 +53,19 @@ static long int parse_long(char *str)
 {
         char *endptr = NULL;
 	long int temp = 0;
+	int base;
 
-	temp = strtol(str, &endptr, 10);
+	if (0 == strncmp("0x", str, 2)) {
+		base = 16;
+	} else if (0 == strncmp("0b", str, 2)) {
+		base = 2;
+	} else if (strlen(str) && str[0] == '0' ) {
+		base = 8;
+	} else {
+		base = 10;
+	}
+
+	temp = strtol(str, &endptr, base);
 
 	if (errno != 0) {
 	        fprintf(stderr,
@@ -166,6 +177,8 @@ error_t parser_create(int key, char *arg, struct argp_state *state)
 	        case (OPT_CREATE_DRIVE_NUMBER):
 	                temp = parse_long(arg);
 			create_arguments->drive_number = (uint8_t)temp;
+
+			return 0;
         }
 
         return ARGP_ERR_UNKNOWN;

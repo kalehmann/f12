@@ -74,6 +74,7 @@ info_regex() {
 }
 
 DIR_COUNT_REGEX="$(info_regex Directories digit)"
+DRIVE_NUMBER_REGEX="$(info_regex "Drive number" alnum)"
 FAT_COUNT_REGEX="$(info_regex "Number of fats" digit)"
 FILE_COUNT_REGEX="$(info_regex Files digit)"
 HEAD_COUNT_REGEX="$(info_regex "Number of heads" digit)"
@@ -173,6 +174,12 @@ fi
 }
 
 @test "I can set the drive number when I create a fat12 image" {
+    _run ./src/f12 create "${TEST_IMAGE}" --drive-number=0x81
+    [[ "$status" -eq 0 ]]
+    _run ./src/f12 info --dump-bpb "${TEST_IMAGE}"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ ${DRIVE_NUMBER_REGEX} ]]
+    [[ "${BASH_REMATCH[1]}" == "0x81" ]]
 }
 
 @test "I can specify the number of root directory entries when I create a fat12 image" {
