@@ -1,4 +1,4 @@
-/* Use the not posix conform function asprintf */
+ /* Use the not posix conform function asprintf */
 #define _GNU_SOURCE
 
 #include <errno.h>
@@ -296,6 +296,193 @@ static void info_dump_bpb(struct f12_metadata *f12_meta, char **output)
                  bpb->VolumeID, bpb->VolumeLabel, bpb->FileSystem);
 }
 
+static uint16_t sectorsPerFat(uint16_t sectors, uint16_t sector_size,
+		uint16_t sectors_per_cluster)
+{
+	unsigned int fat_size = (sectors  / sectors_per_cluster) * 3 / 2;
+	uint16_t fat_sectors =  fat_size / sector_size;
+	if (fat_size % sector_size) {
+		fat_sectors++;
+	}
+
+	return fat_sectors;
+}
+
+static void initialize_bpb(struct bios_parameter_block *bpb,
+		           struct f12_create_arguments *args)
+{
+	size_t size;
+
+	memcpy(&(bpb->OEMLabel), "f12     ", 8);
+	if (0 == args->volume_size) {
+	        args->volume_size = 1440;
+	}
+
+	size = args->volume_size * 1024;
+
+	/*
+         * In the following multiple values for the bios parameter block are
+         * guessed on the size of the disk.
+         *
+         * See <https://infogalactic.com/info/Design_of_the_FAT_file_system#media>
+         * for the medium bytes and their corresponding disk sizes.
+	 *
+	 * The number of root dir entries multiplied with 32 is always a multiple of the sector size.
+         */
+	switch (args->volume_size)
+	{
+	        case 2880:
+		        bpb->SectorSize = 512;
+			bpb->SectorsPerCluster = 2;
+			bpb->SectorsPerTrack = 36;
+			bpb->NumberOfHeads = 2;
+			bpb->RootDirEntries = 512;
+			bpb->MediumByte = 0xf0;
+			break;
+	        case 1440:
+		        bpb->SectorSize = 512;
+			bpb->SectorsPerCluster = 1;
+			bpb->SectorsPerTrack = 18;
+			bpb->NumberOfHeads = 2;
+			bpb->RootDirEntries = 224;
+			bpb->MediumByte = 0xf0;
+		        break;
+	        case 1232:
+	                bpb->SectorSize = 1024;
+			bpb->SectorsPerCluster = 1;
+			bpb->SectorsPerTrack = 8;
+			bpb->NumberOfHeads = 2;
+			bpb->RootDirEntries = 224;
+			bpb->MediumByte = 0xfe;
+			break;
+	        case 1200:
+		        bpb->SectorSize = 512;
+			bpb->SectorsPerCluster = 1;
+			bpb->SectorsPerTrack = 15;
+			bpb->NumberOfHeads = 2;
+			bpb->RootDirEntries = 224;
+			bpb->MediumByte = 0xf9;
+	        case 720:
+		        bpb->SectorSize = 512;
+			bpb->SectorsPerCluster = 2;
+			bpb->SectorsPerTrack = 9;
+			bpb->NumberOfHeads = 2;
+			bpb->RootDirEntries = 112;
+			bpb->MediumByte = 0xf9;
+			break;
+	        case 640:
+		        bpb->SectorSize = 512;
+			bpb->SectorsPerCluster = 1;
+			bpb->SectorsPerTrack = 8;
+			bpb->NumberOfHeads = 2;
+			bpb->RootDirEntries = 112;
+			bpb->MediumByte = 0xfb;
+	        case 360:
+		        bpb->SectorSize = 512;
+			bpb->SectorsPerCluster = 2;
+			bpb->SectorsPerTrack = 9;
+			bpb->NumberOfHeads = 2;
+			bpb->RootDirEntries = 112;
+			bpb->MediumByte = 0xfd;
+			break;
+	        case 320:
+		        // MediumByte 0xfa with a single sided disk is also possible
+		        bpb->SectorSize = 2048;
+			bpb->SectorsPerCluster = 1;
+			bpb->SectorsPerTrack = 8;
+			bpb->NumberOfHeads = 2;
+			bpb->RootDirEntries = 48;
+			bpb->MediumByte = 0xff;
+		        break;
+	        case 180:
+		        bpb->SectorSize = 512;
+			bpb->SectorsPerCluster = 1;
+			bpb->SectorsPerTrack = 9;
+			bpb->NumberOfHeads = 1;
+			bpb->RootDirEntries = 48;
+			bpb->MediumByte = 0xfc;
+			break;
+	        case 160:
+	                bpb->SectorSize = 512;
+			bpb->SectorsPerCluster = 1;
+			bpb->SectorsPerTrack = 8;
+			bpb->NumberOfHeads = 1;
+			bpb->RootDirEntries = 16;
+			bpb->MediumByte = 0xfe;
+			break;
+	        default:
+		        bpb->SectorSize = 512;
+			bpb->SectorsPerCluster = 4;
+			bpb->SectorsPerTrack = 63;
+			bpb->NumberOfHeads = 255;
+			bpb->RootDirEntries = 512;
+			bpb->MediumByte = 0xf8;
+	                break;
+	}
+	
+	
+	if (args->sector_size && bpb->SectorSize != args->sector_size) {
+		bpb->SectorSize = args->sector_size;
+		bpb->MediumByte = 0xf8;
+	}
+	
+	if (args->sectors_per_cluster) {
+		bpb->SectorsPerCluster = args->sectors_per_cluster;
+	}
+
+	if (args->reserved_sectors) {
+	        bpb->ReservedForBoot = args->reserved_sectors;
+	} else {
+	        bpb->ReservedForBoot = 1;
+	}
+	
+	if (args->number_of_fats) {
+		bpb->NumberOfFats = args->number_of_fats;
+	} else {
+		bpb->NumberOfFats = 2;
+	}
+	
+	if (args->root_dir_entries) {
+		bpb->RootDirEntries = args->root_dir_entries;
+	}
+	
+	if (args->drive_number) {
+		bpb->DriveNumber = args->drive_number;
+	} else {
+	        bpb->DriveNumber = 0x80;
+	}
+	
+	bpb->LogicalSectors = size / bpb->SectorSize;
+	bpb->SectorsPerFat = sectorsPerFat(bpb->LogicalSectors, bpb->SectorSize,
+		bpb->SectorsPerCluster);
+	bpb->HiddenSectors = 0;
+	bpb->LargeSectors = bpb->LogicalSectors;
+	bpb->Flags = 0;
+	bpb->Signature = 0;
+	bpb->VolumeID = 0;
+	
+	if (NULL != args->volume_label) {
+		if (strlen(args->volume_label) < 12) {
+			memcpy(&(bpb->VolumeLabel), args->volume_label,
+					strlen(args->volume_label));
+			memset(
+				&(bpb->VolumeLabel) + strlen(args->volume_label),
+				' ',
+				11 - strlen(args->volume_label)
+			);
+			bpb->VolumeLabel[11] = '\0';
+		} else {
+			memcpy(&(bpb->VolumeLabel), args->volume_label, 11);
+			bpb->VolumeLabel[11] = '\0';
+		}
+	} else {
+		memcpy(&(bpb->VolumeLabel), "NO NAME    ", 12);
+	}
+	
+	
+	memcpy(&(bpb->FileSystem), "FAT12    ", 9);
+}
+
 static int list_f12_entry(struct f12_directory_entry *entry, char **output,
                           struct f12_list_arguments *args, int depth)
 {
@@ -336,8 +523,10 @@ static void list_root_dir_entries(struct f12_metadata *f12_meta,
                                   char **output)
 {
         for (int i = 0; i < f12_meta->root_dir->child_count; i++) {
-                list_f12_entry(&f12_meta->root_dir->children[i], output, args,
-                               0);
+                list_f12_entry(
+		        &f12_meta->root_dir->children[i], output,
+			args, 0
+		);
         }
 }
 
@@ -441,7 +630,107 @@ static int walk_dir(FILE *fp, struct f12_put_arguments *args,
         return 0;
 }
 
-int f12_create(struct f12_create_arguments *args, char **output);
+int f12_create(struct f12_create_arguments *args, char **output)
+{
+	FILE *fp;
+	enum f12_error err;
+	struct bios_parameter_block *bpb;
+	struct f12_metadata *f12_meta;
+	struct stat sb;
+
+	*output = malloc(1);
+	(*output)[0] = '\0';
+	
+	if (NULL == (fp = fopen(args->device_path, "w"))) {
+	        free(*output);
+                asprintf(output, "Error opening image: %s\n",
+                         strerror(errno));
+		
+                return EXIT_FAILURE;
+	}
+
+	if (F12_SUCCESS != (err = f12_create_metadata(&f12_meta))) {
+	        free(*output);
+		fclose(fp);
+		
+		return err;
+	}
+
+	bpb = f12_meta->bpb;
+	initialize_bpb(bpb, args);
+	f12_meta->root_dir_offset = bpb->SectorSize *
+		((bpb->NumberOfFats * bpb->SectorsPerFat) + bpb->ReservedForBoot);
+
+	err = f12_create_root_dir_meta(f12_meta);
+	if (F12_SUCCESS != err) {
+		f12_free_metadata(f12_meta);
+		free(*output);
+
+		return err;
+	}
+	 
+	if (F12_SUCCESS != (err = f12_create_image(fp, f12_meta))) {
+		fclose(fp);
+		f12_free_metadata(f12_meta);
+		free(*output);
+
+		return err;
+	}
+
+	if (NULL == args->root_dir_path) {
+	        f12_free_metadata(f12_meta);
+		fclose(fp);
+
+		return EXIT_SUCCESS;
+	}
+
+	if (0 != stat(args->root_dir_path, &sb)) {
+		free(*output);
+		asprintf(output, "Can not open source file\n");
+                f12_free_metadata(f12_meta);
+		fclose(fp);
+
+                return EXIT_FAILURE;
+        }
+
+	if (!S_ISDIR(sb.st_mode)) {
+	        free(*output);
+		asprintf(output, "Expected the root dir to be a directory\n");
+		f12_free_metadata(f12_meta);
+		fclose(fp);
+
+		return EXIT_FAILURE;
+	}
+
+	struct f12_put_arguments put_args;
+	put_args.device_path = args->device_path;
+	put_args.source = args->root_dir_path;
+	put_args.destination = "";
+	put_args.verbose = 1;
+	put_args.recursive = 1;
+
+	err = walk_dir(fp, &put_args, f12_meta, output);
+	if (err) {
+	        free(*output);
+		asprintf(output, "%s\n", f12_strerror(err));
+		f12_free_metadata(f12_meta);
+		fclose(fp);
+
+		return EXIT_FAILURE;
+	}
+
+	err = f12_write_metadata(fp, f12_meta);
+	f12_free_metadata(f12_meta);
+	fclose(fp);
+
+	if (F12_SUCCESS != err) {
+		free(*output);
+                asprintf(output, "Error: %s\n", f12_strerror(err));
+                return EXIT_FAILURE;
+        }
+	
+	return EXIT_SUCCESS;
+}
 
 int f12_del(struct f12_del_arguments *args, char **output)
 {

@@ -1,12 +1,19 @@
 #ifndef FAT12_H
 #define FAT12_H
 
+#include <inttypes.h>
+
 struct f12_create_arguments {
     char *device_path;
-    int sectors;
-    int sector_size;
-    int sectors_per_cluster;
+    char *root_dir_path;
     char *volume_label;
+    unsigned int volume_size;
+    uint16_t sector_size;
+    uint16_t sectors_per_cluster;
+    uint16_t reserved_sectors;
+    uint8_t number_of_fats;
+    uint16_t root_dir_entries;
+    uint8_t drive_number;
 };
 
 struct f12_del_arguments {
