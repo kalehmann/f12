@@ -141,7 +141,7 @@ if [[ -n "${VALGRIND}" ]]; then
     }
 else
     _run() {
-        run "${@}"
+        run libtool --mode=execute "${@}"
     }
 fi
 
