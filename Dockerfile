@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 	ca-certificates \
 	curl \
 	git \
+	lcov \
 	libtool \
 	libtool-bin \
 	pkg-config \

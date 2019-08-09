@@ -81,7 +81,7 @@ static enum f12_error dump_move(struct f12_directory_entry *src,
 				char **output)
 {
 	enum f12_error err;
-        char *tmp = NULL, *path = NULL, *dest_path = NULL, *src_path = NULL;
+        char *tmp = NULL, *file_name = NULL, *dest_path = NULL, *src_path = NULL;
 	struct f12_directory_entry *tmp_entry = src, *child = NULL;
 	int i = 0;
 	size_t src_offset = 0;
@@ -98,15 +98,17 @@ static enum f12_error dump_move(struct f12_directory_entry *src,
 
 			return err;
 		}
+		file_name = f12_get_file_name(src);
 		if (*output) {
 			tmp = *output;
-			asprintf(output, "%s%s -> %s\n", *output, src_path,
-				 dest_path);
+			asprintf(output, "%s%s -> %s/%s\n", *output, src_path,
+					dest_path, file_name);
 		        free(tmp);
 		} else {
-			asprintf(output, "%s -> %s\n", src_path,
-				 dest_path);
+			asprintf(output, "%s -> %s/%s\n", src_path,
+					dest_path, file_name);
 		}
+		free(file_name);
 		free(src_path);
 		free(dest_path);
 
@@ -122,8 +124,16 @@ static enum f12_error dump_move(struct f12_directory_entry *src,
 	src_offset = strlen(tmp);
 	free(tmp);
 
-	
 	do {
+		if (i >= tmp_entry->child_count) {
+			i = 0;
+			while (&tmp_entry->parent->children[i] != tmp_entry) {
+				i++;
+			}
+			i++;
+			tmp_entry = tmp_entry->parent;
+		}
+
 		child = &tmp_entry->children[i];
 
 		if (f12_is_dot_dir(child) || f12_entry_is_empty(child)) {
@@ -145,8 +155,10 @@ static enum f12_error dump_move(struct f12_directory_entry *src,
 		}
 		
 		tmp = *output;
+		file_name = f12_get_file_name(src);
 		asprintf(output, "%s -> %s/%s%s\n", *output,
-		         dest_path, f12_get_file_name(src) ,src_path + src_offset);
+		         dest_path, file_name ,src_path + src_offset);
+		free(file_name);
 		free(tmp);
 	        free(src_path);
 
@@ -159,16 +171,7 @@ static enum f12_error dump_move(struct f12_directory_entry *src,
 		}
 
 		i++;
-		if (i >=  tmp_entry->child_count) {
-			i = 0;
-			while (&tmp_entry->parent->children[i] != tmp_entry) {
-				i++;
-			}
-			i++;
-			tmp_entry = tmp_entry->parent;
-		}
-
-	} while (i < tmp_entry->child_count && tmp_entry != dest);
+	} while (i < tmp_entry->child_count || tmp_entry != src);
 
 	free(dest_path);
 	
@@ -235,7 +238,6 @@ static int dump_f12_structure(FILE *fp,
                 asprintf(&entry_path, "%s/%s", dest_path, child_name);
 
                 if (verbose) {
-                        char *format_str;
                         temp = *output;
                         if (NULL != *output) {
                                 asprintf(output, "%s%s\n", *output, entry_path);

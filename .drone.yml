@@ -7,8 +7,8 @@ steps:
     image: registry.kalehmann.de/testing/f12:latest
     commands:
       - autoreconf --install
-      - ./configure
-      - make
+      - ./configure --enable-coverage
+      - make CFLAGS='-Wall'
   - name: unit-tests
     image: registry.kalehmann.de/testing/f12:latest
     commands:
@@ -23,6 +23,12 @@ steps:
      - build
     environment:
       TMP_DIR: /tmp/bats
+  - name: coverage-report
+    image: registry.kalehmann.de/testing/f12:latest
+    commands:
+      - make coverage-report
+    depends_on:
+      - bats
   - name: bats-valgrind
     image: registry.kalehmann.de/testing/f12:latest
     commands:
@@ -30,6 +36,7 @@ steps:
     depends_on:
      - build
     environment:
+      GCOV_PREFIX: /tmp/bats-valgrind
       TMP_DIR: /tmp/bats-valgrind
       VALGRIND: "1"
       VALGRIND_TAP: "valgrind.tap"

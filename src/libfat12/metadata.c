@@ -24,6 +24,8 @@ enum f12_error f12_create_root_dir_meta(struct f12_metadata *f12_meta)
 		return F12_ALLOCATION_ERROR;
 	}
 
+	memset(root_dir->ShortFileName, ' ', 8);
+	memset(root_dir->ShortFileExtension, ' ', 3);
 	root_dir->parent = NULL;
 	root_dir->FileAttributes |= F12_ATTR_SUBDIRECTORY;
 	root_dir->children = root_entries;
@@ -100,11 +102,4 @@ enum f12_error f12_create_metadata(struct f12_metadata **f12_meta)
         }
 	
 	return F12_SUCCESS;
-}
-
-void f12_init_bpb(struct f12_metadata *f12_meta, size_t size)
-{
-	struct bios_parameter_block *bpb = f12_meta->bpb;
-	bpb->SectorSize = 512;
-	
 }
