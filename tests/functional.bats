@@ -299,6 +299,13 @@ fi
     [[ "$output" != *"FOLDER1"* ]]
 }
 
+@test "I can list all the files and subdirectories when deleting a directory" {
+    _run ./src/f12 del --recursive --verbose "${TEST_IMAGE}" FOLDER1
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"/FOLDER1/SUBDIR/SECRET.TXT"* ]]
+    [[ "$output" == *"/FOLDER1/DATA.DAT"* ]]
+}
+
 @test "I get an error when I try to delete a nonexistant file" {
     _run ./src/f12 del "${TEST_IMAGE}" NON/EXISTANT/FILE
     [[ "$status" -eq 1 ]]
@@ -503,6 +510,23 @@ fi
     _run ./src/f12 list "${TEST_IMAGE}" FOLDER1/SUBDIR
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"File not found"* ]]
+}
+
+@test "I can list all affected files during a movement" {
+    _run ./src/f12 move --recursive --verbose "${TEST_IMAGE}" FOLDER1 FOLDER2
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"/FOLDER1/SUBDIR -> /FOLDER2/FOLDER1/SUBDIR"* ]]
+    [[ "$output" == *"/FOLDER1/SUBDIR/SECRET.TXT -> /FOLDER2/FOLDER1/SUBDIR/SECRET.TXT"* ]]
+    [[ "$output" == *"/FOLDER1/DATA.DAT -> /FOLDER2/FOLDER1/DATA.DAT"* ]]
+    _run ./src/f12 move --recursive --verbose "${TEST_IMAGE}" FOLDER2/FOLDER1 /
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"/FOLDER2/FOLDER1/SUBDIR -> /FOLDER1/SUBDIR"* ]]
+    [[ "$output" == *"/FOLDER2/FOLDER1/SUBDIR/SECRET.TXT -> /FOLDER1/SUBDIR/SECRET.TXT"* ]]
+    [[ "$output" == *"/FOLDER2/FOLDER1/DATA.DAT -> /FOLDER1/DATA.DAT"* ]]
+
+    _run ./src/f12 move --recursive --verbose "${TEST_IMAGE}" FOLDER1/DATA.DAT /
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == *"/FOLDER1/DATA.DAT -> /DATA.DAT"* ]]
 }
 
 @test "I can not move a file on a non existant image" {
