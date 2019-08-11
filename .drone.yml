@@ -7,7 +7,7 @@ steps:
     image: registry.kalehmann.de/testing/f12:latest
     commands:
       - autoreconf --install
-      - ./configure --enable-coverage
+      - ./configure --enable-beautify --enable-coverage
       - make CFLAGS='-Wall'
   - name: unit-tests
     image: registry.kalehmann.de/testing/f12:latest
@@ -15,6 +15,13 @@ steps:
       - make check || (cat tests/test-suite.log && exit 1)
     depends_on:
      - build
+  - name: style-check
+    image: registry.kalehmann.de/testing/f12:latest
+    commands:
+      - make beautify
+      - git diff --exit-code
+    depends_on:
+      - build
   - name: bats
     image: registry.kalehmann.de/testing/f12:latest
     commands:
