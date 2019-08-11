@@ -33,4 +33,7 @@
 !Dockerfile
 !.dockerignore
 
+# Do not ignore GNU indent profile
+!.indent.pro
+
 *~
