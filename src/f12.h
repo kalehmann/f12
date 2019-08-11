@@ -4,60 +4,60 @@
 #include <inttypes.h>
 
 struct f12_create_arguments {
-    char *device_path;
-    char *root_dir_path;
-    char *volume_label;
-    unsigned int volume_size;
-    uint16_t sector_size;
-    uint16_t sectors_per_cluster;
-    uint16_t reserved_sectors;
-    uint8_t number_of_fats;
-    uint16_t root_dir_entries;
-    uint8_t drive_number;
+	char *device_path;
+	char *root_dir_path;
+	char *volume_label;
+	unsigned int volume_size;
+	uint16_t sector_size;
+	uint16_t sectors_per_cluster;
+	uint16_t reserved_sectors;
+	uint8_t number_of_fats;
+	uint16_t root_dir_entries;
+	uint8_t drive_number;
 };
 
 struct f12_del_arguments {
-    char *device_path;
-    char *path;
-    int recursive;
-    int soft_delete;
-    int verbose;
+	char *device_path;
+	char *path;
+	int recursive;
+	int soft_delete;
+	int verbose;
 };
 
 struct f12_get_arguments {
-    char *device_path;
-    char *path;
-    char *dest;
-    int recursive;
-    int verbose;
+	char *device_path;
+	char *path;
+	char *dest;
+	int recursive;
+	int verbose;
 };
 
 struct f12_info_arguments {
-    char *device_path;
-    int dump_bpb;
+	char *device_path;
+	int dump_bpb;
 };
 
 struct f12_list_arguments {
-    char *device_path;
-    char *path;
-    int with_size;
-    int recursive;
+	char *device_path;
+	char *path;
+	int with_size;
+	int recursive;
 };
 
 struct f12_move_arguments {
-    char *device_path;
-    char *source;
-    char *destination;
-    int recursive;
-    int verbose;
+	char *device_path;
+	char *source;
+	char *destination;
+	int recursive;
+	int verbose;
 };
 
 struct f12_put_arguments {
-    char *device_path;
-    char *source;
-    char *destination;
-    int recursive;
-    int verbose;
+	char *device_path;
+	char *source;
+	char *destination;
+	int recursive;
+	int verbose;
 };
 
 /**

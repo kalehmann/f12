@@ -5,25 +5,25 @@
 #include <inttypes.h>
 
 enum f12_error {
-        F12_SUCCESS = 0,
-        F12_NOT_A_DIR,
-        F12_DIR_FULL,
-        F12_ALLOCATION_ERROR,
-        F12_IO_ERROR,
-        F12_LOGIC_ERROR,
-        F12_IMAGE_FULL,
-        F12_FILE_NOT_FOUND,
-        F12_EMPTY_PATH,
-        F12_DIR_NOT_EMPTY,
-        F12_UNKNOWN_ERROR,
-        F12_IS_DIR,
+	F12_SUCCESS = 0,
+	F12_NOT_A_DIR,
+	F12_DIR_FULL,
+	F12_ALLOCATION_ERROR,
+	F12_IO_ERROR,
+	F12_LOGIC_ERROR,
+	F12_IMAGE_FULL,
+	F12_FILE_NOT_FOUND,
+	F12_EMPTY_PATH,
+	F12_DIR_NOT_EMPTY,
+	F12_UNKNOWN_ERROR,
+	F12_IS_DIR,
 };
 
 enum f12_path_relations {
-        F12_PATHS_EQUAL,
-        F12_PATHS_UNRELATED,
-        F12_PATHS_FIRST,
-        F12_PATHS_SECOND,
+	F12_PATHS_EQUAL,
+	F12_PATHS_UNRELATED,
+	F12_PATHS_FIRST,
+	F12_PATHS_SECOND,
 };
 
 /* directory entry attributes */
@@ -32,82 +32,81 @@ enum f12_path_relations {
 struct bios_parameter_block {
 	// Label of the software that created the image, 8 bytes plus the termination
 	// character \0
-        char OEMLabel[9];
-        // Bytes per logical sector
-        uint16_t SectorSize;
-        // Logical sectors per cluster
-        uint8_t SectorsPerCluster;
-        // Reserved logical sectors
-        uint16_t ReservedForBoot;
-        // Number of FATs
-        uint8_t NumberOfFats;
-        // Number of root directory entries
-        uint16_t RootDirEntries;
-        // Total logical sectors
-        uint16_t LogicalSectors;
-        // Media descriptor
-        unsigned char MediumByte;
-        // Logial sectors per track
-        uint16_t SectorsPerFat;
-        // Physical sectors per track
-        uint16_t SectorsPerTrack;
-        // Number of heads
-        uint16_t NumberOfHeads;
-        // Hidden sectors
-        uint32_t HiddenSectors;
-        // Large total logical sectors
-        uint32_t LargeSectors;
-        // Physical drive number
-        uint8_t DriveNumber;
-        // Flags etc.
-        char Flags;
-        // Extended boot signature
-        char Signature;
-        // Volume serial number
-        uint32_t VolumeID;
-        // Volume label, 11 bytes plus the termination character \0
-        char VolumeLabel[12];
-        // File-system type, 8 bytes plus the termination character \0
-        char FileSystem[9];
+	char OEMLabel[9];
+	// Bytes per logical sector
+	uint16_t SectorSize;
+	// Logical sectors per cluster
+	uint8_t SectorsPerCluster;
+	// Reserved logical sectors
+	uint16_t ReservedForBoot;
+	// Number of FATs
+	uint8_t NumberOfFats;
+	// Number of root directory entries
+	uint16_t RootDirEntries;
+	// Total logical sectors
+	uint16_t LogicalSectors;
+	// Media descriptor
+	unsigned char MediumByte;
+	// Logial sectors per track
+	uint16_t SectorsPerFat;
+	// Physical sectors per track
+	uint16_t SectorsPerTrack;
+	// Number of heads
+	uint16_t NumberOfHeads;
+	// Hidden sectors
+	uint32_t HiddenSectors;
+	// Large total logical sectors
+	uint32_t LargeSectors;
+	// Physical drive number
+	uint8_t DriveNumber;
+	// Flags etc.
+	char Flags;
+	// Extended boot signature
+	char Signature;
+	// Volume serial number
+	uint32_t VolumeID;
+	// Volume label, 11 bytes plus the termination character \0
+	char VolumeLabel[12];
+	// File-system type, 8 bytes plus the termination character \0
+	char FileSystem[9];
 };
 
 struct f12_directory_entry {
-        char ShortFileName[8];
-        char ShortFileExtension[3];
-        char FileAttributes;
-        char UserAttributes;
-        char CreateTimeOrFirstCharacter;
-        uint16_t PasswordHashOrCreateTime;
-        uint16_t CreateDate;
-        uint16_t OwnerId;
-        uint16_t AccessRights;
-        uint16_t LastModifiedTime;
-        uint16_t LastModifiedDate;
-        uint16_t FirstCluster;
-        uint32_t FileSize;
-        struct f12_directory_entry *children;
-        struct f12_directory_entry *parent;
-        int child_count;
+	char ShortFileName[8];
+	char ShortFileExtension[3];
+	char FileAttributes;
+	char UserAttributes;
+	char CreateTimeOrFirstCharacter;
+	uint16_t PasswordHashOrCreateTime;
+	uint16_t CreateDate;
+	uint16_t OwnerId;
+	uint16_t AccessRights;
+	uint16_t LastModifiedTime;
+	uint16_t LastModifiedDate;
+	uint16_t FirstCluster;
+	uint32_t FileSize;
+	struct f12_directory_entry *children;
+	struct f12_directory_entry *parent;
+	int child_count;
 };
 
 struct f12_metadata {
-        uint16_t fat_id;
-        uint16_t end_of_chain_marker;
-        long root_dir_offset;
-        struct bios_parameter_block *bpb;
-        struct f12_directory_entry *root_dir;
-        uint16_t *fat_entries;
-        uint16_t entry_count;
+	uint16_t fat_id;
+	uint16_t end_of_chain_marker;
+	long root_dir_offset;
+	struct bios_parameter_block *bpb;
+	struct f12_directory_entry *root_dir;
+	uint16_t *fat_entries;
+	uint16_t entry_count;
 };
 
 struct f12_path {
-        char *name;
-        char *short_file_name;
-        char *short_file_extension;
-        struct f12_path *ancestor;
-        struct f12_path *descendant;
+	char *name;
+	char *short_file_name;
+	char *short_file_extension;
+	struct f12_path *ancestor;
+	struct f12_path *descendant;
 };
-
 
 // directory_entry.c
 /**
@@ -182,8 +181,7 @@ void f12_free_entry(struct f12_directory_entry *entry);
  * @return F12_SUCCESS or any error that occurred
  */
 enum f12_error f12_move_entry(struct f12_directory_entry *src,
-                              struct f12_directory_entry *dest);
-
+			      struct f12_directory_entry *dest);
 
 // error.c
 /**
@@ -210,7 +208,7 @@ char *f12_strerror(enum f12_error err);
  * populate.
  * @return F12_SUCCESS or any other error that occurred
  */
-enum f12_error f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta);
+enum f12_error f12_read_metadata(FILE * fp, struct f12_metadata **f12_meta);
 
 /**
  * Writes the data from a f12_metadata structure on a fat12 image.
@@ -219,7 +217,7 @@ enum f12_error f12_read_metadata(FILE *fp, struct f12_metadata **f12_meta);
  * @param f12_meta a pointer to the metadata
  * @return F12_SUCCESS or any other error that occurred
  */
-enum f12_error f12_write_metadata(FILE *fp, struct f12_metadata *f12_meta);
+enum f12_error f12_write_metadata(FILE * fp, struct f12_metadata *f12_meta);
 
 /**
  * Deletes a file or directory from a fat12 image.
@@ -232,9 +230,10 @@ enum f12_error f12_write_metadata(FILE *fp, struct f12_metadata *f12_meta);
  * @param soft_delete if non zero the entry is not erased, but marked as deleted
  * @return F12_SUCCESS or any other error that occurred
  */
-enum f12_error f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
-                             struct f12_directory_entry *entry,
-                             int hard_delete);
+enum f12_error f12_del_entry(FILE * fp,
+			     struct f12_metadata *f12_meta,
+			     struct f12_directory_entry *entry,
+			     int hard_delete);
 
 /**
  * Dump a file from the fat 12 image onto the host file system.
@@ -246,8 +245,9 @@ enum f12_error f12_del_entry(FILE *fp, struct f12_metadata *f12_meta,
  * @param dest_fp the file pointer of the destination file.
  * @return F12_SUCCESS or any other error that occurred
  */
-enum f12_error f12_dump_file(FILE *fp, struct f12_metadata *f12_meta,
-                             struct f12_directory_entry *entry, FILE *dest_fp);
+enum f12_error f12_dump_file(FILE * fp,
+			     struct f12_metadata *f12_meta,
+			     struct f12_directory_entry *entry, FILE * dest_fp);
 
 /**
  * Write a file to the given path on an image
@@ -258,8 +258,9 @@ enum f12_error f12_dump_file(FILE *fp, struct f12_metadata *f12_meta,
  * @param source_fp pointer to the file to write on the image
  * @return F12_SUCCESS or any other error that occurred
  */
-enum f12_error f12_create_file(FILE *fp, struct f12_metadata *f12_meta,
-                               struct f12_path *path, FILE *source_fp);
+enum f12_error f12_create_file(FILE * fp,
+			       struct f12_metadata *f12_meta,
+			       struct f12_path *path, FILE * source_fp);
 
 /**
  * Populate a new directory entry and add a directory table for it to the
@@ -270,7 +271,7 @@ enum f12_error f12_create_file(FILE *fp, struct f12_metadata *f12_meta,
  * @return F12_SUCCESS or any other error that occurred
  */
 enum f12_error f12_create_directory_table(struct f12_metadata *f12_meta,
-                                          struct f12_directory_entry *entry);
+					  struct f12_directory_entry *entry);
 
 /**
  * Create a new directory entry for a given path on an image.
@@ -281,8 +282,8 @@ enum f12_error f12_create_directory_table(struct f12_metadata *f12_meta,
  * @return F12_SUCCESS or any other error that occurred
  */
 enum f12_error f12_create_entry_from_path(struct f12_metadata *f12_meta,
-                                          struct f12_path *path,
-                                          struct f12_directory_entry **entry);
+					  struct f12_path *path,
+					  struct f12_directory_entry **entry);
 
 /**
  * Create a new (empty) fat12 image
@@ -291,7 +292,7 @@ enum f12_error f12_create_entry_from_path(struct f12_metadata *f12_meta,
  * @param f12_meta a pointer to the metadata of the image
  * @return F12_SUCCESS or any error that occured
  */
-enum f12_error f12_create_image(FILE *fp, struct f12_metadata *f12_meta);
+enum f12_error f12_create_image(FILE * fp, struct f12_metadata *f12_meta);
 
 // metadata.c
 /**
@@ -359,7 +360,7 @@ char *f12_convert_name(char *name);
  * @return F12_SUCCESS or any error that occurred
  */
 enum f12_error f12_get_entry_path(struct f12_directory_entry *entry,
-                                  char **path);
+				  char **path);
 
 // path.c
 /**
@@ -371,9 +372,8 @@ enum f12_error f12_get_entry_path(struct f12_directory_entry *entry,
  * @return a pointer to a f12_directory_entry structure describing the file
  * or subdirectory or NULL if the path matches no file in the given directory
  */
-struct f12_directory_entry *
-f12_entry_from_path(struct f12_directory_entry *entry,
-                    struct f12_path *path);
+struct f12_directory_entry *f12_entry_from_path(struct f12_directory_entry
+						*entry, struct f12_path *path);
 
 /**
  * Creates a f12_path structure from a string with a filepath.
@@ -408,8 +408,8 @@ void f12_free_path(struct f12_path *path);
  *         second path
  *         F12_PATHS_UNRELATED if they have no common ancestors
  */
-enum f12_path_relations
-f12_path_get_parent(struct f12_path *path_a, struct f12_path *path_b);
+enum f12_path_relations f12_path_get_parent(struct f12_path *path_a,
+					    struct f12_path *path_b);
 
 /**
  * Create the directory entries for the given path in a directory. Does nothing
@@ -422,7 +422,7 @@ f12_path_get_parent(struct f12_path *path_a, struct f12_path *path_b);
  * @return F12_SUCCESS or any other error that occurred
  */
 enum f12_error f12_path_create_directories(struct f12_metadata *f12_meta,
-                                           struct f12_directory_entry *entry,
-                                           struct f12_path *path);
+					   struct f12_directory_entry *entry,
+					   struct f12_path *path);
 
 #endif

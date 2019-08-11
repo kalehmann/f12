@@ -5,30 +5,30 @@
 
 Suite *f12_suite(void)
 {
-        Suite *s;
-        TCase *tc_libfat12_directory, *tc_libfat12_name, *tc_libfat12_path;
+	Suite *s;
+	TCase *tc_libfat12_directory, *tc_libfat12_name, *tc_libfat12_path;
 
-        s = suite_create("f12");
-        tc_libfat12_directory = libfat12_directory_case();
-        tc_libfat12_name = libfat12_name_case();
-        tc_libfat12_path = libfat12_path_case();
-        suite_add_tcase(s, tc_libfat12_directory);
-        suite_add_tcase(s, tc_libfat12_name);
-        suite_add_tcase(s, tc_libfat12_path);
+	s = suite_create("f12");
+	tc_libfat12_directory = libfat12_directory_case();
+	tc_libfat12_name = libfat12_name_case();
+	tc_libfat12_path = libfat12_path_case();
+	suite_add_tcase(s, tc_libfat12_directory);
+	suite_add_tcase(s, tc_libfat12_name);
+	suite_add_tcase(s, tc_libfat12_path);
 
-        return s;
+	return s;
 }
 
 int main(void)
 {
-        int number_failed;
-        Suite *s;
-        SRunner *sr;
-        s = f12_suite();
-        sr = srunner_create(s);
+	int number_failed;
+	Suite *s;
+	SRunner *sr;
+	s = f12_suite();
+	sr = srunner_create(s);
 
-        srunner_run_all(sr, CK_VERBOSE);
-        number_failed = srunner_ntests_failed(sr);
-        srunner_free(sr);
-        return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+	srunner_run_all(sr, CK_VERBOSE);
+	number_failed = srunner_ntests_failed(sr);
+	srunner_free(sr);
+	return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
