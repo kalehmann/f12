@@ -7,6 +7,11 @@ coverage-report:
 	genhtml -o coverage-html/ tests.info
 endif
 
+if ENABLEBEAUTIFY
+beautify:
+	indent $$(find . -name "*.[ch]")
+endif
+
 clean-local:
 	rm -f tests.info
 	rm -rf coverage-html

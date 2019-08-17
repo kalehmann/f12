@@ -1,12 +1,15 @@
 FROM debian
 
-RUN apt-get update && apt-get install --no-install-recommends -y \
+RUN apt-get update \
+    	&& apt-get upgrade -y \
+    	&& apt-get install --no-install-recommends -y \
 	autoconf \
 	automake \
 	build-essential \
 	ca-certificates \
 	curl \
 	git \
+	indent \
 	lcov \
 	libtool \
 	libtool-bin \

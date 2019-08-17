@@ -1,54 +1,61 @@
 ---
-kind: pipeline
-name: default
+kind: "pipeline"
+name: "default"
 
 steps:
-  - name: build
-    image: registry.kalehmann.de/testing/f12:latest
-    commands:
-      - autoreconf --install
-      - ./configure --enable-coverage
-      - make CFLAGS='-Wall'
-  - name: unit-tests
-    image: registry.kalehmann.de/testing/f12:latest
-    commands:
-      - make check || (cat tests/test-suite.log && exit 1)
-    depends_on:
-     - build
-  - name: bats
-    image: registry.kalehmann.de/testing/f12:latest
-    commands:
-     - /usr/local/bin/bats --tap tests/functional.bats
-    depends_on:
-     - build
-    environment:
-      TMP_DIR: /tmp/bats
-  - name: coverage-report
-    image: registry.kalehmann.de/testing/f12:latest
-    commands:
-      - make coverage-report
-    depends_on:
-      - bats
-  - name: bats-valgrind
-    image: registry.kalehmann.de/testing/f12:latest
-    commands:
-      - /usr/local/bin/bats --tap tests/functional.bats
-    depends_on:
-     - build
-    environment:
-      GCOV_PREFIX: /tmp/bats-valgrind
-      TMP_DIR: /tmp/bats-valgrind
-      VALGRIND: "1"
-      VALGRIND_TAP: "valgrind.tap"
-  - name: valgrind-log
-    image: registry.kalehmann.de/testing/f12:latest
-    commands:
-      - cat valgrind.tap
-    depends_on:
-      - bats-valgrind
-    when:
-      status:
-        - failure
+        - name: "build"
+          image: "registry.kalehmann.de/testing/f12:latest"
+          commands:
+                - "autoreconf --install"
+                - "./configure --enable-beautify --enable-coverage"
+                - "make CFLAGS='-Wall'"
+        - name: "style-check"
+          image: "registry.kalehmann.de/testing/f12:latest"
+          commands:
+                - "make beautify"
+                - "git diff --exit-code"
+          depends_on:
+                - "build"
+        - name: "unit-tests"
+          image: "registry.kalehmann.de/testing/f12:latest"
+          commands:
+                - "make check || (cat tests/test-suite.log && exit 1)"
+          depends_on:
+                - "build"
+        - name: "bats"
+          image: "registry.kalehmann.de/testing/f12:latest"
+          commands:
+                - "/usr/local/bin/bats --tap tests/functional.bats"
+          depends_on:
+                - "build"
+          environment:
+                TMP_DIR: "/tmp/bats"
+        - name: "coverage-report"
+          image: "registry.kalehmann.de/testing/f12:latest"
+          commands:
+                - "make coverage-report"
+          depends_on:
+                - "bats"
+        - name: "bats-valgrind"
+          image: "registry.kalehmann.de/testing/f12:latest"
+          commands:
+                - "/usr/local/bin/bats --tap tests/functional.bats"
+          depends_on:
+                - "build"
+          environment:
+                GCOV_PREFIX: "/tmp/bats-valgrind"
+                TMP_DIR: "/tmp/bats-valgrind"
+                VALGRIND: "1"
+                VALGRIND_TAP: "valgrind.tap"
+        - name: "valgrind-log"
+          image: "registry.kalehmann.de/testing/f12:latest"
+          commands:
+                - "cat valgrind.tap"
+          depends_on:
+                - "bats-valgrind"
+          when:
+                status:
+                        - "failure"
 image_pull_secrets:
-  - dockerconfigjson
+        - "dockerconfigjson"
 ...

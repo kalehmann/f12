@@ -21,48 +21,48 @@ static int has_saved = 0;
 
 void f12_save_errno(void)
 {
-        if (has_saved) {
-                return;
-        }
+	if (has_saved) {
+		return;
+	}
 
-        has_saved = 1;
-        saved_errno = errno;
+	has_saved = 1;
+	saved_errno = errno;
 }
 
 char *f12_strerror(enum f12_error err)
 {
-        switch (err) {
-                case F12_NOT_A_DIR:
-                        return ERR_NOT_A_DIR;
-                case F12_DIR_FULL:
-                        return ERR_DIR_FULL;
-                case F12_ALLOCATION_ERROR:
-                        return ERR_ALLOCATION_ERROR;
-                case F12_IO_ERROR:
-                        if (has_saved) {
-                                return strerror(saved_errno);
-                        }
-                        return ERR_IO;
-                case F12_LOGIC_ERROR:
-                        return ERR_LOGIC;
-                case F12_IMAGE_FULL:
-                        return ERR_IMAGE_FULL;
-                case F12_FILE_NOT_FOUND:
-                        return ERR_FILE_NOT_FOUND;
-                case F12_EMPTY_PATH:
-                        return ERR_EMPTY_PATH;
-                case F12_DIR_NOT_EMPTY:
-                        return ERR_DIR_NOT_EMPTY;
-                case F12_SUCCESS:
-                        return ERR_SUCCESS;
-                case F12_IS_DIR:
-                        return ERR_DIR;
-                default:
-                        break;
-        }
+	switch (err) {
+	case F12_NOT_A_DIR:
+		return ERR_NOT_A_DIR;
+	case F12_DIR_FULL:
+		return ERR_DIR_FULL;
+	case F12_ALLOCATION_ERROR:
+		return ERR_ALLOCATION_ERROR;
+	case F12_IO_ERROR:
+		if (has_saved) {
+			return strerror(saved_errno);
+		}
+		return ERR_IO;
+	case F12_LOGIC_ERROR:
+		return ERR_LOGIC;
+	case F12_IMAGE_FULL:
+		return ERR_IMAGE_FULL;
+	case F12_FILE_NOT_FOUND:
+		return ERR_FILE_NOT_FOUND;
+	case F12_EMPTY_PATH:
+		return ERR_EMPTY_PATH;
+	case F12_DIR_NOT_EMPTY:
+		return ERR_DIR_NOT_EMPTY;
+	case F12_SUCCESS:
+		return ERR_SUCCESS;
+	case F12_IS_DIR:
+		return ERR_DIR;
+	default:
+		break;
+	}
 
-        if (has_saved) {
-                return strerror(saved_errno);
-        }
-        return ERR_UNKNOWN;
+	if (has_saved) {
+		return strerror(saved_errno);
+	}
+	return ERR_UNKNOWN;
 }
