@@ -15,8 +15,11 @@ START_TEST(test_f12_get_file_name)
 
 	free(name);
 }
+// *INDENT-OFF*
+END_TEST
+// *INDENT-ON*
 
-END_TEST START_TEST(test_f12_convert_name)
+START_TEST(test_f12_convert_name)
 {
 	char *name = f12_convert_name("FILE.BIN");
 
@@ -24,8 +27,11 @@ END_TEST START_TEST(test_f12_convert_name)
 
 	free(name);
 }
+// *INDENT-OFF*
+END_TEST
+// *INDENT-ON*
 
-END_TEST TCase *libfat12_name_case(void)
+TCase *libfat12_name_case(void)
 {
 	TCase *tc_libfat12_name;
 

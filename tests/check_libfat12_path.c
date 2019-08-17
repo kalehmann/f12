@@ -21,8 +21,11 @@ START_TEST(test_f12_parse_path)
 
 	f12_free_path(path);
 }
+// *INDENT-OFF*
+END_TEST
+// *INDENT-ON*
 
-END_TEST START_TEST(test_f12_path_get_parent)
+START_TEST(test_f12_path_get_parent)
 {
 	struct f12_path *path_a, *path_b, *path_c;
 
@@ -40,8 +43,11 @@ END_TEST START_TEST(test_f12_path_get_parent)
 	f12_free_path(path_b);
 	f12_free_path(path_c);
 }
+// *INDENT-OFF*
+END_TEST
+// *INDENT-ON*
 
-END_TEST TCase *libfat12_path_case(void)
+TCase *libfat12_path_case(void)
 {
 	TCase *tc_libfat12_path;
 

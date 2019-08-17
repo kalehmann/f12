@@ -98,41 +98,57 @@ START_TEST(test_f12_is_directory)
 {
 	ck_assert_int_eq(1, f12_is_directory(&dir->children[0]));
 	ck_assert_int_eq(0, f12_is_directory(&dir->children[3]));
-
 }
+// *INDENT-OFF*
+END_TEST
+// *INDENT-ON*
 
-END_TEST START_TEST(test_f12_is_dot_dir)
+START_TEST(test_f12_is_dot_dir)
 {
 	ck_assert_int_eq(1, f12_is_dot_dir(&dir->children[0].children[0]));
 	ck_assert_int_eq(1, f12_is_dot_dir(&dir->children[0].children[1]));
 	ck_assert_int_eq(0, f12_is_dot_dir(&dir->children[0]));
 	ck_assert_int_eq(0, f12_is_dot_dir(&dir->children[3]));
-
 }
+// *INDENT-OFF*
+END_TEST
+// *INDENT-ON*
 
-END_TEST START_TEST(test_f12_entry_is_empty)
+START_TEST(test_f12_entry_is_empty)
 {
 	ck_assert_int_eq(1, f12_entry_is_empty(&dir->children[7]));
 	ck_assert_int_eq(0, f12_entry_is_empty(&dir->children[0]));
 }
+// *INDENT-OFF*
+END_TEST
+// *INDENT-ON*
 
-END_TEST START_TEST(test_f12_get_child_count)
+START_TEST(test_f12_get_child_count)
 {
 	ck_assert_int_eq(f12_get_child_count(&dir->children[0]), 3);
 	ck_assert_int_eq(f12_get_child_count(dir), 7);
 }
+// *INDENT-OFF*
+END_TEST
+// *INDENT-ON*
 
-END_TEST START_TEST(test_f12_get_file_count)
+START_TEST(test_f12_get_file_count)
 {
 	ck_assert_int_eq(f12_get_file_count(dir), 7);
 }
+// *INDENT-OFF*
+END_TEST
+// *INDENT-ON*
 
-END_TEST START_TEST(test_f12_get_directory_count)
+START_TEST(test_f12_get_directory_count)
 {
 	ck_assert_int_eq(f12_get_directory_count(dir), 3);
 }
+// *INDENT-OFF*
+END_TEST
+// *INDENT-ON*
 
-END_TEST START_TEST(test_f12_move_entry)
+START_TEST(test_f12_move_entry)
 {
 	/* try to move a directory into a file */
 	ck_assert_int_eq(f12_move_entry(&dir->children[0], &dir->children[3]),
@@ -153,8 +169,11 @@ END_TEST START_TEST(test_f12_move_entry)
 	ck_assert_int_eq(f12_move_entry(&dir->children[3], &dir->children[0]),
 			 F12_DIR_FULL);
 }
+// *INDENT-OFF*
+END_TEST
+// *INDENT-ON*
 
-END_TEST TCase *libfat12_directory_case(void)
+TCase *libfat12_directory_case(void)
 {
 	TCase *tc_libfat12_directory;
 
