@@ -1,4 +1,4 @@
- /* Use the not posix conform function asprintf */
+/* Use the not posix conform function asprintf */
 #define _GNU_SOURCE
 
 #include <errno.h>
@@ -459,7 +459,7 @@ initialize_bpb(struct bios_parameter_block *bpb,
 	bpb->LargeSectors = bpb->LogicalSectors;
 	bpb->Flags = 0;
 	bpb->Signature = 0;
-	bpb->VolumeID = 0;
+	f12_generate_volume_id(&(bpb->VolumeID));
 
 	if (NULL != args->volume_label) {
 		if (strlen(args->volume_label) < 12) {
