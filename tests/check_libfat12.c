@@ -6,13 +6,16 @@
 Suite *f12_suite(void)
 {
 	Suite *s;
-	TCase *tc_libfat12_directory, *tc_libfat12_name, *tc_libfat12_path;
+	TCase *tc_libfat12_directory, *tc_libfat12_metadata, *tc_libfat12_name,
+		*tc_libfat12_path;
 
 	s = suite_create("f12");
 	tc_libfat12_directory = libfat12_directory_case();
+	tc_libfat12_metadata = libfat12_metadata_case();
 	tc_libfat12_name = libfat12_name_case();
 	tc_libfat12_path = libfat12_path_case();
 	suite_add_tcase(s, tc_libfat12_directory);
+	suite_add_tcase(s, tc_libfat12_metadata);
 	suite_add_tcase(s, tc_libfat12_name);
 	suite_add_tcase(s, tc_libfat12_path);
 
