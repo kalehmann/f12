@@ -326,6 +326,14 @@ enum f12_error f12_create_metadata(struct f12_metadata **f12_meta);
  */
 enum f12_error f12_create_root_dir_meta(struct f12_metadata *f12_meta);
 /**
+ * Generates a 32 bit volume serial number out of the current timestamp.
+ *
+ * The volume id is guaranteed to be non zero on success.
+ *
+ * @param volume_id a pointer to the volume_id that will be generated
+ */
+enum f12_error f12_generate_volume_id(uint32_t * volume_id);
+/**
  * Free the metadata of a fat12 image
  *
  * @param f12_meta a pointer to the metadata of the fat12 image

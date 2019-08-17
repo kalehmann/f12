@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "libfat12.h"
 
@@ -76,6 +77,30 @@ size_t f12_get_used_bytes(struct f12_metadata *f12_meta)
 	}
 
 	return used_bytes;
+}
+
+enum f12_error f12_generate_volume_id(uint32_t * volume_id)
+{
+	struct timeval now;
+
+	if (0 != gettimeofday(&now, NULL)) {
+		f12_save_errno();
+		*volume_id = 0;
+
+		return F12_UNKNOWN_ERROR;
+	}
+
+	/*
+	 * Use the 16 least significant bits of the current microseconds since
+	 * the epoch as the 16 most significant bits of the volume id and the
+	 * 16 least significant bits of the current seconds since the epoch as
+	 * the 16 least significant bites of the volume id.
+	 * The id is guaranteed to be at least 1.
+	 */
+	*volume_id = ((uint32_t) now.tv_usec << 16) |
+		((uint32_t) now.tv_sec & 0xffff) | 1;
+
+	return F12_SUCCESS;
 }
 
 void f12_free_metadata(struct f12_metadata *f12_meta)
