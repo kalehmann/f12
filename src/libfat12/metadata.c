@@ -47,8 +47,8 @@ enum f12_error f12_create_root_dir_meta(struct f12_metadata *f12_meta)
 
 		return F12_ALLOCATION_ERROR;
 	}
-	f12_meta->fat_id = (uint16_t) bpb->MediumByte;
-	f12_meta->fat_entries[0] = (uint16_t) bpb->MediumByte;
+	f12_meta->fat_id = ((uint16_t) bpb->MediumByte) | 0xf00;
+	f12_meta->fat_entries[0] = f12_meta->fat_id;
 	f12_meta->end_of_chain_marker = 0xfff;
 	f12_meta->fat_entries[1] = 0xfff;
 
