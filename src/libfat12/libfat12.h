@@ -1,6 +1,7 @@
 #ifndef LIBFAT12_H
 #define LIBFAT12_H
 
+#include <time.h>
 #include <stdio.h>
 #include <inttypes.h>
 
@@ -339,6 +340,28 @@ enum f12_error f12_generate_volume_id(uint32_t * volume_id);
  * @param f12_meta a pointer to the metadata of the fat12 image
  */
 void f12_free_metadata(struct f12_metadata *f12_meta);
+
+/**
+ * Generates packed date and time for fat 12 directory entries
+ *
+ * @param usecs the number of microseconds since the unix epoch
+ * @param data a pointer to the place where the packed date gets written
+ * @param time a pointer to the place where the packed time gets written
+ * @param msecs a pointer to the place where the packed milliseconds get
+ * written 
+ */
+void f12_generate_entry_timestamp(long usecs, uint16_t * date, uint16_t * time,
+				  uint8_t * msecs);
+
+/**
+ * Reads a packed time from a fat 12 directory entry into a tm time structure.
+ *
+ * @param date the packed data
+ * @param time the packed time
+ * @param msecs the packed milliseconds
+ * @return the microseconds since the epoch
+ */
+long f12_read_entry_timestamp(uint16_t date, uint16_t time, uint8_t msecs);
 
 // name.c
 /**
