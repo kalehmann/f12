@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <time.h>
 
 #include "libfat12.h"
 
@@ -127,4 +128,91 @@ enum f12_error f12_create_metadata(struct f12_metadata **f12_meta)
 	}
 
 	return F12_SUCCESS;
+}
+
+void f12_generate_entry_timestamp(long usecs, uint16_t * date, uint16_t * time,
+				  uint8_t * msecs)
+{
+	char seconds, minutes, hours, day, month, year;
+	time_t timer = usecs / 1000000;
+	int milliseconds = (usecs / 1000) % 1000;
+	struct tm *timeinfo = gmtime(&timer);
+
+	if (timeinfo->tm_sec % 2) {
+		milliseconds += 1000;
+	}
+	// Shrink to 5 bits and resolution of two seconds per bit
+	seconds = (timeinfo->tm_sec / 2) & 0x1f;
+	// 6 bits
+	minutes = timeinfo->tm_min & 0x3f;
+	// 5 bits
+	hours = timeinfo->tm_hour & 0x1f;
+	// 5 bits
+	day = timeinfo->tm_mday & 0x1f;
+	// 4 bits
+	month = (timeinfo->tm_mon + 1) & 0xf;
+	// Allign the year to 1980 and fit into 7 bits
+	year = (timeinfo->tm_year - 80) & 0x7f;
+
+	*date = 0 | ((uint16_t) day);
+	*date |= ((uint16_t) month) << 5;
+	*date |= ((uint16_t) year) << 9;
+
+	*time = 0 | ((uint16_t) seconds);
+	*time |= ((uint16_t) minutes) << 5;
+	*time |= ((uint16_t) hours) << 11;
+
+	*msecs = milliseconds / 10;
+}
+
+long f12_read_entry_timestamp(uint16_t date, uint16_t time, uint8_t msecs)
+{
+	time_t timer = 0;
+	struct tm timeinfo = { 0 };
+
+	int h, m, s, gmtoff;
+
+	h = (time >> 11) & 0x1f;
+	m = (time >> 5) & 0x3f;
+	s = (time & 0x1f) * 2;
+
+	timeinfo.tm_year = (date >> 9) + 80;
+	timeinfo.tm_mon = ((date >> 5) & 0x1f) - 1;
+	timeinfo.tm_mday = date & 0x1f;
+
+	timeinfo.tm_hour = h;
+	timeinfo.tm_min = m;
+	timeinfo.tm_sec = s;
+
+	/*
+	 * Call mktime to complete the timeinfo structure, e.g. set the tm_isdst
+	 * and __tm_gmtoff fields.
+	 * This potentially modifies the time related fields of the structure,
+	 * if the date falls in a daylight saving time (DST) period of the
+	 * local time.
+	 *
+	 * That behavior is not desired. This function should return a timestamp
+	 * with the exact time stored in the entry in local time.
+	 */
+	timer = mktime(&timeinfo);
+	if (-1 == timer) {
+		return -1;
+	}
+
+	/*
+	 * Set the time related fields of the timeinfo structure again to avoid
+	 * the mentioned problem and call mktime again to produce the desired
+	 * timestamp.
+	 */
+	gmtoff = timeinfo.tm_gmtoff;
+	timeinfo.tm_hour = h + gmtoff / 3600;
+	timeinfo.tm_min = m + (gmtoff % 3600) / 60;
+	timeinfo.tm_sec = s + gmtoff % 60;
+
+	timer = mktime(&timeinfo);
+	if (-1 == timer) {
+		return -1;
+	}
+
+	return timer * 1000000 + msecs * 10000;
 }
