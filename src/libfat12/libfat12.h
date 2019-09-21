@@ -1,8 +1,9 @@
 #ifndef LIBFAT12_H
 #define LIBFAT12_H
 
-#include <stdio.h>
 #include <inttypes.h>
+#include <stdio.h>
+#include <sys/time.h>
 
 enum f12_error {
 	F12_SUCCESS = 0,
@@ -79,7 +80,7 @@ struct f12_directory_entry {
 	char CreateTimeOrFirstCharacter;
 	uint16_t PasswordHashOrCreateTime;
 	uint16_t CreateDate;
-	uint16_t OwnerId;
+	uint16_t OwnerIdOrLastAccessDate;
 	uint16_t AccessRights;
 	uint16_t LastModifiedTime;
 	uint16_t LastModifiedDate;
@@ -256,11 +257,13 @@ enum f12_error f12_dump_file(FILE * fp,
  * @param f12_meta a pointer to the metadata of the image
  * @param path the path for the newly created file
  * @param source_fp pointer to the file to write on the image
+ * @param created the creation time of the file in microseconds since the epoch
  * @return F12_SUCCESS or any other error that occurred
  */
 enum f12_error f12_create_file(FILE * fp,
 			       struct f12_metadata *f12_meta,
-			       struct f12_path *path, FILE * source_fp);
+			       struct f12_path *path, FILE * source_fp,
+			       suseconds_t created);
 
 /**
  * Populate a new directory entry and add a directory table for it to the
@@ -339,6 +342,28 @@ enum f12_error f12_generate_volume_id(uint32_t * volume_id);
  * @param f12_meta a pointer to the metadata of the fat12 image
  */
 void f12_free_metadata(struct f12_metadata *f12_meta);
+
+/**
+ * Generates packed date and time for fat 12 directory entries
+ *
+ * @param usecs the number of microseconds since the unix epoch
+ * @param data a pointer to the place where the packed date gets written
+ * @param time a pointer to the place where the packed time gets written
+ * @param msecs a pointer to the place where the packed milliseconds get
+ * written 
+ */
+void f12_generate_entry_timestamp(long usecs, uint16_t * date, uint16_t * time,
+				  uint8_t * msecs);
+
+/**
+ * Reads a packed time from a fat 12 directory entry into a tm time structure.
+ *
+ * @param date the packed data
+ * @param time the packed time
+ * @param msecs the packed milliseconds
+ * @return the microseconds since the epoch
+ */
+long f12_read_entry_timestamp(uint16_t date, uint16_t time, uint8_t msecs);
 
 // name.c
 /**
