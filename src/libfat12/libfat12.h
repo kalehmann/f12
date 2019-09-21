@@ -1,9 +1,9 @@
 #ifndef LIBFAT12_H
 #define LIBFAT12_H
 
-#include <time.h>
-#include <stdio.h>
 #include <inttypes.h>
+#include <stdio.h>
+#include <sys/time.h>
 
 enum f12_error {
 	F12_SUCCESS = 0,
@@ -80,7 +80,7 @@ struct f12_directory_entry {
 	char CreateTimeOrFirstCharacter;
 	uint16_t PasswordHashOrCreateTime;
 	uint16_t CreateDate;
-	uint16_t OwnerId;
+	uint16_t OwnerIdOrLastAccessDate;
 	uint16_t AccessRights;
 	uint16_t LastModifiedTime;
 	uint16_t LastModifiedDate;
@@ -257,11 +257,13 @@ enum f12_error f12_dump_file(FILE * fp,
  * @param f12_meta a pointer to the metadata of the image
  * @param path the path for the newly created file
  * @param source_fp pointer to the file to write on the image
+ * @param created the creation time of the file in microseconds since the epoch
  * @return F12_SUCCESS or any other error that occurred
  */
 enum f12_error f12_create_file(FILE * fp,
 			       struct f12_metadata *f12_meta,
-			       struct f12_path *path, FILE * source_fp);
+			       struct f12_path *path, FILE * source_fp,
+			       suseconds_t created);
 
 /**
  * Populate a new directory entry and add a directory table for it to the

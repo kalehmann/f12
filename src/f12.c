@@ -2,76 +2,22 @@
 #define _GNU_SOURCE
 
 #include <errno.h>
+#include <fts.h>
+#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
-#include <fts.h>
-#include <libgen.h>
+#include <time.h>
 
 #include "f12.h"
 #include "libfat12/libfat12.h"
 
-char *format_bytes(size_t bytes)
-{
-	char *out;
-
-	if (bytes < 10000) {
-		asprintf(&out, "%ld bytes", bytes);
-	} else if (bytes < 10000000) {
-		asprintf(&out, "%ld KiB", bytes / 1024);
-	} else if (bytes < 10000000000) {
-		asprintf(&out, "%ld MiB", bytes / (1024 * 1024));
-	} else {
-		asprintf(&out, "%ld GiB", bytes / (1024 * 1024 * 1024));
-	}
-
-	return out;
-}
-
-static enum f12_error
-recursive_del_entry(FILE * fp,
-		    struct f12_metadata *f12_meta,
-		    struct f12_directory_entry *entry,
-		    struct f12_del_arguments *args, char **output)
-{
-	struct f12_directory_entry *child;
-	enum f12_error err;
-	char *entry_path, *temp;
-	int verbose = args->verbose;
-
-	if (f12_is_directory(entry) && f12_get_child_count(entry) > 2) {
-		for (int i = 0; i < entry->child_count; i++) {
-			child = &entry->children[i];
-			if (f12_entry_is_empty(child) || f12_is_dot_dir(child)) {
-				continue;
-			}
-
-			err = recursive_del_entry(fp, f12_meta, child, args,
-						  output);
-			if (F12_SUCCESS != err) {
-				return err;
-			}
-		}
-	} else if (verbose) {
-		err = f12_get_entry_path(entry, &entry_path);
-		if (F12_SUCCESS != err) {
-			return err;
-		}
-		temp = *output;
-		if (NULL != *output) {
-			asprintf(output, "%s%s\n", *output, entry_path);
-
-		} else {
-			asprintf(output, "%s\n", entry_path);
-		}
-		free(temp);
-		free(entry_path);
-	}
-
-	return f12_del_entry(fp, f12_meta, entry, args->soft_delete);
-}
+static uint16_t
+sectorsPerFat(uint16_t sectors,
+	      uint16_t sector_size, uint16_t sectors_per_cluster);
 
 static enum f12_error
 dump_move(struct f12_directory_entry *src,
@@ -259,6 +205,23 @@ dump_f12_structure(FILE * fp,
 	return 0;
 }
 
+static char *format_bytes(size_t bytes)
+{
+	char *out;
+
+	if (bytes < 10000) {
+		asprintf(&out, "%ld bytes", bytes);
+	} else if (bytes < 10000000) {
+		asprintf(&out, "%ld KiB", bytes / 1024);
+	} else if (bytes < 10000000000) {
+		asprintf(&out, "%ld MiB", bytes / (1024 * 1024));
+	} else {
+		asprintf(&out, "%ld GiB", bytes / (1024 * 1024 * 1024));
+	}
+
+	return out;
+}
+
 static void info_dump_bpb(struct f12_metadata *f12_meta, char **output)
 {
 	struct bios_parameter_block *bpb = f12_meta->bpb;
@@ -293,19 +256,6 @@ static void info_dump_bpb(struct f12_metadata *f12_meta, char **output)
 		 bpb->NumberOfHeads, bpb->HiddenSectors, bpb->LargeSectors,
 		 bpb->DriveNumber, bpb->Flags, bpb->Signature, bpb->VolumeID,
 		 bpb->VolumeLabel, bpb->FileSystem);
-}
-
-static uint16_t
-sectorsPerFat(uint16_t sectors,
-	      uint16_t sector_size, uint16_t sectors_per_cluster)
-{
-	unsigned int fat_size = (sectors / sectors_per_cluster) * 3 / 2;
-	uint16_t fat_sectors = fat_size / sector_size;
-	if (fat_size % sector_size) {
-		fat_sectors++;
-	}
-
-	return fat_sectors;
 }
 
 static void
@@ -520,10 +470,77 @@ list_root_dir_entries(struct f12_metadata *f12_meta,
 	}
 }
 
+static enum f12_error
+recursive_del_entry(FILE * fp,
+		    struct f12_metadata *f12_meta,
+		    struct f12_directory_entry *entry,
+		    struct f12_del_arguments *args, char **output)
+{
+	struct f12_directory_entry *child;
+	enum f12_error err;
+	char *entry_path, *temp;
+	int verbose = args->verbose;
+
+	if (f12_is_directory(entry) && f12_get_child_count(entry) > 2) {
+		for (int i = 0; i < entry->child_count; i++) {
+			child = &entry->children[i];
+			if (f12_entry_is_empty(child) || f12_is_dot_dir(child)) {
+				continue;
+			}
+
+			err = recursive_del_entry(fp, f12_meta, child, args,
+						  output);
+			if (F12_SUCCESS != err) {
+				return err;
+			}
+		}
+	} else if (verbose) {
+		err = f12_get_entry_path(entry, &entry_path);
+		if (F12_SUCCESS != err) {
+			return err;
+		}
+		temp = *output;
+		if (NULL != *output) {
+			asprintf(output, "%s%s\n", *output, entry_path);
+
+		} else {
+			asprintf(output, "%s\n", entry_path);
+		}
+		free(temp);
+		free(entry_path);
+	}
+
+	return f12_del_entry(fp, f12_meta, entry, args->soft_delete);
+}
+
+static uint16_t
+sectorsPerFat(uint16_t sectors,
+	      uint16_t sector_size, uint16_t sectors_per_cluster)
+{
+	unsigned int fat_size = (sectors / sectors_per_cluster) * 3 / 2;
+	uint16_t fat_sectors = fat_size / sector_size;
+	if (fat_size % sector_size) {
+		fat_sectors++;
+	}
+
+	return fat_sectors;
+}
+
+static suseconds_t time_usec(void)
+{
+	struct timeval tv = { 0 };
+	time_t timer = 0;
+
+	gettimeofday(&tv, NULL);
+	timer = time(NULL);
+
+	return timer * 1000000 + tv.tv_usec;
+}
+
 static int
 walk_dir(FILE * fp,
 	 struct f12_put_arguments *args,
-	 struct f12_metadata *f12_meta, char **output)
+	 struct f12_metadata *f12_meta, suseconds_t created, char **output)
 {
 	enum f12_error err;
 	char *path = args->source;
@@ -595,7 +612,7 @@ walk_dir(FILE * fp,
 				return -1;
 			}
 
-			err = f12_create_file(fp, f12_meta, dest, src);
+			err = f12_create_file(fp, f12_meta, dest, src, created);
 			f12_free_path(dest);
 			if (F12_SUCCESS != err) {
 				temp = *output;
@@ -627,6 +644,7 @@ int f12_create(struct f12_create_arguments *args, char **output)
 	struct bios_parameter_block *bpb;
 	struct f12_metadata *f12_meta;
 	struct stat sb;
+	suseconds_t created = time_usec();
 
 	*output = malloc(1);
 	(*output)[0] = '\0';
@@ -700,7 +718,7 @@ int f12_create(struct f12_create_arguments *args, char **output)
 		.recursive = 1,
 	};
 
-	err = walk_dir(fp, &put_args, f12_meta, output);
+	err = walk_dir(fp, &put_args, f12_meta, created, output);
 	if (err) {
 		free(*output);
 		asprintf(output, "%s\n", f12_strerror(err));
@@ -1156,6 +1174,7 @@ int f12_put(struct f12_put_arguments *args, char **output)
 	char *device_path = args->device_path;
 	struct f12_metadata *f12_meta;
 	struct f12_path *dest;
+	suseconds_t created = time_usec();
 
 	*output = malloc(1);
 
@@ -1219,7 +1238,7 @@ int f12_put(struct f12_put_arguments *args, char **output)
 
 			return EXIT_FAILURE;
 		}
-		res = walk_dir(fp, args, f12_meta, output);
+		res = walk_dir(fp, args, f12_meta, created, output);
 		if (res) {
 			free(*output);
 			asprintf(output, "%s\n", f12_strerror(err));
@@ -1239,7 +1258,7 @@ int f12_put(struct f12_put_arguments *args, char **output)
 			return EXIT_FAILURE;
 		}
 
-		err = f12_create_file(fp, f12_meta, dest, src);
+		err = f12_create_file(fp, f12_meta, dest, src, created);
 		if (F12_SUCCESS != err) {
 			free(*output);
 			asprintf(output, "%s\n", f12_strerror(err));

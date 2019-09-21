@@ -1,7 +1,8 @@
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <inttypes.h>
+#include <sys/time.h>
 
 #include "libfat12.h"
 
@@ -208,7 +209,7 @@ static void read_dir_entry(char *data, struct f12_directory_entry *entry)
 	entry->CreateTimeOrFirstCharacter = *(data + 13);
 	memcpy(&entry->PasswordHashOrCreateTime, data + 14, 2);
 	memcpy(&entry->CreateDate, data + 16, 2);
-	memcpy(&entry->OwnerId, data + 18, 2);
+	memcpy(&entry->OwnerIdOrLastAccessDate, data + 18, 2);
 	memcpy(&entry->AccessRights, data + 20, 2);
 	memcpy(&entry->LastModifiedTime, data + 22, 2);
 	memcpy(&entry->LastModifiedDate, data + 24, 2);
@@ -615,7 +616,7 @@ static char *create_directory(struct f12_directory_entry *dir_entry,
 		       1);
 		memcpy(dir + offset + 14, &entry->PasswordHashOrCreateTime, 2);
 		memcpy(dir + offset + 16, &entry->CreateDate, 2);
-		memcpy(dir + offset + 18, &entry->OwnerId, 2);
+		memcpy(dir + offset + 18, &entry->OwnerIdOrLastAccessDate, 2);
 		memcpy(dir + offset + 20, &entry->AccessRights, 2);
 		memcpy(dir + offset + 22, &entry->LastModifiedTime, 2);
 		memcpy(dir + offset + 24, &entry->LastModifiedDate, 2);
@@ -913,7 +914,8 @@ enum f12_error f12_dump_file(FILE * fp,
 
 enum f12_error f12_create_file(FILE * fp,
 			       struct f12_metadata *f12_meta,
-			       struct f12_path *path, FILE * source_fp)
+			       struct f12_path *path, FILE * source_fp,
+			       suseconds_t created)
 {
 	enum f12_error err;
 
@@ -964,20 +966,26 @@ enum f12_error f12_create_file(FILE * fp,
 
 	err = write_to_cluster_chain(fp, data, first_cluster, file_size,
 				     f12_meta);
+	free(data);
 	if (F12_SUCCESS != err) {
-		free(data);
 		return err;
 	}
 
 	err = f12_create_entry_from_path(f12_meta, path, &entry);
 	if (err != F12_SUCCESS) {
-		free(data);
 		return err;
 	}
 	entry->FirstCluster = first_cluster;
 	entry->FileSize = file_size;
 
-	free(data);
+	f12_generate_entry_timestamp(created, &(entry->CreateDate),
+				     &(entry->PasswordHashOrCreateTime),
+				     &(entry->CreateTimeOrFirstCharacter));
+
+	entry->LastModifiedTime = entry->PasswordHashOrCreateTime;
+	entry->LastModifiedDate = entry->CreateDate;
+
+	entry->OwnerIdOrLastAccessDate = entry->CreateDate;
 
 	return F12_SUCCESS;
 }
