@@ -15,6 +15,9 @@
 #include "f12.h"
 #include "libfat12/libfat12.h"
 
+static enum f12_error
+list_f12_entry(struct f12_directory_entry *entry,
+	       char **output, struct f12_list_arguments *args, int depth);
 static uint16_t
 sectorsPerFat(uint16_t sectors,
 	      uint16_t sector_size, uint16_t sectors_per_cluster);
@@ -430,18 +433,36 @@ initialize_bpb(struct bios_parameter_block *bpb,
 	memcpy(&(bpb->FileSystem), "FAT12    ", 9);
 }
 
-static int
+static enum f12_error
+list_directory(struct f12_directory_entry *entry, char **output,
+	       struct f12_list_arguments *args)
+{
+	enum f12_error err;
+
+	for (int i = 0; i < entry->child_count; i++) {
+		err = list_f12_entry(&entry->children[i], output, args, 0);
+		if (F12_SUCCESS != err) {
+			return err;
+		}
+	}
+
+	return F12_SUCCESS;
+}
+
+static enum f12_error
 list_f12_entry(struct f12_directory_entry *entry,
 	       char **output, struct f12_list_arguments *args, int depth)
 {
-	if (f12_entry_is_empty(entry)) {
-		return 0;
+	enum f12_error err;
+
+	if (f12_entry_is_empty(entry) && NULL != entry->parent) {
+		return F12_SUCCESS;
 	}
 
 	char *name = f12_get_file_name(entry);
 
 	if (NULL == name) {
-		return -1;
+		return F12_ALLOCATION_ERROR;
 	}
 
 	char *temp = *output;
@@ -452,22 +473,15 @@ list_f12_entry(struct f12_directory_entry *entry,
 	if (args->recursive && f12_is_directory(entry)
 	    && !f12_is_dot_dir(entry)) {
 		for (int i = 0; i < entry->child_count; i++) {
-			list_f12_entry(&entry->children[i], output, args,
-				       depth + 2);
+			err = list_f12_entry(&entry->children[i], output, args,
+					     depth + 2);
+			if (F12_SUCCESS != err) {
+				return err;
+			}
 		}
 	}
 
-	return 0;
-}
-
-static void
-list_root_dir_entries(struct f12_metadata *f12_meta,
-		      struct f12_list_arguments *args, char **output)
-{
-	for (int i = 0; i < f12_meta->root_dir->child_count; i++) {
-		list_f12_entry(&f12_meta->root_dir->children[i], output, args,
-			       0);
-	}
+	return F12_SUCCESS;
 }
 
 static enum f12_error
@@ -952,12 +966,19 @@ int f12_list(struct f12_list_arguments *args, char **output)
 		struct f12_path *path;
 		err = f12_parse_path(args->path, &path);
 		if (F12_EMPTY_PATH == err) {
-			list_root_dir_entries(f12_meta, args, output);
+			err = list_directory(f12_meta->root_dir, output, args);
 			f12_free_metadata(f12_meta);
+			if (F12_SUCCESS != err) {
+				free(*output);
+				asprintf(output, "%s\n", f12_strerror(err));
+
+				return EXIT_FAILURE;
+			}
 
 			return EXIT_SUCCESS;
 		}
 		if (F12_SUCCESS != err) {
+			free(*output);
 			asprintf(output, "%s\n", f12_strerror(err));
 			f12_free_metadata(f12_meta);
 
@@ -977,24 +998,38 @@ int f12_list(struct f12_list_arguments *args, char **output)
 		}
 
 		if (f12_is_directory(entry)) {
-			for (int i = 0; i < entry->child_count; i++) {
-				list_f12_entry(&entry->children[i], output,
-					       args, 0);
-			}
+			err = list_directory(entry, output, args);
 			f12_free_metadata(f12_meta);
+			if (F12_SUCCESS != err) {
+				free(*output);
+				asprintf(output, "%s\n", f12_strerror(err));
+
+				return EXIT_FAILURE;
+			}
 
 			return EXIT_SUCCESS;
 		}
 
-		list_f12_entry(entry, output, args, 0);
+		err = list_f12_entry(entry, output, args, 0);
 		f12_free_metadata(f12_meta);
+		if (F12_SUCCESS != err) {
+			free(*output);
+			asprintf(output, "%s\n", f12_strerror(err));
+
+			return EXIT_FAILURE;
+		}
 
 		return EXIT_SUCCESS;
 	}
 
-	list_root_dir_entries(f12_meta, args, output);
-
+	err = list_directory(f12_meta->root_dir, output, args);
 	f12_free_metadata(f12_meta);
+	if (F12_SUCCESS != err) {
+		free(*output);
+		asprintf(output, "%s\n", strerror(err));
+
+		return EXIT_FAILURE;
+	}
 
 	return EXIT_SUCCESS;
 }
