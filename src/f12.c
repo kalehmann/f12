@@ -18,6 +18,11 @@
 static enum f12_error
 list_f12_entry(struct f12_directory_entry *entry,
 	       char **output, struct f12_list_arguments *args, int depth);
+
+static enum f12_error
+list_width(struct f12_directory_entry *root_entry, size_t prefix_len,
+	   size_t indent_len, size_t *width, int recursive);
+
 static uint16_t
 sectorsPerFat(uint16_t sectors,
 	      uint16_t sector_size, uint16_t sectors_per_cluster);
@@ -434,10 +439,17 @@ initialize_bpb(struct bios_parameter_block *bpb,
 }
 
 static enum f12_error
-list_directory(struct f12_directory_entry *entry, char **output,
-	       struct f12_list_arguments *args)
+list_entry(struct f12_directory_entry *entry, char **output,
+	   struct f12_list_arguments *args)
 {
 	enum f12_error err;
+
+	if (!f12_is_directory(entry)) {
+		err = list_f12_entry(entry, output, args, 0);
+		if (F12_SUCCESS != err) {
+			return err;
+		}
+	}
 
 	for (int i = 0; i < entry->child_count; i++) {
 		err = list_f12_entry(&entry->children[i], output, args, 0);
@@ -480,6 +492,63 @@ list_f12_entry(struct f12_directory_entry *entry,
 			}
 		}
 	}
+
+	return F12_SUCCESS;
+}
+
+static enum f12_error
+list_width(struct f12_directory_entry *root_entry, size_t prefix_len,
+	   size_t indent_len, size_t *width, int recursive)
+{
+	size_t line_width = prefix_len, max_width = 0, max_child_width = 0;
+	struct f12_directory_entry *entry = NULL;
+	char *entry_name = NULL;
+
+	if (!f12_is_directory(root_entry)) {
+		entry_name = f12_get_file_name(root_entry);
+		if (NULL == entry_name) {
+			return F12_ALLOCATION_ERROR;
+		}
+		*width = strlen(entry_name) + prefix_len;
+		free(entry_name);
+
+		return F12_SUCCESS;
+	}
+
+	if (0 == root_entry->child_count) {
+		return 0;
+	}
+
+	for (int i = 0; i < root_entry->child_count; i++) {
+		entry = &(root_entry->children[i]);
+		if (f12_entry_is_empty(entry)) {
+			continue;
+		}
+
+		entry_name = f12_get_file_name(entry);
+		if (NULL == entry_name) {
+			return F12_ALLOCATION_ERROR;
+		}
+		line_width += strlen(entry_name);
+		free(entry_name);
+
+		if (f12_is_directory(entry) && !f12_is_dot_dir(entry)
+		    && recursive && entry->child_count > 0) {
+			list_width(entry, prefix_len + indent_len, indent_len,
+				   &max_child_width, recursive);
+			if (max_child_width > line_width) {
+				line_width = max_child_width;
+			}
+		}
+
+		if (line_width > max_width) {
+			max_width = line_width;
+		}
+
+		line_width = prefix_len;
+	}
+
+	*width = max_width;
 
 	return F12_SUCCESS;
 }
@@ -966,7 +1035,7 @@ int f12_list(struct f12_list_arguments *args, char **output)
 		struct f12_path *path;
 		err = f12_parse_path(args->path, &path);
 		if (F12_EMPTY_PATH == err) {
-			err = list_directory(f12_meta->root_dir, output, args);
+			err = list_entry(f12_meta->root_dir, output, args);
 			f12_free_metadata(f12_meta);
 			if (F12_SUCCESS != err) {
 				free(*output);
@@ -998,7 +1067,7 @@ int f12_list(struct f12_list_arguments *args, char **output)
 		}
 
 		if (f12_is_directory(entry)) {
-			err = list_directory(entry, output, args);
+			err = list_entry(entry, output, args);
 			f12_free_metadata(f12_meta);
 			if (F12_SUCCESS != err) {
 				free(*output);
@@ -1010,7 +1079,7 @@ int f12_list(struct f12_list_arguments *args, char **output)
 			return EXIT_SUCCESS;
 		}
 
-		err = list_f12_entry(entry, output, args, 0);
+		err = list_entry(entry, output, args);
 		f12_free_metadata(f12_meta);
 		if (F12_SUCCESS != err) {
 			free(*output);
@@ -1022,7 +1091,7 @@ int f12_list(struct f12_list_arguments *args, char **output)
 		return EXIT_SUCCESS;
 	}
 
-	err = list_directory(f12_meta->root_dir, output, args);
+	err = list_entry(f12_meta->root_dir, output, args);
 	f12_free_metadata(f12_meta);
 	if (F12_SUCCESS != err) {
 		free(*output);
