@@ -40,6 +40,9 @@ struct f12_info_arguments {
 struct f12_list_arguments {
 	char *device_path;
 	char *path;
+	int creation_date;
+	int modification_date;
+	int access_date;
 	int with_size;
 	int recursive;
 };

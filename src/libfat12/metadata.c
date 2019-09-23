@@ -177,7 +177,7 @@ long f12_read_entry_timestamp(uint16_t date, uint16_t time, uint8_t msecs)
 	s = (time & 0x1f) * 2;
 
 	timeinfo.tm_year = (date >> 9) + 80;
-	timeinfo.tm_mon = ((date >> 5) & 0x1f) - 1;
+	timeinfo.tm_mon = ((date >> 5) & 0xf) - 1;
 	timeinfo.tm_mday = date & 0x1f;
 
 	timeinfo.tm_hour = h;

@@ -85,6 +85,17 @@ SECTORS_CLUSTER_REGEX="$(info_regex "Sectors per cluster" digit)"
 SECTORS_TRACK_REGEX="$(info_regex "Sectors per track" digit)"
 VOLUME_LABEL_REGEX="$(info_regex "Volume label" alnum)"
 
+# Matches dates of the format %Y-%m-%d
+DATE_REGEX="[[:digit:]]{4}-[[:digit:]]{2}-[[:digit:]]{2}"
+# Matches times of the format %H:%M:%S
+TIME_REGEX="[[:digit:]]{2}:[[:digit:]]{2}:[[:digit:]]{2}"
+# Matches dates of the format %Y-%m-%d %H:%M:%S
+DATETIME_REGEX="${DATE_REGEX}[[:space:]]${TIME_REGEX}"
+LIST_REGEX="[[:space:]]*[|]->[[:space:]][^[:space:]]*"
+LIST_CREATE_REGEX="${LIST_REGEX}[[:space:]]*${DATETIME_REGEX}"
+LIST_CREATE_MOD_REGEX="${LIST_CREATE_REGEX}[[:space:]]{2}${DATETIME_REGEX}"
+LIST_CREATE_MOD_ACC_REGEX="${LIST_CREATE_MOD_REGEX}[[:space:]]{2}${DATE_REGEX}"
+
 echo ${SECTORS_CLUSTER_REGEX} > sc.out
 echo ${SECTOR_SIZE_REGEX} > ss.out
 
@@ -460,6 +471,23 @@ fi
     [[ "${lines[4]}" == "  |-> .." ]]
     [[ "${lines[5]}" == "  |-> SECRET.TXT" ]]
     [[ "${lines[6]}" == "|-> DATA.DAT" ]]
+}
+
+@test "I can list the creation dates of files and directories" {
+    _run ./src/f12 list --recursive --creation "${TEST_IMAGE}"
+    [[ "$status" -eq 0 ]]
+    for line in "${lines[@]}"
+    do
+	[[ "${line}" =~ ${LIST_CREATE_REGEX} ]]
+    done
+}
+
+@test "I can list the creation, modification and access dates of all entries in a subdirectory" {
+    _run ./src/f12 list --recursive --creation --modification --access "${TEST_IMAGE}" FOLDER1
+    for line in "${lines[@]}"
+    do
+	[[ "${line}" =~ ${LIST_CREATE_MOD_ACC_REGEX} ]]
+    done
 }
 
 @test "I can list a single file" {

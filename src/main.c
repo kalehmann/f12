@@ -30,6 +30,9 @@ enum opts {
 	OPT_DEL_SOFT_DELETE,
 	OPT_INFO_DUMP_BPB,
 	OPT_LIST_WITH_SIZE,
+	OPT_LIST_CREATION_DATE = 'c',
+	OPT_LIST_MODIFICATION_DATE = 'm',
+	OPT_LIST_ACCESS_DATE = 'a',
 };
 
 const char *argp_program_version = "0.0";
@@ -421,6 +424,18 @@ error_t parser_list(int key, char *arg, struct argp_state *state)
 		list_arguments->path = arg;
 
 		return 0;
+	case (OPT_LIST_CREATION_DATE):
+		list_arguments->creation_date = 1;
+
+		return 0;
+	case (OPT_LIST_MODIFICATION_DATE):
+		list_arguments->modification_date = 1;
+
+		return 0;
+	case (OPT_LIST_ACCESS_DATE):
+		list_arguments->access_date = 1;
+
+		return 0;
 	case (OPT_LIST_WITH_SIZE):
 		list_arguments->with_size = 1;
 
@@ -432,6 +447,30 @@ error_t parser_list(int key, char *arg, struct argp_state *state)
 
 // *INDENT-OFF*
 static struct argp_option list_options[] = {
+	{
+		.name = "creation",
+		.key = OPT_LIST_CREATION_DATE,
+		.arg = NULL,
+		.flags = 0,
+		.doc = NULL,
+		.group = 0
+	},
+	{
+		.name = "modification",
+		.key = OPT_LIST_MODIFICATION_DATE,
+		.arg = NULL,
+		.flags = 0,
+		.doc = NULL,
+		.group = 0
+	},
+	{
+		.name = "access",
+		.key = OPT_LIST_ACCESS_DATE,
+		.arg = NULL,
+		.flags = 0,
+		.doc = NULL,
+		.group = 0
+	},
 	{
 		.name = "with-size",
 		.key = OPT_LIST_WITH_SIZE,
