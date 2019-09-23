@@ -15,9 +15,17 @@
 #include "f12.h"
 #include "libfat12/libfat12.h"
 
+#define LIST_DATETIME_WIDTH 21
+#define LIST_DATE_WIDTH 12
+
+static const char *LIST_FORMAT =
+	"%s%*s|-> %-*s" "%6$*7$s" "%8$*9$s" "%10$*11$s\n";
+static const char *LIST_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S";
+static const char *LIST_DATE_FORMAT = "%Y-%m-%d";
+
 static enum f12_error
-list_f12_entry(struct f12_directory_entry *entry,
-	       char **output, struct f12_list_arguments *args, int depth);
+list_f12_entry(struct f12_directory_entry *entry, char **output,
+	       struct f12_list_arguments *args, int depth, int name_width);
 
 static enum f12_error
 list_width(struct f12_directory_entry *root_entry, size_t prefix_len,
@@ -443,16 +451,20 @@ list_entry(struct f12_directory_entry *entry, char **output,
 	   struct f12_list_arguments *args)
 {
 	enum f12_error err;
+	size_t max_width;
+
+	list_width(entry, 4, 2, &max_width, args->recursive);
 
 	if (!f12_is_directory(entry)) {
-		err = list_f12_entry(entry, output, args, 0);
+		err = list_f12_entry(entry, output, args, 0, max_width);
 		if (F12_SUCCESS != err) {
 			return err;
 		}
 	}
 
 	for (int i = 0; i < entry->child_count; i++) {
-		err = list_f12_entry(&entry->children[i], output, args, 0);
+		err = list_f12_entry(&entry->children[i], output, args, 0,
+				     max_width);
 		if (F12_SUCCESS != err) {
 			return err;
 		}
@@ -462,23 +474,73 @@ list_entry(struct f12_directory_entry *entry, char **output,
 }
 
 static enum f12_error
-list_f12_entry(struct f12_directory_entry *entry,
-	       char **output, struct f12_list_arguments *args, int depth)
+list_f12_entry(struct f12_directory_entry *entry, char **output,
+	       struct f12_list_arguments *args, int depth, int name_width)
 {
 	enum f12_error err;
+	int name_padding = 0;
+	char creat_buf[LIST_DATETIME_WIDTH] = "";
+	char mod_buf[LIST_DATETIME_WIDTH] = "";
+	char acc_buf[LIST_DATE_WIDTH] = "";
+	int creat_pad = 0, mod_pad = 0, acc_pad = 0;
+	long usecs;
+	time_t timer;
+	struct tm *timeinfo;
+	uint16_t date, time;
+	uint8_t time_ms;
 
 	if (f12_entry_is_empty(entry) && NULL != entry->parent) {
 		return F12_SUCCESS;
 	}
 
-	char *name = f12_get_file_name(entry);
+	if (args->creation_date) {
+		date = entry->CreateDate;
+		time = entry->PasswordHashOrCreateTime;
+		time_ms = entry->CreateTimeOrFirstCharacter;
+		usecs = f12_read_entry_timestamp(date, time, time_ms);
+		timer = usecs / 1000000;
+		timeinfo = localtime(&timer);
+		strftime(creat_buf, LIST_DATETIME_WIDTH, LIST_DATETIME_FORMAT,
+			 timeinfo);
 
+		creat_pad = strlen(creat_buf) + 2;
+		name_padding = name_width - 4 - depth;
+	}
+	if (args->modification_date) {
+		date = entry->LastModifiedDate;
+		time = entry->LastModifiedTime;
+		time_ms = 0;
+		usecs = f12_read_entry_timestamp(date, time, time_ms);
+		timer = usecs / 1000000;
+		timeinfo = localtime(&timer);
+		strftime(mod_buf, LIST_DATETIME_WIDTH, LIST_DATETIME_FORMAT,
+			 timeinfo);
+
+		mod_pad = strlen(mod_buf) + 2;
+		name_padding = name_width - 4 - depth;
+	}
+	if (args->access_date) {
+		date = entry->OwnerIdOrLastAccessDate;
+		time = 0;
+		time_ms = 0;
+		usecs = f12_read_entry_timestamp(date, time, time_ms);
+		timer = usecs / 1000000;
+		timeinfo = localtime(&timer);
+		strftime(acc_buf, LIST_DATE_WIDTH, LIST_DATE_FORMAT, timeinfo);
+
+		acc_pad = strlen(acc_buf) + 2;
+		name_padding = name_width - 4 - depth;
+	}
+
+	char *name = f12_get_file_name(entry);
 	if (NULL == name) {
 		return F12_ALLOCATION_ERROR;
 	}
 
 	char *temp = *output;
-	asprintf(output, "%s" "%*s|-> %s\n", temp, depth, "", name);
+	asprintf(output, LIST_FORMAT, temp, depth, "",
+		 name_padding, name,
+		 creat_buf, creat_pad, mod_buf, mod_pad, acc_buf, acc_pad);
 	free(temp);
 	free(name);
 
@@ -486,7 +548,7 @@ list_f12_entry(struct f12_directory_entry *entry,
 	    && !f12_is_dot_dir(entry)) {
 		for (int i = 0; i < entry->child_count; i++) {
 			err = list_f12_entry(&entry->children[i], output, args,
-					     depth + 2);
+					     depth + 2, name_width);
 			if (F12_SUCCESS != err) {
 				return err;
 			}

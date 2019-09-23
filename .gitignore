@@ -36,4 +36,7 @@
 # Do not ignore GNU indent profile
 !.indent.pro
 
+# Ignore temp files
+*.#*.c
+*.#*.h
 *~
