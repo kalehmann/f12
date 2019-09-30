@@ -73,6 +73,27 @@ info_regex() {
     echo "${REGEX}"
 }
 
+####
+# This generates a regex for checking for a specific file and its size in the
+# output of the f12 list command.
+#
+# Arguments:
+#  the file name
+#  the expected size with unit (bytes, KiB, MiB, GiB)
+# Globals:
+#  None
+# Returns:
+#  a regex that matches the list output for the file with the given size
+###
+list_size_regex() {
+    FILENAME="${1}"
+    read -a splited_size <<< "${2}"
+    SIZE="${splitted_size[0]}"
+    UNIT="${splitted_size[1]}"
+
+    echo "${FILENAME}[[:space:]]*${SIZE}[[:space:]]${UNIT}"
+}
+
 DIR_COUNT_REGEX="$(info_regex Directories digit)"
 DRIVE_NUMBER_REGEX="$(info_regex "Drive number" alnum)"
 FAT_COUNT_REGEX="$(info_regex "Number of fats" digit)"
@@ -488,6 +509,17 @@ fi
     do
 	[[ "${line}" =~ ${LIST_CREATE_MOD_ACC_REGEX} ]]
     done
+}
+
+@test "I can list the size of files" {
+    _run ./src/f12 list --recursive --with-size "${TEST_IMAGE}"
+    [[ "$output" =~ $(list_size_regex SECRET.TXT "9 bytes") ]]
+    [[ "$output" =~ $(list_size_regex FILE.BIN "15 bytes") ]]
+}
+
+@test "I can list the size of a single file" {
+    _run ./src/f12 list --with-size "${TEST_IMAGE}" FOLDER2/TEXT.TXT
+    [[ "$output" == "|-> TEXT.TXT 7 bytes" ]]
 }
 
 @test "I can list a single file" {

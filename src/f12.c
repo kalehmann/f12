@@ -18,18 +18,24 @@
 #define LIST_DATETIME_WIDTH 21
 #define LIST_DATE_WIDTH 12
 
+#define STRLEN(s) ( sizeof(s)/sizeof(s[0]) - sizeof(s[0]) )
+
 static const char *LIST_FORMAT =
-	"%s%*s|-> %-*s" "%6$*7$s" "%8$*9$s" "%10$*11$s\n";
+	"%s%*s|-> %-*s" "%6$*7$s" "%8$*9$s" "%10$*11$s" "%12$*13$s\n";
 static const char *LIST_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S";
 static const char *LIST_DATE_FORMAT = "%Y-%m-%d";
 
 static enum f12_error
 list_f12_entry(struct f12_directory_entry *entry, char **output,
-	       struct f12_list_arguments *args, int depth, int name_width);
+	       struct f12_list_arguments *args, int depth, int name_width,
+	       int size_width);
 
 static enum f12_error
 list_width(struct f12_directory_entry *root_entry, size_t prefix_len,
 	   size_t indent_len, size_t *width, int recursive);
+
+static size_t list_size_len(struct f12_directory_entry *root_entry,
+			    int recursive);
 
 static uint16_t
 sectorsPerFat(uint16_t sectors,
@@ -228,14 +234,41 @@ static char *format_bytes(size_t bytes)
 	if (bytes < 10000) {
 		asprintf(&out, "%ld bytes", bytes);
 	} else if (bytes < 10000000) {
-		asprintf(&out, "%ld KiB", bytes / 1024);
+		asprintf(&out, "%ld KiB  ", bytes / 1024);
 	} else if (bytes < 10000000000) {
-		asprintf(&out, "%ld MiB", bytes / (1024 * 1024));
+		asprintf(&out, "%ld MiB  ", bytes / (1024 * 1024));
 	} else {
-		asprintf(&out, "%ld GiB", bytes / (1024 * 1024 * 1024));
+		asprintf(&out, "%ld GiB  ", bytes / (1024 * 1024 * 1024));
 	}
 
 	return out;
+}
+
+static size_t digit_count(long number)
+{
+	long n = 10;
+
+	for (int i = 1; i < 20; i++) {
+		if (number < n) {
+			return i;
+		}
+		n *= 10;
+	}
+
+	return 20;
+}
+
+static size_t format_bytes_len(size_t bytes)
+{
+	if (bytes < 10000) {
+		return digit_count(bytes) + STRLEN(" bytes");
+	} else if (bytes < 10000000) {
+		return digit_count(bytes / 1024) + STRLEN(" KiB  ");
+	} else if (bytes < 10000000000) {
+		return digit_count(bytes / (1024 * 1024)) + STRLEN(" MiB  ");
+	}
+
+	return digit_count(bytes / (1024 * 1024 * 1024)) + STRLEN(" GiB  ");
 }
 
 static void info_dump_bpb(struct f12_metadata *f12_meta, char **output)
@@ -451,12 +484,14 @@ list_entry(struct f12_directory_entry *entry, char **output,
 	   struct f12_list_arguments *args)
 {
 	enum f12_error err;
-	size_t max_width;
+	size_t max_name_width, max_size_width;
 
-	list_width(entry, 4, 2, &max_width, args->recursive);
+	list_width(entry, 4, 2, &max_name_width, args->recursive);
+	max_size_width = list_size_len(entry, args->recursive);
 
 	if (!f12_is_directory(entry)) {
-		err = list_f12_entry(entry, output, args, 0, max_width);
+		err = list_f12_entry(entry, output, args, 0, max_name_width,
+				     max_size_width);
 		if (F12_SUCCESS != err) {
 			return err;
 		}
@@ -464,7 +499,7 @@ list_entry(struct f12_directory_entry *entry, char **output,
 
 	for (int i = 0; i < entry->child_count; i++) {
 		err = list_f12_entry(&entry->children[i], output, args, 0,
-				     max_width);
+				     max_name_width, max_size_width);
 		if (F12_SUCCESS != err) {
 			return err;
 		}
@@ -475,14 +510,16 @@ list_entry(struct f12_directory_entry *entry, char **output,
 
 static enum f12_error
 list_f12_entry(struct f12_directory_entry *entry, char **output,
-	       struct f12_list_arguments *args, int depth, int name_width)
+	       struct f12_list_arguments *args, int depth, int name_width,
+	       int size_width)
 {
 	enum f12_error err;
 	int name_padding = 0;
 	char creat_buf[LIST_DATETIME_WIDTH] = "";
 	char mod_buf[LIST_DATETIME_WIDTH] = "";
 	char acc_buf[LIST_DATE_WIDTH] = "";
-	int creat_pad = 0, mod_pad = 0, acc_pad = 0;
+	char *size_str = "";
+	int creat_pad = 0, mod_pad = 0, acc_pad = 0, size_pad = 0;
 	long usecs;
 	time_t timer;
 	struct tm *timeinfo;
@@ -532,6 +569,12 @@ list_f12_entry(struct f12_directory_entry *entry, char **output,
 		name_padding = name_width - 4 - depth;
 	}
 
+	if (args->with_size) {
+		size_str = format_bytes(entry->FileSize);
+		size_pad = size_width + 1;
+		name_padding = name_width - 4 - depth;
+	}
+
 	char *name = f12_get_file_name(entry);
 	if (NULL == name) {
 		return F12_ALLOCATION_ERROR;
@@ -540,15 +583,19 @@ list_f12_entry(struct f12_directory_entry *entry, char **output,
 	char *temp = *output;
 	asprintf(output, LIST_FORMAT, temp, depth, "",
 		 name_padding, name,
-		 creat_buf, creat_pad, mod_buf, mod_pad, acc_buf, acc_pad);
-	free(temp);
+		 creat_buf, creat_pad, mod_buf, mod_pad, acc_buf, acc_pad,
+		 size_str, size_pad);
 	free(name);
+	free(temp);
+	if (args->with_size) {
+		free(size_str);
+	}
 
 	if (args->recursive && f12_is_directory(entry)
 	    && !f12_is_dot_dir(entry)) {
 		for (int i = 0; i < entry->child_count; i++) {
 			err = list_f12_entry(&entry->children[i], output, args,
-					     depth + 2, name_width);
+					     depth + 2, name_width, size_width);
 			if (F12_SUCCESS != err) {
 				return err;
 			}
@@ -578,7 +625,7 @@ list_width(struct f12_directory_entry *root_entry, size_t prefix_len,
 	}
 
 	if (0 == root_entry->child_count) {
-		return 0;
+		return F12_SUCCESS;
 	}
 
 	for (int i = 0; i < root_entry->child_count; i++) {
@@ -613,6 +660,40 @@ list_width(struct f12_directory_entry *root_entry, size_t prefix_len,
 	*width = max_width;
 
 	return F12_SUCCESS;
+}
+
+static size_t list_size_len(struct f12_directory_entry *root_entry,
+			    int recursive)
+{
+	size_t cur_len = 0, max_len = 0;
+	struct f12_directory_entry *entry = NULL;
+
+	if (!f12_is_directory(root_entry)) {
+		return format_bytes_len(root_entry->FileSize);
+	}
+
+	if (0 == root_entry->child_count) {
+		return 0;
+	}
+
+	for (int i = 0; i < root_entry->child_count; i++) {
+		entry = &(root_entry->children[i]);
+		if (f12_entry_is_empty(entry) || f12_is_dot_dir(entry)) {
+			continue;
+		}
+
+		if (f12_is_directory(entry) && recursive) {
+			cur_len = list_size_len(entry, recursive);
+		} else {
+			cur_len = format_bytes_len(entry->FileSize);
+		}
+
+		if (cur_len > max_len) {
+			max_len = cur_len;
+		}
+	}
+
+	return max_len;
 }
 
 static enum f12_error
