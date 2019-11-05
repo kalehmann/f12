@@ -33,16 +33,14 @@ void setup(void)
 {
 	struct f12_directory_entry *child;
 
-	dir = malloc(sizeof(struct f12_directory_entry));
+	dir = calloc(1, sizeof(struct f12_directory_entry));
 	ck_assert_ptr_nonnull(dir);
-	memset(dir, 0, sizeof(struct f12_directory_entry));
 
 	dir->FileAttributes = F12_ATTR_SUBDIRECTORY;
 	dir->child_count = 8;
 	dir->parent = NULL;
-	dir->children = malloc(sizeof(struct f12_directory_entry) * 8);
+	dir->children = calloc(8, sizeof(struct f12_directory_entry));
 	ck_assert_ptr_nonnull(dir->children);
-	memset(dir->children, 0, sizeof(struct f12_directory_entry) * 8);
 
 	for (int i = 0; i < 3; i++) {
 		child = &dir->children[i];
@@ -53,12 +51,9 @@ void setup(void)
 		memmove(&child->ShortFileExtension, "   ", 3);
 		child->parent = dir;
 		child->child_count = 4;
-		child->children =
-			malloc(sizeof(struct f12_directory_entry) * 4);
+		child->children = calloc(4, sizeof(struct f12_directory_entry));
 		ck_assert_ptr_nonnull(child->children);
-		memset(child->children, 0,
-		       sizeof(struct f12_directory_entry) * 4);
-		for (int j = 0; j < 2; j++) {
+       		for (int j = 0; j < 2; j++) {
 			child->children[j].parent = child;
 			child->children[j].FileAttributes =
 				F12_ATTR_SUBDIRECTORY;
@@ -81,6 +76,7 @@ void setup(void)
 	for (int i = 3; i < 7; i++) {
 		memmove(&dir->children[i].ShortFileName, "FILE0   ", 8);
 		dir->children[i].ShortFileName[4] += i - 2;
+		dir->children[i].parent = dir;
 		if (i % 2) {
 			memmove(&dir->children[i].ShortFileExtension, "TXT", 3);
 		} else {
