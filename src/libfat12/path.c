@@ -7,12 +7,43 @@ enum f12_error _lf12_build_path(char **input_parts,
 {
 	enum f12_error err;
 
-	path->name = f12_convert_name(input_parts[0]);
-	if (NULL == path->name) {
+	path->ancestor = NULL;
+
+	char *name = f12_convert_name(input_parts[0]);
+	if (NULL == name) {
 		return F12_ALLOCATION_ERROR;
 	}
-	path->short_file_name = path->name;
-	path->short_file_extension = path->name + 8;
+
+	path->name = malloc(12);
+	if (NULL == path->name) {
+		free(name);
+
+		return F12_ALLOCATION_ERROR;
+	}
+	memcpy(path->name, name, 11);
+	path->name[11] = '\0';
+
+	path->short_file_name = malloc(9);
+	if (NULL == path->short_file_name) {
+		free(name);
+		free(path->name);
+
+		return F12_ALLOCATION_ERROR;
+	}
+	memcpy(path->short_file_name, name, 8);
+	path->short_file_name[8] = '\0';
+
+	path->short_file_extension = malloc(4);
+	if (NULL == path->short_file_extension) {
+		free(name);
+		free(path->name);
+		free(path->short_file_name);
+
+		return F12_ALLOCATION_ERROR;
+	}
+	memcpy(path->short_file_extension, name + 8, 3);
+	path->short_file_extension[3] = '\0';
+	free(name);
 
 	if (1 == part_count) {
 		path->descendant = NULL;
@@ -21,6 +52,10 @@ enum f12_error _lf12_build_path(char **input_parts,
 
 	path->descendant = malloc(sizeof(struct f12_path));
 	if (NULL == path->descendant) {
+		free(path->name);
+		free(path->short_file_name);
+		free(path->short_file_extension);
+
 		return F12_ALLOCATION_ERROR;
 	}
 
@@ -28,6 +63,8 @@ enum f12_error _lf12_build_path(char **input_parts,
 			       path->descendant);
 	if (F12_SUCCESS != err) {
 		free(path->name);
+		free(path->short_file_name);
+		free(path->short_file_extension);
 		free(path->descendant);
 
 		return err;
@@ -162,6 +199,8 @@ void f12_free_path(struct f12_path *path)
 	}
 
 	free(path->name);
+	free(path->short_file_name);
+	free(path->short_file_extension);
 	free(path);
 }
 
