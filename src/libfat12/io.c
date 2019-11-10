@@ -4,16 +4,10 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
+#include "io_p.h"
 #include "libfat12.h"
 
-/**
- * Get the value for a position in the file allocation table.
- *
- * @param fat a pointer to the compressed file allocation table
- * @param n the number of the entry to readout
- * @return the value of the entry
- */
-static uint16_t read_fat_entry(char *fat, int n)
+uint16_t _lf12_read_fat_entry(char *fat, int n)
 {
 	uint16_t fat_entry;
 	memcpy(&fat_entry, fat + n * 3 / 2, 2);
@@ -24,14 +18,7 @@ static uint16_t read_fat_entry(char *fat, int n)
 	}
 }
 
-/**
- * Get the position of a cluster on a fat12 partition.
- *
- * @param cluster the number of the cluster
- * @param f12_meta a pointer to the metadata of the partition
- * @return the position of the cluster on the partition
- */
-static int cluster_offset(uint16_t cluster, struct f12_metadata *f12_meta)
+int _lf12_cluster_offset(uint16_t cluster, struct f12_metadata *f12_meta)
 {
 	struct bios_parameter_block *bpb = f12_meta->bpb;
 	cluster -= 2;
@@ -43,15 +30,8 @@ static int cluster_offset(uint16_t cluster, struct f12_metadata *f12_meta)
 	return sector_offset * bpb->SectorSize + root_dir_offset;
 }
 
-/**
- * Get the number of clusters in a cluster chain.
- *
- * @param start_cluster number of the first cluster on the cluster chain
- * @param f12_meta a pointer to the metadata of the partition
- * @return the number of clusters in the cluster chain
- */
-static uint16_t get_cluster_chain_length(uint16_t start_cluster,
-					 struct f12_metadata *f12_meta)
+uint16_t _lf12_get_cluster_chain_length(uint16_t start_cluster,
+					struct f12_metadata *f12_meta)
 {
 	uint16_t current_cluster = start_cluster;
 	uint16_t chain_length = 1;
@@ -65,30 +45,18 @@ static uint16_t get_cluster_chain_length(uint16_t start_cluster,
 	return chain_length;
 }
 
-/**
- * Get the cluster size of the image
- *
- * @param f12_meta a pointer to the metadata of the partition
- * @return the size of a cluster on the partition in bytes
- */
-static size_t get_cluster_size(struct f12_metadata *f12_meta)
+size_t _lf12_get_cluster_size(struct f12_metadata *f12_meta)
 {
 	return f12_meta->bpb->SectorSize * f12_meta->bpb->SectorsPerCluster;
 }
 
-/**
- * Get the size of a cluster chain in bytes.
- *
- * @param start_cluster the number of the first cluster of the cluster chain
- * @param f12_meta a pointer to the metadata of the fat12 partition
- * @return the size of the cluster chain in bytes
- */
-static size_t get_cluster_chain_size(uint16_t start_cluster,
-				     struct f12_metadata *f12_meta)
+size_t _lf12_get_cluster_chain_size(uint16_t start_cluster,
+				    struct f12_metadata *f12_meta)
 {
-	size_t cluster_size = get_cluster_size(f12_meta);
+	size_t cluster_size = _lf12_get_cluster_size(f12_meta);
 
-	return cluster_size * get_cluster_chain_length(start_cluster, f12_meta);
+	return cluster_size * _lf12_get_cluster_chain_length(start_cluster,
+							     f12_meta);
 }
 
 /**
@@ -106,8 +74,9 @@ static char *load_cluster_chain(FILE * fp,
 {
 	uint16_t *fat_entries = f12_meta->fat_entries;
 	uint16_t current_cluster = start_cluster;
-	uint16_t cluster_size = get_cluster_size(f12_meta);
-	size_t data_size = get_cluster_chain_size(start_cluster, f12_meta);
+	uint16_t cluster_size = _lf12_get_cluster_size(f12_meta);
+	size_t data_size = _lf12_get_cluster_chain_size(start_cluster,
+							f12_meta);
 	int offset;
 	char *data;
 
@@ -118,7 +87,7 @@ static char *load_cluster_chain(FILE * fp,
 	}
 
 	do {
-		offset = cluster_offset(current_cluster, f12_meta);
+		offset = _lf12_cluster_offset(current_cluster, f12_meta);
 		if (0 != fseek(fp, offset, SEEK_SET)) {
 			f12_save_errno();
 
@@ -152,7 +121,7 @@ static enum f12_error erase_cluster_chain(FILE * fp,
 {
 	uint16_t *fat_entries = f12_meta->fat_entries;
 	uint16_t current_cluster = first_cluster;
-	size_t cluster_size = get_cluster_size(f12_meta);
+	size_t cluster_size = _lf12_get_cluster_size(f12_meta);
 	int offset;
 	char *zeros = malloc(cluster_size);
 
@@ -163,7 +132,7 @@ static enum f12_error erase_cluster_chain(FILE * fp,
 	memset(zeros, 0, cluster_size);
 
 	do {
-		offset = cluster_offset(current_cluster, f12_meta);
+		offset = _lf12_cluster_offset(current_cluster, f12_meta);
 		if (0 != fseek(fp, offset, SEEK_SET)) {
 			f12_save_errno();
 			free(zeros);
@@ -194,13 +163,7 @@ static void erase_entry(struct f12_directory_entry *entry)
 	memset(entry, 0, sizeof(struct f12_directory_entry));
 }
 
-/**
- * Populate a f12_directory_entry structure from the raw entry from the disk.
- *
- * @param data a pointer to the raw data
- * @param entry a pointer to the f12_directory_entry structure to populate
- */
-static void read_dir_entry(char *data, struct f12_directory_entry *entry)
+void _lf12_read_dir_entry(char *data, struct f12_directory_entry *entry)
 {
 	memcpy(&entry->ShortFileName, data, 8);
 	memcpy(&entry->ShortFileExtension, data + 8, 3);
@@ -253,8 +216,9 @@ static enum f12_error scan_subsequent_entries(FILE * fp,
 		return F12_SUCCESS;
 	}
 
-	size_t directory_size = get_cluster_chain_size(dir_entry->FirstCluster,
-						       f12_meta);
+	size_t directory_size =
+		_lf12_get_cluster_chain_size(dir_entry->FirstCluster,
+					     f12_meta);
 	int entry_count = directory_size / 32;
 	char *directory_table = load_cluster_chain(fp, dir_entry->FirstCluster,
 						   f12_meta);
@@ -272,7 +236,7 @@ static enum f12_error scan_subsequent_entries(FILE * fp,
 	dir_entry->child_count = entry_count;
 	dir_entry->children = entries;
 	for (int i = 0; i < entry_count; i++) {
-		read_dir_entry(directory_table + i * 32, &entries[i]);
+		_lf12_read_dir_entry(directory_table + i * 32, &entries[i]);
 		entries[i].parent = dir_entry;
 		err = scan_subsequent_entries(fp, f12_meta, &entries[i]);
 		if (F12_SUCCESS != err) {
@@ -321,7 +285,7 @@ static enum f12_error load_root_dir(FILE * fp, struct f12_metadata *f12_meta)
 	struct f12_directory_entry *root_entries = f12_meta->root_dir->children;
 
 	for (int i = 0; i < bpb->RootDirEntries; i++) {
-		read_dir_entry(root_data + i * 32, &root_entries[i]);
+		_lf12_read_dir_entry(root_data + i * 32, &root_entries[i]);
 
 		err = scan_subsequent_entries(fp, f12_meta, &root_entries[i]);
 		if (F12_SUCCESS != err) {
@@ -371,7 +335,7 @@ static enum f12_error read_fat_entries(FILE * fp, struct f12_metadata *f12_meta)
 	}
 
 	for (int i = 0; i < cluster_count; i++) {
-		f12_meta->fat_entries[i] = read_fat_entry(fat, i);
+		f12_meta->fat_entries[i] = _lf12_read_fat_entry(fat, i);
 	}
 
 	free(fat);
@@ -442,10 +406,11 @@ static enum f12_error write_to_cluster_chain(FILE * fp,
 					     size_t bytes,
 					     struct f12_metadata *f12_meta)
 {
-	uint16_t chain_length = get_cluster_chain_size(first_cluster, f12_meta);
+	uint16_t chain_length = _lf12_get_cluster_chain_size(first_cluster,
+							     f12_meta);
 	uint16_t written_bytes = 0;
 	uint16_t current_cluster = first_cluster;
-	uint16_t cluster_size = get_cluster_size(f12_meta);
+	uint16_t cluster_size = _lf12_get_cluster_size(f12_meta);
 	uint16_t *fat_entries = f12_meta->fat_entries;
 	uint16_t bytes_left;
 	int offset;
@@ -461,7 +426,7 @@ static enum f12_error write_to_cluster_chain(FILE * fp,
 	}
 
 	while (written_bytes < bytes) {
-		offset = cluster_offset(current_cluster, f12_meta);
+		offset = _lf12_cluster_offset(current_cluster, f12_meta);
 		if (0 != fseek(fp, offset, SEEK_SET)) {
 			f12_save_errno();
 
@@ -696,7 +661,8 @@ static enum f12_error write_directory(FILE * fp,
 		}
 	}
 
-	size_t dir_size = get_cluster_chain_size(entry->FirstCluster, f12_meta);
+	size_t dir_size = _lf12_get_cluster_chain_size(entry->FirstCluster,
+						       f12_meta);
 	char *dir = create_directory(entry, dir_size);
 	if (NULL == dir) {
 		return F12_ALLOCATION_ERROR;
@@ -756,16 +722,8 @@ static enum f12_error write_root_dir(FILE * fp, struct f12_metadata *f12_meta)
 	return F12_SUCCESS;
 }
 
-/**
- * Create a new cluster chain in the file allocation table of the metadata.
- *
- * @param f12_meta a pointer to the metadata of a fat12 image
- * @param cluster_count the number of clusters to allocate
- * @return the first cluster in the new cluster chain or zero if the file
- * allocation table is full
- */
-static uint16_t get_cluster_chain(struct f12_metadata *f12_meta,
-				  int cluster_count)
+uint16_t _lf12_create_cluster_chain(struct f12_metadata *f12_meta,
+				    int cluster_count)
 {
 	uint16_t i = 0, j = 2, first_cluster, last_cluster;
 
@@ -924,7 +882,7 @@ enum f12_error f12_create_file(FILE * fp,
 	int cluster_count;
 	uint16_t first_cluster;
 
-	cluster_size = get_cluster_size(f12_meta);
+	cluster_size = _lf12_get_cluster_size(f12_meta);
 	if (0 != fseek(source_fp, 0L, SEEK_END)) {
 		f12_save_errno();
 
@@ -945,7 +903,7 @@ enum f12_error f12_create_file(FILE * fp,
 		cluster_count++;
 	}
 
-	first_cluster = get_cluster_chain(f12_meta, cluster_count);
+	first_cluster = _lf12_create_cluster_chain(f12_meta, cluster_count);
 
 	if (0 == first_cluster) {
 		// Image full
@@ -1001,13 +959,14 @@ enum f12_error f12_create_directory_table(struct f12_metadata *f12_meta,
 		return F12_ALLOCATION_ERROR;
 	}
 
-	size_t cluster_size = get_cluster_size(f12_meta);
+	size_t cluster_size = _lf12_get_cluster_size(f12_meta);
 	uint16_t cluster_count = (table_size + cluster_size - 1) / cluster_size;
 
 	entry->children = children;
 	entry->child_count = 224;
 	entry->FileAttributes = F12_ATTR_SUBDIRECTORY;
-	entry->FirstCluster = get_cluster_chain(f12_meta, cluster_count);
+	entry->FirstCluster = _lf12_create_cluster_chain(f12_meta,
+							 cluster_count);
 	if (0 == entry->FirstCluster) {
 		return F12_IMAGE_FULL;
 	}
