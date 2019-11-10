@@ -3,7 +3,7 @@
 
 /**
  * Get the length of the path for a file or directory inside an fat12 formated
- * image.
+ * image, including a leading slash and the null termination character.
  *
  * @param entry the directory entry to get the path length for
  * @return the length of the entries path
