@@ -6,6 +6,11 @@
 
 #include "bpb.h"
 
+static int ceil_div(int a, int b)
+{
+	return (a + b - 1) / b;
+}
+
 void info_dump_bpb(struct f12_metadata *f12_meta, char **output)
 {
 	struct bios_parameter_block *bpb = f12_meta->bpb;
@@ -62,7 +67,8 @@ initialize_bpb(struct bios_parameter_block *bpb,
 	 * See <https://infogalactic.com/info/Design_of_the_FAT_file_system#media>
 	 * for the medium bytes and their corresponding disk sizes.
 	 *
-	 * The number of root dir entries multiplied with 32 is always a multiple of the sector size.
+	 * The number of root dir entries multiplied with 32 is always a multiple
+	 * of the sector size.
 	 */
 	switch (args->volume_size) {
 	case 2880:
@@ -96,6 +102,7 @@ initialize_bpb(struct bios_parameter_block *bpb,
 		bpb->NumberOfHeads = 2;
 		bpb->RootDirEntries = 224;
 		bpb->MediumByte = 0xf9;
+		break;
 	case 720:
 		bpb->SectorSize = 512;
 		bpb->SectorsPerCluster = 2;
@@ -186,13 +193,11 @@ initialize_bpb(struct bios_parameter_block *bpb,
 	}
 
 	bpb->LogicalSectors = size / bpb->SectorSize;
-	bpb->SectorsPerFat =
-		sectorsPerFat(bpb->LogicalSectors, bpb->SectorSize,
-			      bpb->SectorsPerCluster);
 	bpb->HiddenSectors = 0;
 	bpb->LargeSectors = bpb->LogicalSectors;
 	bpb->Flags = 0;
 	bpb->Signature = 0;
+	bpb->SectorsPerFat = sectors_per_fat(bpb);
 	f12_generate_volume_id(&(bpb->VolumeID));
 
 	if (NULL != args->volume_label) {
@@ -214,15 +219,58 @@ initialize_bpb(struct bios_parameter_block *bpb,
 	memcpy(&(bpb->FileSystem), "FAT12    ", 9);
 }
 
-uint16_t
-sectorsPerFat(uint16_t sectors,
-	      uint16_t sector_size, uint16_t sectors_per_cluster)
+uint16_t sectors_per_fat(struct bios_parameter_block *bpb)
 {
-	unsigned int fat_size = (sectors / sectors_per_cluster) * 3 / 2;
-	uint16_t fat_sectors = fat_size / sector_size;
-	if (fat_size % sector_size) {
-		fat_sectors++;
-	}
+	// Layout of a fat12 formated partition:
+	// Boot related stuff, File allocation tables, Root directory, data
+	//
+	// data_sectors = sectors - boot_sectors - root_sectors - fat_sectors
+	//
+	// The size of a file allocation table in sectors is
+	// boot_sectors is known and root_sectors can be calculated.
+	//
+	// Calculating the sectors of the file allocation tables is tricky, as
+	// the they depend on the clusters of the data sectors.
+	//
+	// The first step is to calculate the clusters with the file allocation
+	// tables included. Note that two clusters are added for the fat id and
+	// the end of chain marker.
+	//
+	// tmp_sectors = sectors - root_dir_sectors - boot_sectors
+	// clusters_with_fat = tmp_sectors / sectors_per_cluster + 2
+	//
+	// The sectors for the file allocation tables can be calculated with
+	//
+	// cluster_size = sectors_per_cluster * sector_size
+	// fat_sectors = 1.5 * clusters_with_fat / sector_size -
+	//         1.5 * number_of_fats fat_sectors / cluster_size
+	//
+	// fat_sectors * (1.5 * number_of_fats / cluster_size + 1) =
+	//         1.5 * clusters_with_fat / sector_size
+	// fat_sectors = 1.5 * clusters_with_fat / sector_size /
+	//         (1.5 * number_of_fats / cluster_size + 1)
+
+	unsigned int sectors = bpb->LargeSectors;
+	uint16_t sector_size = bpb->SectorSize;
+	uint8_t sectors_per_cluster = bpb->SectorsPerCluster;
+	uint16_t boot_sectors = bpb->ReservedForBoot;
+	uint16_t root_dir_entries = bpb->RootDirEntries;
+	uint8_t number_of_fats = bpb->NumberOfFats;
+	uint16_t fat_sectors;
+	size_t root_dir_size, cluster_size;
+	unsigned int root_dir_sectors, tmp_sectors, clusters_with_fat;
+
+	root_dir_size = root_dir_entries * 32;
+	root_dir_sectors = ceil_div(root_dir_size, sector_size);
+
+	tmp_sectors = sectors - root_dir_sectors - boot_sectors;
+	clusters_with_fat = ceil_div(tmp_sectors, sectors_per_cluster) + 2;
+	cluster_size = sectors_per_cluster * sector_size;
+
+	fat_sectors = ceil_div(1.5 * clusters_with_fat,
+			       sector_size * (1.5 * number_of_fats /
+					      cluster_size + 1)
+		);
 
 	return fat_sectors;
 }

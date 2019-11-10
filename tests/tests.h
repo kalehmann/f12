@@ -3,6 +3,7 @@
 
 #include <check.h>
 
+TCase *f12_bpb_case(void);
 TCase *f12_format_case(void);
 TCase *f12_list_case(void);
 

@@ -51,7 +51,7 @@ enum f12_error list_f12_entry(struct f12_directory_entry *entry, char **output,
  * @return any error that occurred or F12_SUCCESS
  */
 enum f12_error list_width(struct f12_directory_entry *root_entry,
-			  size_t prefix_len, size_t indent_len, size_t * width,
+			  size_t prefix_len, size_t indent_len, size_t *width,
 			  int recursive);
 
 /**

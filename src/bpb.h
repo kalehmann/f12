@@ -26,12 +26,11 @@ void initialize_bpb(struct bios_parameter_block *bpb,
 /**
  * Calculate the number of sectors per file allocation table.
  * 
- * @param sectors the total number of sectors
- * @param sector_size the size of each sectors
- * @param sectors_per_cluster the number of sectors per cluster
+ * @param bpb a pointer to a bios parameter block structure with at least the
+ *            following attributes set: LargeSectors, SectorSize,
+ *            SectorsPerCluster, ReservedForBoot, RootDirEntries, NumberOfFats
+ *
  * @return
  */
-uint16_t sectorsPerFat(uint16_t sectors, uint16_t sector_size,
-		       uint16_t sectors_per_cluster);
-
+uint16_t sectors_per_fat(struct bios_parameter_block *bpb);
 #endif

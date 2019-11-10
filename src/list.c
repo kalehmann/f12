@@ -142,7 +142,7 @@ enum f12_error list_f12_entry(struct f12_directory_entry *entry, char **output,
 }
 
 enum f12_error list_width(struct f12_directory_entry *root_entry,
-			  size_t prefix_len, size_t indent_len, size_t * width,
+			  size_t prefix_len, size_t indent_len, size_t *width,
 			  int recursive)
 {
 	size_t line_width = prefix_len, max_width = 0, max_child_width = 0;
@@ -198,7 +198,7 @@ enum f12_error list_width(struct f12_directory_entry *root_entry,
 	return F12_SUCCESS;
 }
 
-size_t list_size_len(struct f12_directory_entry * root_entry, int recursive)
+size_t list_size_len(struct f12_directory_entry *root_entry, int recursive)
 {
 	size_t cur_len = 0, max_len = 0;
 	struct f12_directory_entry *entry = NULL;

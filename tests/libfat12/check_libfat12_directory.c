@@ -53,7 +53,7 @@ void setup(void)
 		child->child_count = 4;
 		child->children = calloc(4, sizeof(struct f12_directory_entry));
 		ck_assert_ptr_nonnull(child->children);
-       		for (int j = 0; j < 2; j++) {
+		for (int j = 0; j < 2; j++) {
 			child->children[j].parent = child;
 			child->children[j].FileAttributes =
 				F12_ATTR_SUBDIRECTORY;
