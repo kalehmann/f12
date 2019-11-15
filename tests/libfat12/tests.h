@@ -5,6 +5,8 @@
 
 TCase *libfat12_directory_case(void);
 
+TCase *libfat12_io_case(void);
+
 TCase *libfat12_metadata_case(void);
 
 TCase *libfat12_name_case(void);

@@ -23,9 +23,9 @@ int _lf12_cluster_offset(uint16_t cluster, struct f12_metadata *f12_meta)
 	struct bios_parameter_block *bpb = f12_meta->bpb;
 	cluster -= 2;
 	int root_dir_offset = f12_meta->root_dir_offset;
-	int root_size = bpb->RootDirEntries * 32 / bpb->SectorSize;
+	int root_sectors = bpb->RootDirEntries * 32 / bpb->SectorSize;
 	int sector_offset =
-		cluster * f12_meta->bpb->SectorsPerCluster + root_size;
+		cluster * f12_meta->bpb->SectorsPerCluster + root_sectors;
 
 	return sector_offset * bpb->SectorSize + root_dir_offset;
 }
@@ -726,6 +726,18 @@ uint16_t _lf12_create_cluster_chain(struct f12_metadata *f12_meta,
 				    int cluster_count)
 {
 	uint16_t i = 0, j = 2, first_cluster, last_cluster;
+	unsigned int free_clusters = 0;
+
+	// Retrieve the number of unused cluster
+	for (int cluster = 2; cluster < f12_meta->entry_count; cluster++) {
+		if (0 == f12_meta->fat_entries[cluster]) {
+			free_clusters++;
+		}
+	}
+
+	if (cluster_count > free_clusters) {
+		return 0;
+	}
 
 	while (j < f12_meta->entry_count) {
 		if (f12_meta->fat_entries[j] == 0) {
