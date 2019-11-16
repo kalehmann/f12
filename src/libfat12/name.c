@@ -2,8 +2,9 @@
 #include <stdlib.h>
 
 #include "libfat12.h"
+#include "name_p.h"
 
-static size_t get_path_length(struct f12_directory_entry *entry)
+size_t _lf12_get_path_length(struct f12_directory_entry *entry)
 {
 	size_t path_length = 1;
 	struct f12_directory_entry *tmp_entry = entry;
@@ -93,7 +94,7 @@ char *f12_convert_name(char *name)
 enum f12_error f12_get_entry_path(struct f12_directory_entry *entry,
 				  char **path)
 {
-	size_t path_length = get_path_length(entry), name_length = 0;
+	size_t path_length = _lf12_get_path_length(entry), name_length = 0;
 	char *entry_name = NULL;
 	struct f12_directory_entry *tmp_entry = entry;
 

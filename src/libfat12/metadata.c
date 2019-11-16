@@ -10,7 +10,8 @@ enum f12_error f12_create_root_dir_meta(struct f12_metadata *f12_meta)
 	enum f12_error err;
 	struct bios_parameter_block *bpb = f12_meta->bpb;
 	size_t fat_size = bpb->SectorsPerFat * bpb->SectorSize;
-	uint16_t cluster_count = bpb->LogicalSectors / bpb->SectorsPerCluster;
+	uint16_t cluster_count =
+		bpb->LogicalSectors / bpb->SectorsPerCluster + 2;
 	struct f12_directory_entry *root_dir = NULL;
 	struct f12_directory_entry *root_entries = NULL;
 
@@ -108,19 +109,21 @@ void f12_free_metadata(struct f12_metadata *f12_meta)
 {
 	free(f12_meta->bpb);
 	free(f12_meta->fat_entries);
-	f12_free_entry(f12_meta->root_dir);
+	if (f12_meta->root_dir) {
+		f12_free_entry(f12_meta->root_dir);
+	}
 	free(f12_meta->root_dir);
 	free(f12_meta);
 }
 
 enum f12_error f12_create_metadata(struct f12_metadata **f12_meta)
 {
-	*f12_meta = malloc(sizeof(struct f12_metadata));
+	*f12_meta = calloc(1, sizeof(struct f12_metadata));
 	if (NULL == *f12_meta) {
 		return F12_ALLOCATION_ERROR;
 	}
 
-	(*f12_meta)->bpb = malloc(sizeof(struct bios_parameter_block));
+	(*f12_meta)->bpb = calloc(1, sizeof(struct bios_parameter_block));
 	if (NULL == (*f12_meta)->bpb) {
 		free(*f12_meta);
 
