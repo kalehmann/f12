@@ -1,19 +1,105 @@
+# Include the macros in the m4 directories
 ACLOCAL_AMFLAGS = -I m4
-SUBDIRS = src . tests
 
+# The main program(s) to build
+bin_PROGRAMS = src/f12
+# The library to build
+# noinst is a special prefix and means that the library is only used for
+# building or testing the program and not installed on the target system.
+noinst_LTLIBRARIES = src/libfat12/libfat12.la
+
+# Source files for the library to build 
+src_libfat12_libfat12_la_SOURCES = \
+	src/libfat12/directory_entry.c \
+	src/libfat12/error.c \
+	src/libfat12/io.c \
+	src/libfat12/metadata.c \
+	src/libfat12/name.c \
+	src/libfat12/path.c \
+	src/libfat12/libfat12.h
+# Additional compiler flags for the library to build
+src_libfat12_libfat12_la_CFLAGS = $(COVERAGE_CFLAGS)
+
+# Source files for the main program
+src_f12_SOURCES = \
+	src/bpb.c \
+	src/bpb.h \
+	src/f12.c \
+	src/f12.h \
+	src/filesystem.c \
+	src/filesystem.h \
+	src/format.c \
+	src/format.h \
+	src/list.c \
+	src/list.h \
+	src/main.c
+# Additional compiler flags for the main program
+src_f12_CFLAGS = $(COVERAGE_CFLAGS)
+# Libraries linked to the main program
+src_f12_LDADD = src/libfat12/libfat12.la
+# Additional linker flags for the libraries linked to the main program
+src_f12_LDFLAGS = $(COVERAGE_LDFLAGS)
+
+# All the programs that are build for tests
+check_PROGRAMS = \
+	tests/check_f12 \
+	tests/libfat12/check_libfat12
+# The programs that are executed as tests. While they are identical with the
+# the check_PROGRAMS here, that may not always be the case, for example
+# check_PROGRAMS may include additional programs that are only called by other
+# tests and TESTS may include scripts that do not need to be build.
+TESTS = $(check_PROGRAMS)
+
+# Sources for the tests of the main program
+tests_check_f12_SOURCES = \
+	tests/check_f12.c \
+	tests/check_f12_bpb.c \
+	tests/check_f12_format.c \
+	tests/check_f12_list.c \
+	src/bpb.c \
+	src/format.c \
+	src/list.c
+# Additional compiler flags for the tests of the main program
+tests_check_f12_CFLAGS = @CHECK_CFLAGS@ $(COVERAGE_CFLAGS)
+# Additional libraries for the tests of the main program
+tests_check_f12_LDADD = \
+	src/libfat12/libfat12.la \
+	@CHECK_LIBS@ \
+	$(COVERAGE_LDFLAGS)
+# Sources for the tests of the libfat12 library
+tests_libfat12_check_libfat12_SOURCES = \
+	tests/libfat12/check_libfat12.c \
+	tests/libfat12/check_libfat12_directory.c \
+	tests/libfat12/check_libfat12_io.c \
+	tests/libfat12/check_libfat12_metadata.c \
+	tests/libfat12/check_libfat12_name.c \
+	tests/libfat12/check_libfat12_path.c \
+	tests/libfat12/tests.h
+# Additional compiler flags for the tests of the libfat12 library
+tests_libfat12_check_libfat12_CFLAGS = @CHECK_CFLAGS@ $(COVERAGE_CFLAGS)
+# Additional libraries for tests of the libfat12 library
+tests_libfat12_check_libfat12_LDADD = \
+	src/libfat12/libfat12.la \
+	@CHECK_LIBS@ \
+	$(COVERAGE_LDFLAGS)
+
+# Additional target for generation of coverage reports
 if ENABLECOVERAGE
 coverage-report:
 	lcov --directory . --capture --output-file tests.info
 	genhtml -o coverage-html/ tests.info
 endif
 
+# Additional target for beautification of the code
 if ENABLEBEAUTIFY
 beautify:
 	indent $$(find . -name "*.[ch]")
 endif
 
+# Additional cleanup for coverage reports
 clean-local:
 	rm -f tests.info
 	rm -rf coverage-html
+	find . -type f \( -name ".gcov" -o -name "*.gcda" -o -name "*.gcno" \) -delete
 
-.PHONY: coverage-report
+.PHONY: beautify coverage-report

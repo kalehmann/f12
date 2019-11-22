@@ -2,7 +2,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 
-#include "../src/libfat12/io_p.h"
+#include "../../src/libfat12/io_p.h"
 #include "tests.h"
 
 START_TEST(test_lf12_read_fat_entry)

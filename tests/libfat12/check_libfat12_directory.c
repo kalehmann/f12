@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "tests.h"
-#include "../src/libfat12/libfat12.h"
+#include "../../src/libfat12/libfat12.h"
 
 /*
  * |-> SUBDIR1

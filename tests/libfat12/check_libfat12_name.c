@@ -1,8 +1,8 @@
 #include <check.h>
 #include <stdlib.h>
 
-#include "../src/libfat12/libfat12.h"
-#include "../src/libfat12/name_p.h"
+#include "../../src/libfat12/libfat12.h"
+#include "../../src/libfat12/name_p.h"
 #include "tests.h"
 
 START_TEST(test_lf12_get_path_length)

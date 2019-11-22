@@ -5,7 +5,7 @@
 
 #include <check.h>
 
-#include "../src/libfat12/libfat12.h"
+#include "../../src/libfat12/libfat12.h"
 #include "tests.h"
 
 START_TEST(test_f12_generate_volume_id)
