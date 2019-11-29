@@ -53,29 +53,29 @@ size_t format_bytes_len(size_t bytes)
 	return digit_count(bytes / (1024 * 1024 * 1024)) + STRLEN(" GiB  ");
 }
 
-enum f12_error dump_move(struct f12_directory_entry *src,
-			 struct f12_directory_entry *dest, char **output)
+enum lf12_error dump_move(struct lf12_directory_entry *src,
+			  struct lf12_directory_entry *dest, char **output)
 {
-	enum f12_error err;
+	enum lf12_error err;
 	char *tmp = NULL, *file_name = NULL, *dest_path = NULL, *src_path =
 		NULL;
-	struct f12_directory_entry *tmp_entry = src, *child = NULL;
+	struct lf12_directory_entry *tmp_entry = src, *child = NULL;
 	int i = 0;
 	size_t src_offset = 0;
 
-	err = f12_get_entry_path(dest, &dest_path);
+	err = lf12_get_entry_path(dest, &dest_path);
 	if (F12_SUCCESS != err) {
 		return err;
 	}
 
-	if (!f12_is_directory(tmp_entry)) {
-		err = f12_get_entry_path(src, &src_path);
+	if (!lf12_is_directory(tmp_entry)) {
+		err = lf12_get_entry_path(src, &src_path);
 		if (err != F12_SUCCESS) {
 			free(dest_path);
 
 			return err;
 		}
-		file_name = f12_get_file_name(src);
+		file_name = lf12_get_file_name(src);
 		if (*output) {
 			tmp = *output;
 			asprintf(output, "%s%s -> %s/%s\n", *output,
@@ -92,7 +92,7 @@ enum f12_error dump_move(struct f12_directory_entry *src,
 		return F12_SUCCESS;
 	}
 
-	err = f12_get_entry_path(src, &tmp);
+	err = lf12_get_entry_path(src, &tmp);
 	if (err != F12_SUCCESS) {
 		free(dest_path);
 
@@ -113,11 +113,11 @@ enum f12_error dump_move(struct f12_directory_entry *src,
 
 		child = &tmp_entry->children[i];
 
-		if (f12_is_dot_dir(child) || f12_entry_is_empty(child)) {
+		if (lf12_is_dot_dir(child) || lf12_entry_is_empty(child)) {
 			i++;
 			continue;
 		}
-		err = f12_get_entry_path(child, &src_path);
+		err = lf12_get_entry_path(child, &src_path);
 		if (err != F12_SUCCESS) {
 			free(dest_path);
 
@@ -132,15 +132,16 @@ enum f12_error dump_move(struct f12_directory_entry *src,
 		}
 
 		tmp = *output;
-		file_name = f12_get_file_name(src);
+		file_name = lf12_get_file_name(src);
 		asprintf(output, "%s -> %s/%s%s\n", *output,
 			 dest_path, file_name, src_path + src_offset);
 		free(file_name);
 		free(tmp);
 		free(src_path);
 
-		if (f12_is_directory(child)
-		    && f12_get_child_count(child) > 2 && !f12_is_dot_dir(child)) {
+		if (lf12_is_directory(child)
+		    && lf12_get_child_count(child) > 2
+		    && !lf12_is_dot_dir(child)) {
 			tmp_entry = child;
 			i = 0;
 

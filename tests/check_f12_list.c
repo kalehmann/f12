@@ -29,30 +29,31 @@
  * |-> (empty)        |
  * |-> (empty)        |
  */
-struct f12_directory_entry *dir;
+struct lf12_directory_entry *dir;
 
 void setup(void)
 {
-	struct f12_directory_entry *child;
+	struct lf12_directory_entry *child;
 
-	dir = calloc(1, sizeof(struct f12_directory_entry));
+	dir = calloc(1, sizeof(struct lf12_directory_entry));
 	ck_assert_ptr_nonnull(dir);
 
-	dir->FileAttributes = F12_ATTR_SUBDIRECTORY;
+	dir->FileAttributes = LF12_ATTR_SUBDIRECTORY;
 	dir->child_count = 8;
 	dir->parent = NULL;
-	dir->children = calloc(8, sizeof(struct f12_directory_entry));
+	dir->children = calloc(8, sizeof(struct lf12_directory_entry));
 	ck_assert_ptr_nonnull(dir->children);
 
 	for (int i = 0; i < 6; i++) {
 		child = &dir->children[i];
 
 		if (i < 4) {
-			child->FileAttributes = F12_ATTR_SUBDIRECTORY;
+			child->FileAttributes = LF12_ATTR_SUBDIRECTORY;
 		}
 		child->parent = dir;
 		child->child_count = 4;
-		child->children = calloc(4, sizeof(struct f12_directory_entry));
+		child->children =
+			calloc(4, sizeof(struct lf12_directory_entry));
 	}
 
 	memmove(&dir->children[0].ShortFileName, "BIN     ", 8);
@@ -115,12 +116,12 @@ void setup(void)
 
 void teardown(void)
 {
-	f12_free_entry(dir);
+	lf12_free_entry(dir);
 }
 
 START_TEST(test_f12_list_width)
 {
-	enum f12_error err;
+	enum lf12_error err;
 	size_t width;
 
 	err = list_width(dir, 4, 2, &width, 1);
@@ -148,7 +149,7 @@ END_TEST
 START_TEST(test_f12_list_size_len)
 {
 	size_t len;
-	struct f12_directory_entry *devices = &dir->children[1];
+	struct lf12_directory_entry *devices = &dir->children[1];
 
 	len = list_size_len(dir, 1);
 

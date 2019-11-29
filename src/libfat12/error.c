@@ -19,7 +19,7 @@ static char *ERR_DIR = "Target is a directory. Maybe use the recursive flag";
 static int saved_errno = 0;
 static int has_saved = 0;
 
-void f12_save_errno(void)
+void lf12_save_errno(void)
 {
 	if (has_saved) {
 		return;
@@ -29,7 +29,7 @@ void f12_save_errno(void)
 	saved_errno = errno;
 }
 
-char *f12_strerror(enum f12_error err)
+char *lf12_strerror(enum lf12_error err)
 {
 	switch (err) {
 	case F12_NOT_A_DIR:

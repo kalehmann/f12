@@ -12,7 +12,7 @@
  *
  * @param fp a file pointer to the fat 12 image
  * @param f12_meta a pointer to the metadata of the fat 12 image
- * @param entry a pointer to the f12_directory_entry structure describing the
+ * @param entry a pointer to the lf12_directory_entry structure describing the
  *              the file or directory to dump
  * @param dest_path a pointer to the string with the output path on the
  *                  filesystem
@@ -21,8 +21,8 @@
  *               files
  * @return 0 on success or -1 on an error
  */
-int dump_f12_structure(FILE * fp, struct f12_metadata *f12_meta,
-		       struct f12_directory_entry *entry, char *dest_path,
+int dump_f12_structure(FILE * fp, struct lf12_metadata *f12_meta,
+		       struct lf12_directory_entry *entry, char *dest_path,
 		       struct f12_get_arguments *args, char **output);
 
 /**
@@ -39,6 +39,7 @@ int dump_f12_structure(FILE * fp, struct f12_metadata *f12_meta,
  *         according to error
  */
 int walk_dir(FILE * fp, struct f12_put_arguments *args,
-	     struct f12_metadata *f12_meta, suseconds_t created, char **output);
+	     struct lf12_metadata *f12_meta, suseconds_t created,
+	     char **output);
 
 #endif

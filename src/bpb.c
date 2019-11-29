@@ -11,7 +11,7 @@ static int ceil_div(int a, int b)
 	return (a + b - 1) / b;
 }
 
-void info_dump_bpb(struct f12_metadata *f12_meta, char **output)
+void info_dump_bpb(struct lf12_metadata *f12_meta, char **output)
 {
 	struct bios_parameter_block *bpb = f12_meta->bpb;
 
@@ -198,7 +198,7 @@ initialize_bpb(struct bios_parameter_block *bpb,
 	bpb->Flags = 0;
 	bpb->Signature = 0;
 	bpb->SectorsPerFat = sectors_per_fat(bpb);
-	f12_generate_volume_id(&(bpb->VolumeID));
+	lf12_generate_volume_id(&(bpb->VolumeID));
 
 	if (NULL != args->volume_label) {
 		if (strlen(args->volume_label) < 12) {

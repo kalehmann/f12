@@ -38,10 +38,10 @@ END_TEST
 START_TEST(test_lf12_cluster_offset)
 {
 	int offset;
-	enum f12_error err;
-	struct f12_metadata *f12_meta;
+	enum lf12_error err;
+	struct lf12_metadata *f12_meta;
 
-	err = f12_create_metadata(&f12_meta);
+	err = lf12_create_metadata(&f12_meta);
 	ck_assert_int_eq(F12_SUCCESS, err);
 
 	f12_meta->bpb->SectorSize = 1024;
@@ -58,7 +58,7 @@ START_TEST(test_lf12_cluster_offset)
 
 	ck_assert_int_eq(109568, offset);
 
-	f12_free_metadata(f12_meta);
+	lf12_free_metadata(f12_meta);
 }
 // *INDENT-OFF*
 END_TEST
@@ -67,8 +67,8 @@ END_TEST
 START_TEST(test_lf12_get_cluster_chain_length)
 {
 	uint16_t chain_length;
-	enum f12_error err;
-	struct f12_metadata *f12_meta;
+	enum lf12_error err;
+	struct lf12_metadata *f12_meta;
 	uint16_t fat_entries[] = {
 		0xff0,
 		0xfff,
@@ -83,7 +83,7 @@ START_TEST(test_lf12_get_cluster_chain_length)
 		0xfff,
 	};
 
-	err = f12_create_metadata(&f12_meta);
+	err = lf12_create_metadata(&f12_meta);
 	ck_assert_int_eq(F12_SUCCESS, err);
 
 	f12_meta->fat_entries = fat_entries;
@@ -93,7 +93,7 @@ START_TEST(test_lf12_get_cluster_chain_length)
 	ck_assert_int_eq(7, chain_length);
 
 	f12_meta->fat_entries = NULL;
-	f12_free_metadata(f12_meta);
+	lf12_free_metadata(f12_meta);
 }
 // *INDENT-OFF*
 END_TEST
@@ -102,10 +102,10 @@ END_TEST
 START_TEST(test_lf12_get_cluster_size)
 {
 	size_t cluster_size;
-	enum f12_error err;
-	struct f12_metadata *f12_meta;
+	enum lf12_error err;
+	struct lf12_metadata *f12_meta;
 
-	err = f12_create_metadata(&f12_meta);
+	err = lf12_create_metadata(&f12_meta);
 	ck_assert_int_eq(F12_SUCCESS, err);
 
 	f12_meta->bpb->SectorSize = 512;
@@ -114,7 +114,7 @@ START_TEST(test_lf12_get_cluster_size)
 	cluster_size = _lf12_get_cluster_size(f12_meta);
 	ck_assert_int_eq(2048, cluster_size);
 
-	f12_free_metadata(f12_meta);
+	lf12_free_metadata(f12_meta);
 }
 // *INDENT-OFF*
 END_TEST
@@ -123,8 +123,8 @@ END_TEST
 START_TEST(test_lf12_get_cluster_chain_size)
 {
 	size_t chain_size;
-	enum f12_error err;
-	struct f12_metadata *f12_meta;
+	enum lf12_error err;
+	struct lf12_metadata *f12_meta;
 	uint16_t fat_entries[] = {
 		0xff0,
 		0xfff,
@@ -138,7 +138,7 @@ START_TEST(test_lf12_get_cluster_chain_size)
 		0xfff,
 	};
 
-	err = f12_create_metadata(&f12_meta);
+	err = lf12_create_metadata(&f12_meta);
 	ck_assert_int_eq(F12_SUCCESS, err);
 
 	f12_meta->fat_entries = fat_entries;
@@ -151,7 +151,7 @@ START_TEST(test_lf12_get_cluster_chain_size)
 	ck_assert_int_eq(10240, chain_size);
 
 	f12_meta->fat_entries = NULL;
-	f12_free_metadata(f12_meta);
+	lf12_free_metadata(f12_meta);
 }
 // *INDENT-OFF*
 END_TEST
@@ -159,7 +159,7 @@ END_TEST
 
 START_TEST(test_lf12_read_dir_entry)
 {
-	struct f12_directory_entry entry = { 0 };
+	struct lf12_directory_entry entry = { 0 };
 
 	char entry_data[] = {
 		// Short file name
@@ -212,8 +212,8 @@ END_TEST
 
 START_TEST(test_lf12_create_cluster_chain)
 {
-	enum f12_error err;
-	struct f12_metadata *f12_meta;
+	enum lf12_error err;
+	struct lf12_metadata *f12_meta;
 	uint16_t first_cluster;
 
 	uint16_t fat_entries[] = {
@@ -229,7 +229,7 @@ START_TEST(test_lf12_create_cluster_chain)
 		0x0,
 	};
 
-	err = f12_create_metadata(&f12_meta);
+	err = lf12_create_metadata(&f12_meta);
 	ck_assert_int_eq(F12_SUCCESS, err);
 
 	f12_meta->entry_count = 10;
@@ -242,7 +242,7 @@ START_TEST(test_lf12_create_cluster_chain)
 	ck_assert_int_ne(0, first_cluster);
 
 	f12_meta->fat_entries = NULL;
-	f12_free_metadata(f12_meta);
+	lf12_free_metadata(f12_meta);
 }
 // *INDENT-OFF*
 END_TEST

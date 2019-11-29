@@ -8,12 +8,12 @@
 #include "../../src/libfat12/libfat12.h"
 #include "tests.h"
 
-START_TEST(test_f12_generate_volume_id)
+START_TEST(test_lf12_generate_volume_id)
 {
 	uint32_t volume_id = 0;
-	enum f12_error err;
+	enum lf12_error err;
 
-	err = f12_generate_volume_id(&volume_id);
+	err = lf12_generate_volume_id(&volume_id);
 	ck_assert_int_eq(err, F12_SUCCESS);
 
 	ck_assert_uint_ne(0, volume_id);
@@ -22,7 +22,7 @@ START_TEST(test_f12_generate_volume_id)
 END_TEST
 // *INDENT-ON*
 
-START_TEST(test_f12_generate_entry_timestamp)
+START_TEST(test_lf12_generate_entry_timestamp)
 {
 	void *ret;
 	/**
@@ -36,7 +36,7 @@ START_TEST(test_f12_generate_entry_timestamp)
 	uint16_t date, time;
 	uint8_t msecs;
 
-	f12_generate_entry_timestamp(utime, &date, &time, &msecs);
+	lf12_generate_entry_timestamp(utime, &date, &time, &msecs);
 
 	/*
 	 * year = 2018 - 1980 = 38
@@ -67,7 +67,7 @@ START_TEST(test_f12_generate_entry_timestamp)
 END_TEST
 // *INDENT-ON*
 
-START_TEST(test_f12_read_entry_timestamp)
+START_TEST(test_lf12_read_entry_timestamp)
 {
 	struct tm *timeinfo;
 	uint16_t p_date = 19658, p_time = 33831;
@@ -75,7 +75,7 @@ START_TEST(test_f12_read_entry_timestamp)
 	char *restrict buf = malloc(80);
 	ck_assert_ptr_nonnull(buf);
 
-	long usecs = f12_read_entry_timestamp(p_date, p_time, p_msecs);
+	long usecs = lf12_read_entry_timestamp(p_date, p_time, p_msecs);
 	time_t timer = usecs / 1000000;
 
 	timeinfo = gmtime(&timer);
@@ -97,9 +97,10 @@ TCase *libfat12_metadata_case(void)
 	TCase *tc_libfat12_metadata;
 
 	tc_libfat12_metadata = tcase_create("libfat12 metadata");
-	tcase_add_test(tc_libfat12_metadata, test_f12_generate_volume_id);
-	tcase_add_test(tc_libfat12_metadata, test_f12_generate_entry_timestamp);
-	tcase_add_test(tc_libfat12_metadata, test_f12_read_entry_timestamp);
+	tcase_add_test(tc_libfat12_metadata, test_lf12_generate_volume_id);
+	tcase_add_test(tc_libfat12_metadata,
+		       test_lf12_generate_entry_timestamp);
+	tcase_add_test(tc_libfat12_metadata, test_lf12_read_entry_timestamp);
 
 	return tc_libfat12_metadata;
 }

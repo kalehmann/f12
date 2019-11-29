@@ -5,23 +5,24 @@
 
 #include "libfat12.h"
 
-enum f12_error f12_create_root_dir_meta(struct f12_metadata *f12_meta)
+enum lf12_error lf12_create_root_dir_meta(struct lf12_metadata *f12_meta)
 {
-	enum f12_error err;
+	enum lf12_error err;
 	struct bios_parameter_block *bpb = f12_meta->bpb;
 	size_t fat_size = bpb->SectorsPerFat * bpb->SectorSize;
 	uint16_t cluster_count =
 		bpb->LogicalSectors / bpb->SectorsPerCluster + 2;
-	struct f12_directory_entry *root_dir = NULL;
-	struct f12_directory_entry *root_entries = NULL;
+	struct lf12_directory_entry *root_dir = NULL;
+	struct lf12_directory_entry *root_entries = NULL;
 
-	root_dir = calloc(1, sizeof(struct f12_directory_entry));
+	root_dir = calloc(1, sizeof(struct lf12_directory_entry));
 	if (NULL == root_dir) {
 		return F12_ALLOCATION_ERROR;
 	}
 
 	root_entries =
-		calloc(bpb->RootDirEntries, sizeof(struct f12_directory_entry));
+		calloc(bpb->RootDirEntries,
+		       sizeof(struct lf12_directory_entry));
 	if (NULL == root_entries) {
 		free(root_dir);
 
@@ -31,7 +32,7 @@ enum f12_error f12_create_root_dir_meta(struct f12_metadata *f12_meta)
 	memset(root_dir->ShortFileName, ' ', 8);
 	memset(root_dir->ShortFileExtension, ' ', 3);
 	root_dir->parent = NULL;
-	root_dir->FileAttributes |= F12_ATTR_SUBDIRECTORY;
+	root_dir->FileAttributes |= LF12_ATTR_SUBDIRECTORY;
 	root_dir->children = root_entries;
 	root_dir->child_count = bpb->RootDirEntries;
 
@@ -57,14 +58,14 @@ enum f12_error f12_create_root_dir_meta(struct f12_metadata *f12_meta)
 	return F12_SUCCESS;
 }
 
-size_t f12_get_partition_size(struct f12_metadata *f12_meta)
+size_t lf12_get_partition_size(struct lf12_metadata *f12_meta)
 {
 	struct bios_parameter_block *bpb = f12_meta->bpb;
 
 	return bpb->SectorSize * bpb->LogicalSectors;
 }
 
-size_t f12_get_used_bytes(struct f12_metadata *f12_meta)
+size_t lf12_get_used_bytes(struct lf12_metadata *f12_meta)
 {
 	struct bios_parameter_block *bpb = f12_meta->bpb;
 	uint16_t cluster_count = bpb->LogicalSectors / bpb->SectorsPerCluster;
@@ -81,12 +82,12 @@ size_t f12_get_used_bytes(struct f12_metadata *f12_meta)
 	return used_bytes;
 }
 
-enum f12_error f12_generate_volume_id(uint32_t * volume_id)
+enum lf12_error lf12_generate_volume_id(uint32_t * volume_id)
 {
 	struct timeval now;
 
 	if (0 != gettimeofday(&now, NULL)) {
-		f12_save_errno();
+		lf12_save_errno();
 		*volume_id = 0;
 
 		return F12_UNKNOWN_ERROR;
@@ -105,20 +106,20 @@ enum f12_error f12_generate_volume_id(uint32_t * volume_id)
 	return F12_SUCCESS;
 }
 
-void f12_free_metadata(struct f12_metadata *f12_meta)
+void lf12_free_metadata(struct lf12_metadata *f12_meta)
 {
 	free(f12_meta->bpb);
 	free(f12_meta->fat_entries);
 	if (f12_meta->root_dir) {
-		f12_free_entry(f12_meta->root_dir);
+		lf12_free_entry(f12_meta->root_dir);
 	}
 	free(f12_meta->root_dir);
 	free(f12_meta);
 }
 
-enum f12_error f12_create_metadata(struct f12_metadata **f12_meta)
+enum lf12_error lf12_create_metadata(struct lf12_metadata **f12_meta)
 {
-	*f12_meta = calloc(1, sizeof(struct f12_metadata));
+	*f12_meta = calloc(1, sizeof(struct lf12_metadata));
 	if (NULL == *f12_meta) {
 		return F12_ALLOCATION_ERROR;
 	}
@@ -133,8 +134,8 @@ enum f12_error f12_create_metadata(struct f12_metadata **f12_meta)
 	return F12_SUCCESS;
 }
 
-void f12_generate_entry_timestamp(long usecs, uint16_t * date, uint16_t * time,
-				  uint8_t * msecs)
+void lf12_generate_entry_timestamp(long usecs, uint16_t * date, uint16_t * time,
+				   uint8_t * msecs)
 {
 	char seconds, minutes, hours, day, month, year;
 	time_t timer = usecs / 1000000;
@@ -168,7 +169,7 @@ void f12_generate_entry_timestamp(long usecs, uint16_t * date, uint16_t * time,
 	*msecs = milliseconds / 10;
 }
 
-long f12_read_entry_timestamp(uint16_t date, uint16_t time, uint8_t msecs)
+long lf12_read_entry_timestamp(uint16_t date, uint16_t time, uint8_t msecs)
 {
 	time_t timer = 0;
 	struct tm timeinfo = { 0 };

@@ -35,15 +35,15 @@ size_t format_bytes_len(size_t bytes);
  * Dumps all affected files of a move operation on a fat 12 image in to a
  * string.
  * 
- * @param src a pointer to the f12_directory_entry structure describing the
+ * @param src a pointer to the lf12_directory_entry structure describing the
  *            source of the movement
- * @param dest a pointer to the f12_directory_entry structure describing the
+ * @param dest a pointer to the lf12_directory_entry structure describing the
  *             destination of the movement
  * @param output a pointer the the string pointer of the output.
  *               The contents of the pointer must be freed,
  * @return any error that occurred or F12_SUCCESS
  */
-enum f12_error dump_move(struct f12_directory_entry *src,
-			 struct f12_directory_entry *dest, char **output);
+enum lf12_error dump_move(struct lf12_directory_entry *src,
+			  struct lf12_directory_entry *dest, char **output);
 
 #endif

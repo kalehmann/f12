@@ -11,7 +11,7 @@
  * @param f12_meta a pointer to the metadata of an fat 12 image
  * @param output a pointer to the string pointer with the output
  */
-void info_dump_bpb(struct f12_metadata *f12_meta, char **output);
+void info_dump_bpb(struct lf12_metadata *f12_meta, char **output);
 
 /**
  * Initializes a bios parameter block based on the values in the arguments.

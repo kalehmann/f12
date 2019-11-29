@@ -4,10 +4,10 @@
 #include "libfat12.h"
 #include "name_p.h"
 
-size_t _lf12_get_path_length(struct f12_directory_entry *entry)
+size_t _lf12_get_path_length(struct lf12_directory_entry *entry)
 {
 	size_t path_length = 1;
-	struct f12_directory_entry *tmp_entry = entry;
+	struct lf12_directory_entry *tmp_entry = entry;
 
 	do {
 		for (int i = 0; i < 8; i++) {
@@ -34,7 +34,7 @@ size_t _lf12_get_path_length(struct f12_directory_entry *entry)
 	return path_length;
 }
 
-char *f12_get_file_name(struct f12_directory_entry *entry)
+char *lf12_get_file_name(struct lf12_directory_entry *entry)
 {
 	char name[13], *result;
 	int length = 0;
@@ -67,7 +67,7 @@ char *f12_get_file_name(struct f12_directory_entry *entry)
 	return result;
 }
 
-char *f12_convert_name(char *name)
+char *lf12_convert_name(char *name)
 {
 	int i = 0;
 	char *converted_name = malloc(11), c;
@@ -91,12 +91,12 @@ char *f12_convert_name(char *name)
 	return converted_name;
 }
 
-enum f12_error f12_get_entry_path(struct f12_directory_entry *entry,
-				  char **path)
+enum lf12_error lf12_get_entry_path(struct lf12_directory_entry *entry,
+				    char **path)
 {
 	size_t path_length = _lf12_get_path_length(entry), name_length = 0;
 	char *entry_name = NULL;
-	struct f12_directory_entry *tmp_entry = entry;
+	struct lf12_directory_entry *tmp_entry = entry;
 
 	*path = malloc(path_length);
 
@@ -108,7 +108,7 @@ enum f12_error f12_get_entry_path(struct f12_directory_entry *entry,
 	(*path) += path_length - 1;
 
 	do {
-		entry_name = f12_get_file_name(tmp_entry);
+		entry_name = lf12_get_file_name(tmp_entry);
 		if (NULL == entry_name) {
 			free(*path);
 

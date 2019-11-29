@@ -10,22 +10,22 @@
 
 #include "filesystem.h"
 
-int dump_f12_structure(FILE * fp, struct f12_metadata *f12_meta,
-		       struct f12_directory_entry *entry, char *dest_path,
+int dump_f12_structure(FILE * fp, struct lf12_metadata *f12_meta,
+		       struct lf12_directory_entry *entry, char *dest_path,
 		       struct f12_get_arguments *args, char **output)
 {
 	int verbose = args->verbose, recursive = args->recursive;
-	enum f12_error err;
-	struct f12_directory_entry *child_entry;
+	enum lf12_error err;
+	struct lf12_directory_entry *child_entry;
 	char *entry_path, *temp;
 	int res;
 
-	if (!f12_is_directory(entry)) {
+	if (!lf12_is_directory(entry)) {
 		FILE *dest_fp = fopen(dest_path, "w");
-		err = f12_dump_file(fp, f12_meta, entry, dest_fp);
+		err = lf12_dump_file(fp, f12_meta, entry, dest_fp);
 		if (F12_SUCCESS != err) {
 			temp = *output;
-			asprintf(output, "%s\n", f12_strerror(err));
+			asprintf(output, "%s\n", lf12_strerror(err));
 			free(temp);
 			fclose(dest_fp);
 			return -1;
@@ -37,7 +37,7 @@ int dump_f12_structure(FILE * fp, struct f12_metadata *f12_meta,
 
 	if (!recursive) {
 		temp = *output;
-		asprintf(output, "%s\n", f12_strerror(F12_IS_DIR));
+		asprintf(output, "%s\n", lf12_strerror(F12_IS_DIR));
 		free(temp);
 
 		return -1;
@@ -52,12 +52,12 @@ int dump_f12_structure(FILE * fp, struct f12_metadata *f12_meta,
 	for (int i = 0; i < entry->child_count; i++) {
 		child_entry = &entry->children[i];
 
-		if (f12_entry_is_empty(child_entry)
-		    || f12_is_dot_dir(child_entry)) {
+		if (lf12_entry_is_empty(child_entry)
+		    || lf12_is_dot_dir(child_entry)) {
 			continue;
 		}
 
-		char *child_name = f12_get_file_name(child_entry);
+		char *child_name = lf12_get_file_name(child_entry);
 
 		if (NULL == child_name) {
 			return -1;
@@ -90,9 +90,9 @@ int dump_f12_structure(FILE * fp, struct f12_metadata *f12_meta,
 }
 
 int walk_dir(FILE * fp, struct f12_put_arguments *args,
-	     struct f12_metadata *f12_meta, suseconds_t created, char **output)
+	     struct lf12_metadata *f12_meta, suseconds_t created, char **output)
 {
-	enum f12_error err;
+	enum lf12_error err;
 	char *path = args->source;
 	char *dest = args->destination;
 	char *temp;
@@ -145,29 +145,30 @@ int walk_dir(FILE * fp, struct f12_put_arguments *args,
 
 				return -1;
 			}
-			struct f12_path *dest;
+			struct lf12_path *dest;
 
-			err = f12_parse_path(putpath, &dest);
+			err = lf12_parse_path(putpath, &dest);
 			if (F12_SUCCESS != err) {
 				temp = *output;
 				if (NULL != *output) {
 					asprintf(output, "%s\n%s\n", *output,
-						 f12_strerror(err));
+						 lf12_strerror(err));
 				} else {
 					asprintf(output, "%s\n",
-						 f12_strerror(err));
+						 lf12_strerror(err));
 				}
 				free(temp);
 
 				return -1;
 			}
 
-			err = f12_create_file(fp, f12_meta, dest, src, created);
-			f12_free_path(dest);
+			err = lf12_create_file(fp, f12_meta, dest, src,
+					       created);
+			lf12_free_path(dest);
 			if (F12_SUCCESS != err) {
 				temp = *output;
 				asprintf(output, "%s\nError : %s\n", *output,
-					 f12_strerror(err));
+					 lf12_strerror(err));
 				free(temp);
 
 				return -1;

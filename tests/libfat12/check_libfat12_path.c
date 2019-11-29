@@ -12,8 +12,8 @@ START_TEST(test_lf12_build_path)
 		"FOO",
 		"BAR.BIN"
 	};
-	enum f12_error err;
-	struct f12_path *path = malloc(sizeof(struct f12_path));
+	enum lf12_error err;
+	struct lf12_path *path = malloc(sizeof(struct lf12_path));
 
 	ck_assert_ptr_nonnull(path);
 	err = _lf12_build_path(input_parts, 3, path);
@@ -40,7 +40,7 @@ START_TEST(test_lf12_build_path)
 	ck_assert_ptr_null(path->descendant);
 	ck_assert_ptr_nonnull(path->ancestor);
 
-	f12_free_path(path);
+	lf12_free_path(path);
 }
 // *INDENT-OFF*
 END_TEST
@@ -50,7 +50,7 @@ START_TEST(test_lf12_split_input)
 {
 	char **input_parts;
 	int part_count;
-	enum f12_error err;
+	enum lf12_error err;
 
 	err = _lf12_split_input("TEST/FOO/BAR", &input_parts, &part_count);
 
@@ -64,16 +64,16 @@ START_TEST(test_lf12_split_input)
 END_TEST
 // *INDENT-ON*
 
-START_TEST(test_f12_parse_path)
+START_TEST(test_lf12_parse_path)
 {
-	struct f12_path *path;
+	struct lf12_path *path;
 
-	f12_parse_path("TEST", &path);
+	lf12_parse_path("TEST", &path);
 	ck_assert_mem_eq(path->short_file_name, "TEST", 4);
 
-	f12_free_path(path);
+	lf12_free_path(path);
 
-	f12_parse_path("/FOLDER/SUBDIR/FILE.BIN", &path);
+	lf12_parse_path("/FOLDER/SUBDIR/FILE.BIN", &path);
 	ck_assert_mem_eq(path->short_file_name, "FOLDER", 6);
 	ck_assert_mem_eq(path->descendant->short_file_name, "SUBDIR", 6);
 	ck_assert_mem_eq(path->descendant->descendant->short_file_name, "FILE",
@@ -81,29 +81,30 @@ START_TEST(test_f12_parse_path)
 	ck_assert_mem_eq(path->descendant->descendant->short_file_extension,
 			 "BIN", 3);
 
-	f12_free_path(path);
+	lf12_free_path(path);
 }
 // *INDENT-OFF*
 END_TEST
 // *INDENT-ON*
 
-START_TEST(test_f12_path_get_parent)
+START_TEST(test_lf12_path_get_parent)
 {
-	struct f12_path *path_a, *path_b, *path_c;
+	struct lf12_path *path_a, *path_b, *path_c;
 
-	f12_parse_path("/TEST/FOO", &path_b);
-	f12_parse_path("/TEST/FOO/BAR", &path_a);
-	f12_parse_path("/DIR/TEST", &path_c);
+	lf12_parse_path("/TEST/FOO", &path_b);
+	lf12_parse_path("/TEST/FOO/BAR", &path_a);
+	lf12_parse_path("/DIR/TEST", &path_c);
 
-	ck_assert_int_eq(F12_PATHS_SECOND, f12_path_get_parent(path_a, path_b));
-	ck_assert_int_eq(F12_PATHS_FIRST, f12_path_get_parent(path_b, path_a));
-	ck_assert_int_eq(F12_PATHS_EQUAL, f12_path_get_parent(path_a, path_a));
+	ck_assert_int_eq(F12_PATHS_SECOND,
+			 lf12_path_get_parent(path_a, path_b));
+	ck_assert_int_eq(F12_PATHS_FIRST, lf12_path_get_parent(path_b, path_a));
+	ck_assert_int_eq(F12_PATHS_EQUAL, lf12_path_get_parent(path_a, path_a));
 	ck_assert_int_eq(F12_PATHS_UNRELATED,
-			 f12_path_get_parent(path_a, path_c));
+			 lf12_path_get_parent(path_a, path_c));
 
-	f12_free_path(path_a);
-	f12_free_path(path_b);
-	f12_free_path(path_c);
+	lf12_free_path(path_a);
+	lf12_free_path(path_b);
+	lf12_free_path(path_c);
 }
 // *INDENT-OFF*
 END_TEST
@@ -116,8 +117,8 @@ TCase *libfat12_path_case(void)
 	tc_libfat12_path = tcase_create("libfat12 path");
 	tcase_add_test(tc_libfat12_path, test_lf12_build_path);
 	tcase_add_test(tc_libfat12_path, test_lf12_split_input);
-	tcase_add_test(tc_libfat12_path, test_f12_parse_path);
-	tcase_add_test(tc_libfat12_path, test_f12_path_get_parent);
+	tcase_add_test(tc_libfat12_path, test_lf12_parse_path);
+	tcase_add_test(tc_libfat12_path, test_lf12_path_get_parent);
 
 	return tc_libfat12_path;
 }
