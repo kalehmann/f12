@@ -9,7 +9,7 @@
 
 #define STRLEN(s) ( sizeof(s)/sizeof(s[0]) - sizeof(s[0]) )
 
-char *format_bytes(size_t bytes)
+char *_f12_format_bytes(size_t bytes)
 {
 	char *out;
 
@@ -26,7 +26,7 @@ char *format_bytes(size_t bytes)
 	return out;
 }
 
-size_t digit_count(long number)
+size_t _f12_digit_count(long number)
 {
 	long n = 10;
 
@@ -40,21 +40,23 @@ size_t digit_count(long number)
 	return 20;
 }
 
-size_t format_bytes_len(size_t bytes)
+size_t _f12__f12_format_bytes_len(size_t bytes)
 {
 	if (bytes < 10000) {
-		return digit_count(bytes) + STRLEN(" bytes");
+		return _f12_digit_count(bytes) + STRLEN(" bytes");
 	} else if (bytes < 10000000) {
-		return digit_count(bytes / 1024) + STRLEN(" KiB  ");
+		return _f12_digit_count(bytes / 1024) + STRLEN(" KiB  ");
 	} else if (bytes < 10000000000) {
-		return digit_count(bytes / (1024 * 1024)) + STRLEN(" MiB  ");
+		return _f12_digit_count(bytes / (1024 * 1024)) +
+			STRLEN(" MiB  ");
 	}
 
-	return digit_count(bytes / (1024 * 1024 * 1024)) + STRLEN(" GiB  ");
+	return _f12_digit_count(bytes / (1024 * 1024 * 1024)) +
+		STRLEN(" GiB  ");
 }
 
-enum lf12_error dump_move(struct lf12_directory_entry *src,
-			  struct lf12_directory_entry *dest, char **output)
+enum lf12_error _f12_dump_move(struct lf12_directory_entry *src,
+			       struct lf12_directory_entry *dest, char **output)
 {
 	enum lf12_error err;
 	char *tmp = NULL, *file_name = NULL, *dest_path = NULL, *src_path =

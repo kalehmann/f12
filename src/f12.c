@@ -101,7 +101,7 @@ int f12_create(struct f12_create_arguments *args, char **output)
 	}
 
 	bpb = f12_meta->bpb;
-	initialize_bpb(bpb, args);
+	_f12_initialize_bpb(bpb, args);
 	f12_meta->root_dir_offset = bpb->SectorSize *
 		((bpb->NumberOfFats * bpb->SectorsPerFat) +
 		 bpb->ReservedForBoot);
@@ -155,7 +155,7 @@ int f12_create(struct f12_create_arguments *args, char **output)
 		.recursive = 1,
 	};
 
-	err = walk_dir(fp, &put_args, f12_meta, created, output);
+	err = _f12_walk_dir(fp, &put_args, f12_meta, created, output);
 	if (err) {
 		free(*output);
 		asprintf(output, "%s\n", lf12_strerror(err));
@@ -289,7 +289,8 @@ int f12_get(struct f12_get_arguments *args, char **output)
 		return EXIT_FAILURE;
 	}
 
-	res = dump_f12_structure(fp, f12_meta, entry, args->dest, args, output);
+	res = _f12_dump_f12_structure(fp, f12_meta, entry, args->dest, args,
+				      output);
 
 	lf12_free_path(src_path);
 	lf12_free_metadata(f12_meta);
@@ -323,8 +324,8 @@ int f12_info(struct f12_info_arguments *args, char **output)
 		return EXIT_FAILURE;
 	}
 
-	formatted_size = format_bytes(lf12_get_partition_size(f12_meta));
-	formatted_used_bytes = format_bytes(lf12_get_used_bytes(f12_meta));
+	formatted_size = _f12_format_bytes(lf12_get_partition_size(f12_meta));
+	formatted_used_bytes = _f12_format_bytes(lf12_get_used_bytes(f12_meta));
 
 	asprintf(output,
 		 "F12 info\n"
@@ -342,7 +343,7 @@ int f12_info(struct f12_info_arguments *args, char **output)
 
 	if (args->dump_bpb) {
 		char *bpb, *tmp;
-		info_dump_bpb(f12_meta, &bpb);
+		_f12_info_dump_bpb(f12_meta, &bpb);
 		asprintf(&tmp, "%s%s", *output, bpb);
 		free(bpb);
 		free(*output);
@@ -389,7 +390,7 @@ int f12_list(struct f12_list_arguments *args, char **output)
 		struct lf12_path *path;
 		err = lf12_parse_path(args->path, &path);
 		if (F12_EMPTY_PATH == err) {
-			err = list_entry(f12_meta->root_dir, output, args);
+			err = _f12_list_entry(f12_meta->root_dir, output, args);
 			lf12_free_metadata(f12_meta);
 			if (F12_SUCCESS != err) {
 				free(*output);
@@ -421,7 +422,7 @@ int f12_list(struct f12_list_arguments *args, char **output)
 		}
 
 		if (lf12_is_directory(entry)) {
-			err = list_entry(entry, output, args);
+			err = _f12_list_entry(entry, output, args);
 			lf12_free_metadata(f12_meta);
 			if (F12_SUCCESS != err) {
 				free(*output);
@@ -433,7 +434,7 @@ int f12_list(struct f12_list_arguments *args, char **output)
 			return EXIT_SUCCESS;
 		}
 
-		err = list_entry(entry, output, args);
+		err = _f12_list_entry(entry, output, args);
 		lf12_free_metadata(f12_meta);
 		if (F12_SUCCESS != err) {
 			free(*output);
@@ -445,7 +446,7 @@ int f12_list(struct f12_list_arguments *args, char **output)
 		return EXIT_SUCCESS;
 	}
 
-	err = list_entry(f12_meta->root_dir, output, args);
+	err = _f12_list_entry(f12_meta->root_dir, output, args);
 	lf12_free_metadata(f12_meta);
 	if (F12_SUCCESS != err) {
 		free(*output);
@@ -583,7 +584,7 @@ int f12_move(struct f12_move_arguments *args, char **output)
 	lf12_free_path(dest);
 
 	if (args->verbose) {
-		err = dump_move(src_entry, dest_entry, output);
+		err = _f12_dump_move(src_entry, dest_entry, output);
 		if (err != F12_SUCCESS) {
 			free(*output);
 			asprintf(output, "Error: %s\n", lf12_strerror(err));
@@ -696,7 +697,7 @@ int f12_put(struct f12_put_arguments *args, char **output)
 
 			return EXIT_FAILURE;
 		}
-		res = walk_dir(fp, args, f12_meta, created, output);
+		res = _f12_walk_dir(fp, args, f12_meta, created, output);
 		if (res) {
 			free(*output);
 			asprintf(output, "%s\n", lf12_strerror(err));

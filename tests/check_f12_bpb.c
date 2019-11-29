@@ -4,7 +4,7 @@
 #include "../src/bpb.h"
 #include "tests.h"
 
-START_TEST(test_f12_initialize_bpb)
+START_TEST(test_f12__f12_initialize_bpb)
 {
 	struct bios_parameter_block bpb = { 0 };
 	struct f12_create_arguments args = {
@@ -17,7 +17,7 @@ START_TEST(test_f12_initialize_bpb)
 		.drive_number = 1,
 	};
 
-	initialize_bpb(&bpb, &args);
+	_f12_initialize_bpb(&bpb, &args);
 
 	ck_assert_int_eq(bpb.SectorSize, 1024);
 	ck_assert_int_eq(bpb.SectorsPerCluster, 1);
@@ -34,7 +34,7 @@ START_TEST(test_f12_initialize_bpb)
 END_TEST
 // *INDENT-ON*
 
-START_TEST(test_f12_sectors_per_fat)
+START_TEST(test_f12__f12_sectors_per_fat)
 {
 	struct bios_parameter_block bpb;
 	uint16_t secs_per_fat;
@@ -46,7 +46,7 @@ START_TEST(test_f12_sectors_per_fat)
 	bpb.RootDirEntries = 224;
 	bpb.NumberOfFats = 2;
 
-	secs_per_fat = sectors_per_fat(&bpb);
+	secs_per_fat = _f12_sectors_per_fat(&bpb);
 	ck_assert_int_eq(secs_per_fat, 9);
 
 	bpb.LogicalSectors = bpb.LargeSectors = 2400;
@@ -56,7 +56,7 @@ START_TEST(test_f12_sectors_per_fat)
 	bpb.RootDirEntries = 224;
 	bpb.NumberOfFats = 2;
 
-	secs_per_fat = sectors_per_fat(&bpb);
+	secs_per_fat = _f12_sectors_per_fat(&bpb);
 	ck_assert_int_eq(secs_per_fat, 7);
 
 	bpb.LogicalSectors = bpb.LargeSectors = 560;
@@ -66,7 +66,7 @@ START_TEST(test_f12_sectors_per_fat)
 	bpb.RootDirEntries = 224;
 	bpb.NumberOfFats = 2;
 
-	secs_per_fat = sectors_per_fat(&bpb);
+	secs_per_fat = _f12_sectors_per_fat(&bpb);
 	ck_assert_int_eq(secs_per_fat, 1);
 }
 // *INDENT-OFF*
@@ -78,8 +78,8 @@ TCase *f12_bpb_case(void)
 	TCase *tc_f12_bpb;
 
 	tc_f12_bpb = tcase_create("f12 bpb");
-	tcase_add_test(tc_f12_bpb, test_f12_initialize_bpb);
-	tcase_add_test(tc_f12_bpb, test_f12_sectors_per_fat);
+	tcase_add_test(tc_f12_bpb, test_f12__f12_initialize_bpb);
+	tcase_add_test(tc_f12_bpb, test_f12__f12_sectors_per_fat);
 
 	return tc_f12_bpb;
 }

@@ -10,9 +10,9 @@
 
 #include "filesystem.h"
 
-int dump_f12_structure(FILE * fp, struct lf12_metadata *f12_meta,
-		       struct lf12_directory_entry *entry, char *dest_path,
-		       struct f12_get_arguments *args, char **output)
+int _f12_dump_f12_structure(FILE * fp, struct lf12_metadata *f12_meta,
+			    struct lf12_directory_entry *entry, char *dest_path,
+			    struct f12_get_arguments *args, char **output)
 {
 	int verbose = args->verbose, recursive = args->recursive;
 	enum lf12_error err;
@@ -77,8 +77,8 @@ int dump_f12_structure(FILE * fp, struct lf12_metadata *f12_meta,
 		}
 
 		free(child_name);
-		res = dump_f12_structure(fp, f12_meta, child_entry,
-					 entry_path, args, output);
+		res = _f12_dump_f12_structure(fp, f12_meta, child_entry,
+					      entry_path, args, output);
 		free(entry_path);
 
 		if (res) {
@@ -89,8 +89,9 @@ int dump_f12_structure(FILE * fp, struct lf12_metadata *f12_meta,
 	return 0;
 }
 
-int walk_dir(FILE * fp, struct f12_put_arguments *args,
-	     struct lf12_metadata *f12_meta, suseconds_t created, char **output)
+int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
+		  struct lf12_metadata *f12_meta, suseconds_t created,
+		  char **output)
 {
 	enum lf12_error err;
 	char *path = args->source;

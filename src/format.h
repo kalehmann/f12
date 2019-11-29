@@ -11,7 +11,7 @@
  * @return a pointer to the string with the human readable bytes, that must be
  *         freed after use
  */
-char *format_bytes(size_t bytes);
+char *_f12_format_bytes(size_t bytes);
 
 /**
  * Counts the number of digits in the given number. 
@@ -19,17 +19,17 @@ char *format_bytes(size_t bytes);
  * @param number the number to count the digits in
  * @return the count of digits in the number
  */
-size_t digit_count(long number);
+size_t _f12_digit_count(long number);
 
 /**
- * Returns the length of the result of the format_bytes function for the given
+ * Returns the length of the result of the _f12_format_bytes function for the given
  * bytes.
  *
  * @param bytes
- * @return the length of the string that format_bytes will return for the given
+ * @return the length of the string that _f12_format_bytes will return for the given
  *         bytes 
  */
-size_t format_bytes_len(size_t bytes);
+size_t _f12__f12_format_bytes_len(size_t bytes);
 
 /**
  * Dumps all affected files of a move operation on a fat 12 image in to a
@@ -43,7 +43,8 @@ size_t format_bytes_len(size_t bytes);
  *               The contents of the pointer must be freed,
  * @return any error that occurred or F12_SUCCESS
  */
-enum lf12_error dump_move(struct lf12_directory_entry *src,
-			  struct lf12_directory_entry *dest, char **output);
+enum lf12_error _f12_dump_move(struct lf12_directory_entry *src,
+			       struct lf12_directory_entry *dest,
+			       char **output);
 
 #endif

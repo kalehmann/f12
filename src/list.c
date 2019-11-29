@@ -17,26 +17,26 @@ static const char *LIST_FORMAT =
 static const char *LIST_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S";
 static const char *LIST_DATE_FORMAT = "%Y-%m-%d";
 
-enum lf12_error list_entry(struct lf12_directory_entry *entry, char **output,
-			   struct f12_list_arguments *args)
+enum lf12_error _f12_list_entry(struct lf12_directory_entry *entry,
+				char **output, struct f12_list_arguments *args)
 {
 	enum lf12_error err;
 	size_t max_name_width, max_size_width;
 
-	list_width(entry, 4, 2, &max_name_width, args->recursive);
-	max_size_width = list_size_len(entry, args->recursive);
+	_f12_list_width(entry, 4, 2, &max_name_width, args->recursive);
+	max_size_width = _f12_list_size_len(entry, args->recursive);
 
 	if (!lf12_is_directory(entry)) {
-		err = list_f12_entry(entry, output, args, 0, max_name_width,
-				     max_size_width);
+		err = _f12_list_f12_entry(entry, output, args, 0,
+					  max_name_width, max_size_width);
 		if (F12_SUCCESS != err) {
 			return err;
 		}
 	}
 
 	for (int i = 0; i < entry->child_count; i++) {
-		err = list_f12_entry(&entry->children[i], output, args, 0,
-				     max_name_width, max_size_width);
+		err = _f12_list_f12_entry(&entry->children[i], output, args, 0,
+					  max_name_width, max_size_width);
 		if (F12_SUCCESS != err) {
 			return err;
 		}
@@ -45,9 +45,10 @@ enum lf12_error list_entry(struct lf12_directory_entry *entry, char **output,
 	return F12_SUCCESS;
 }
 
-enum lf12_error list_f12_entry(struct lf12_directory_entry *entry,
-			       char **output, struct f12_list_arguments *args,
-			       int depth, int name_width, int size_width)
+enum lf12_error _f12_list_f12_entry(struct lf12_directory_entry *entry,
+				    char **output,
+				    struct f12_list_arguments *args, int depth,
+				    int name_width, int size_width)
 {
 	enum lf12_error err;
 	int name_padding = 0;
@@ -106,7 +107,7 @@ enum lf12_error list_f12_entry(struct lf12_directory_entry *entry,
 	}
 
 	if (args->with_size) {
-		size_str = format_bytes(entry->FileSize);
+		size_str = _f12_format_bytes(entry->FileSize);
 		size_pad = size_width + 1;
 		name_padding = name_width - 4 - depth;
 	}
@@ -130,8 +131,9 @@ enum lf12_error list_f12_entry(struct lf12_directory_entry *entry,
 	if (args->recursive && lf12_is_directory(entry)
 	    && !lf12_is_dot_dir(entry)) {
 		for (int i = 0; i < entry->child_count; i++) {
-			err = list_f12_entry(&entry->children[i], output, args,
-					     depth + 2, name_width, size_width);
+			err = _f12_list_f12_entry(&entry->children[i], output,
+						  args, depth + 2, name_width,
+						  size_width);
 			if (F12_SUCCESS != err) {
 				return err;
 			}
@@ -141,9 +143,9 @@ enum lf12_error list_f12_entry(struct lf12_directory_entry *entry,
 	return F12_SUCCESS;
 }
 
-enum lf12_error list_width(struct lf12_directory_entry *root_entry,
-			   size_t prefix_len, size_t indent_len, size_t *width,
-			   int recursive)
+enum lf12_error _f12_list_width(struct lf12_directory_entry *root_entry,
+				size_t prefix_len, size_t indent_len,
+				size_t *width, int recursive)
 {
 	size_t line_width = prefix_len, max_width = 0, max_child_width = 0;
 	struct lf12_directory_entry *entry = NULL;
@@ -179,8 +181,9 @@ enum lf12_error list_width(struct lf12_directory_entry *root_entry,
 
 		if (lf12_is_directory(entry) && !lf12_is_dot_dir(entry)
 		    && recursive && entry->child_count > 0) {
-			list_width(entry, prefix_len + indent_len, indent_len,
-				   &max_child_width, recursive);
+			_f12_list_width(entry, prefix_len + indent_len,
+					indent_len, &max_child_width,
+					recursive);
 			if (max_child_width > line_width) {
 				line_width = max_child_width;
 			}
@@ -198,13 +201,14 @@ enum lf12_error list_width(struct lf12_directory_entry *root_entry,
 	return F12_SUCCESS;
 }
 
-size_t list_size_len(struct lf12_directory_entry *root_entry, int recursive)
+size_t _f12_list_size_len(struct lf12_directory_entry *root_entry,
+			  int recursive)
 {
 	size_t cur_len = 0, max_len = 0;
 	struct lf12_directory_entry *entry = NULL;
 
 	if (!lf12_is_directory(root_entry)) {
-		return format_bytes_len(root_entry->FileSize);
+		return _f12__f12_format_bytes_len(root_entry->FileSize);
 	}
 
 	if (0 == root_entry->child_count) {
@@ -218,9 +222,9 @@ size_t list_size_len(struct lf12_directory_entry *root_entry, int recursive)
 		}
 
 		if (lf12_is_directory(entry) && recursive) {
-			cur_len = list_size_len(entry, recursive);
+			cur_len = _f12_list_size_len(entry, recursive);
 		} else {
-			cur_len = format_bytes_len(entry->FileSize);
+			cur_len = _f12__f12_format_bytes_len(entry->FileSize);
 		}
 
 		if (cur_len > max_len) {

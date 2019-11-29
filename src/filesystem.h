@@ -21,9 +21,9 @@
  *               files
  * @return 0 on success or -1 on an error
  */
-int dump_f12_structure(FILE * fp, struct lf12_metadata *f12_meta,
-		       struct lf12_directory_entry *entry, char *dest_path,
-		       struct f12_get_arguments *args, char **output);
+int _f12_dump_f12_structure(FILE * fp, struct lf12_metadata *f12_meta,
+			    struct lf12_directory_entry *entry, char *dest_path,
+			    struct f12_get_arguments *args, char **output);
 
 /**
  * Puts a directory from the filesystem on to a fat 12 image.
@@ -38,8 +38,8 @@ int dump_f12_structure(FILE * fp, struct lf12_metadata *f12_meta,
  * @return 0 on success and -1 on failure. The string in output will be set 
  *         according to error
  */
-int walk_dir(FILE * fp, struct f12_put_arguments *args,
-	     struct lf12_metadata *f12_meta, suseconds_t created,
-	     char **output);
+int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
+		  struct lf12_metadata *f12_meta, suseconds_t created,
+		  char **output);
 
 #endif

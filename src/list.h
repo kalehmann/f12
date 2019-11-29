@@ -15,8 +15,8 @@
  * @param args a pointer to the structure with the list arguments
  * @return any error that occurred or F12_SUCCESS
  */
-enum lf12_error list_entry(struct lf12_directory_entry *entry, char **output,
-			   struct f12_list_arguments *args);
+enum lf12_error _f12_list_entry(struct lf12_directory_entry *entry,
+				char **output, struct f12_list_arguments *args);
 
 /**
  * Lists a entry from a directory table of a fat 12 file system. If the entry
@@ -34,9 +34,10 @@ enum lf12_error list_entry(struct lf12_directory_entry *entry, char **output,
  * @param size_width the width of the longest formatted file size
  * @return any error that occurred or F12_SUCCESS
  */
-enum lf12_error list_f12_entry(struct lf12_directory_entry *entry,
-			       char **output, struct f12_list_arguments *args,
-			       int depth, int name_width, int size_width);
+enum lf12_error _f12_list_f12_entry(struct lf12_directory_entry *entry,
+				    char **output,
+				    struct f12_list_arguments *args, int depth,
+				    int name_width, int size_width);
 
 /**
  * Gets the width of the longest filename of all children of the root entry.
@@ -50,9 +51,9 @@ enum lf12_error list_f12_entry(struct lf12_directory_entry *entry,
  * @param recursive whether to search recursive or not
  * @return any error that occurred or F12_SUCCESS
  */
-enum lf12_error list_width(struct lf12_directory_entry *root_entry,
-			   size_t prefix_len, size_t indent_len, size_t *width,
-			   int recursive);
+enum lf12_error _f12_list_width(struct lf12_directory_entry *root_entry,
+				size_t prefix_len, size_t indent_len,
+				size_t *width, int recursive);
 
 /**
  * Gets the width of the longest formatted file size of all children of the root
@@ -63,6 +64,7 @@ enum lf12_error list_width(struct lf12_directory_entry *root_entry,
  * @param recursive whether to search recursive or not
  * @return the size of the longest formatted file size
  */
-size_t list_size_len(struct lf12_directory_entry *root_entry, int recursive);
+size_t _f12_list_size_len(struct lf12_directory_entry *root_entry,
+			  int recursive);
 
 #endif
