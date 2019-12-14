@@ -1077,8 +1077,6 @@ enum lf12_error lf12_create_entry_from_path(struct lf12_metadata *f12_meta,
 enum lf12_error lf12_create_image(FILE * fp, struct lf12_metadata *f12_meta)
 {
 	struct bios_parameter_block *bpb = f12_meta->bpb;
-	size_t file_size = bpb->LargeSectors * bpb->SectorSize;
-
 	void *sector = calloc(bpb->SectorSize, 1);
 	if (NULL == sector) {
 		return F12_ALLOCATION_ERROR;
