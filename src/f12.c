@@ -18,6 +18,7 @@
 #include "format.h"
 #include "list.h"
 #include "libfat12/libfat12.h"
+#include "../boot/default/bootcode.h"
 
 static enum lf12_error
 recursive_del_entry(FILE * fp,
@@ -122,6 +123,16 @@ int f12_create(struct f12_create_arguments *args, char **output)
 		return err;
 	}
 
+	err = lf12_install_bootloader(fp, f12_meta, boot_default_bootcode_bin);
+	if (F12_SUCCESS != err) {
+		free(*output);
+		asprintf(output, "Error: %s\n", lf12_strerror(err));
+		lf12_free_metadata(f12_meta);
+		fclose(fp);
+
+		return EXIT_FAILURE;
+	}
+
 	if (NULL == args->root_dir_path) {
 		lf12_free_metadata(f12_meta);
 		fclose(fp);
@@ -168,10 +179,10 @@ int f12_create(struct f12_create_arguments *args, char **output)
 	err = lf12_write_metadata(fp, f12_meta);
 	lf12_free_metadata(f12_meta);
 	fclose(fp);
-
 	if (F12_SUCCESS != err) {
 		free(*output);
 		asprintf(output, "Error: %s\n", lf12_strerror(err));
+
 		return EXIT_FAILURE;
 	}
 

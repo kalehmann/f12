@@ -13,8 +13,10 @@ RUN apt-get update \
 	lcov \
 	libtool \
 	libtool-bin \
+	nasm \
 	pkg-config \
 	valgrind \
+	xxd \
 	&& rm -rf /var/lib/apt/lists/*
 
 RUN curl -L https://github.com/libcheck/check/releases/download/0.13.0/check-0.13.0.tar.gz | tar zx \

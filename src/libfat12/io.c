@@ -1110,4 +1110,6 @@ enum lf12_error lf12_install_bootloader(FILE * fp,
 	}
 
 	write_bpb(fp, f12_meta);
+
+	return F12_SUCCESS;
 }
