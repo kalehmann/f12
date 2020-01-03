@@ -67,7 +67,7 @@ char *lf12_get_file_name(struct lf12_directory_entry *entry)
 	return result;
 }
 
-char *lf12_convert_name(char *name)
+char *lf12_convert_name(const char *name)
 {
 	int i = 0;
 	char *converted_name = malloc(11), c;

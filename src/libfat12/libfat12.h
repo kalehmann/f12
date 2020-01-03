@@ -396,7 +396,7 @@ char *lf12_get_file_name(struct lf12_directory_entry *entry);
  * @return a pointer to an array of 11 chars with the filename in the 8.3
  * format, that must be freed after use or NULL on failure
  */
-char *lf12_convert_name(char *name);
+char *lf12_convert_name(const char *name);
 
 /**
  * Get the full path of a directory entry in the image.
