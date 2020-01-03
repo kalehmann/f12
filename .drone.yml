@@ -3,12 +3,18 @@ kind: "pipeline"
 name: "default"
 
 steps:
+        - name: "pull submodules"
+          image: "registry.kalehmann.de/testing/f12:latest"
+          commands:
+                - "git submodule update --init --recursive --remote"
         - name: "build"
           image: "registry.kalehmann.de/testing/f12:latest"
           commands:
                 - "autoreconf --install"
                 - "./configure --enable-beautify --enable-coverage"
                 - "make CFLAGS='-Wall'"
+          depends_on:
+                - "pull submodules"
         - name: "style-check"
           image: "registry.kalehmann.de/testing/f12:latest"
           commands:

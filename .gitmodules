@@ -1,6 +1,3 @@
-[submodule "boot/simple_bootloader"]
-	path = boot/simple_bootloader/sibolo
-	url = https://keller.kalehmann.de/git/sibolo.git
 [submodule "boot/simple_bootloader/sibolo"]
 	path = boot/simple_bootloader/sibolo
 	url = https://keller.kalehmann.de/git/sibolo.git
