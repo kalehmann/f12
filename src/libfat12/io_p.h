@@ -21,7 +21,7 @@ uint16_t _lf12_read_fat_entry(char *fat, int n);
  * @param f12_meta a pointer to the metadata of the partition
  * @return the position of the cluster on the partition
  */
-int _lf12_cluster_offset(uint16_t cluster, struct f12_metadata *f12_meta);
+int _lf12_cluster_offset(uint16_t cluster, struct lf12_metadata *f12_meta);
 
 /**
  * Get the number of clusters in a cluster chain.
@@ -31,7 +31,7 @@ int _lf12_cluster_offset(uint16_t cluster, struct f12_metadata *f12_meta);
  * @return the number of clusters in the cluster chain
  */
 uint16_t _lf12_get_cluster_chain_length(uint16_t start_cluster,
-					struct f12_metadata *f12_meta);
+					struct lf12_metadata *f12_meta);
 
 /**
  * Get the cluster size of the image
@@ -39,7 +39,7 @@ uint16_t _lf12_get_cluster_chain_length(uint16_t start_cluster,
  * @param f12_meta a pointer to the metadata of the partition
  * @return the size of a cluster on the partition in bytes
  */
-size_t _lf12_get_cluster_size(struct f12_metadata *f12_meta);
+size_t _lf12_get_cluster_size(struct lf12_metadata *f12_meta);
 
 /**
  * Get the size of a cluster chain in bytes.
@@ -49,15 +49,15 @@ size_t _lf12_get_cluster_size(struct f12_metadata *f12_meta);
  * @return the size of the cluster chain in bytes
  */
 size_t _lf12_get_cluster_chain_size(uint16_t start_cluster,
-				    struct f12_metadata *f12_meta);
+				    struct lf12_metadata *f12_meta);
 
 /**
- * Populate a f12_directory_entry structure from the raw entry from the disk.
+ * Populate a lf12_directory_entry structure from the raw entry from the disk.
  *
  * @param data a pointer to the raw data
- * @param entry a pointer to the f12_directory_entry structure to populate
+ * @param entry a pointer to the lf12_directory_entry structure to populate
  */
-void _lf12_read_dir_entry(char *data, struct f12_directory_entry *entry);
+void _lf12_read_dir_entry(char *data, struct lf12_directory_entry *entry);
 
 /**
  * Create a new cluster chain in the file allocation table of the metadata.
@@ -67,7 +67,7 @@ void _lf12_read_dir_entry(char *data, struct f12_directory_entry *entry);
  * @return the first cluster in the new cluster chain or zero if the file
  * allocation table is full
  */
-uint16_t _lf12_create_cluster_chain(struct f12_metadata *f12_meta,
+uint16_t _lf12_create_cluster_chain(struct lf12_metadata *f12_meta,
 				    int cluster_count);
 
 #endif

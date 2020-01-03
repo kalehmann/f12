@@ -2,14 +2,14 @@
 #include <string.h>
 #include "libfat12.h"
 
-enum f12_error _lf12_build_path(char **input_parts,
-				int part_count, struct f12_path *path)
+enum lf12_error _lf12_build_path(char **input_parts,
+				 int part_count, struct lf12_path *path)
 {
-	enum f12_error err;
+	enum lf12_error err;
 
 	path->ancestor = NULL;
 
-	char *name = f12_convert_name(input_parts[0]);
+	char *name = lf12_convert_name(input_parts[0]);
 	if (NULL == name) {
 		return F12_ALLOCATION_ERROR;
 	}
@@ -50,7 +50,7 @@ enum f12_error _lf12_build_path(char **input_parts,
 		return F12_SUCCESS;
 	}
 
-	path->descendant = malloc(sizeof(struct f12_path));
+	path->descendant = malloc(sizeof(struct lf12_path));
 	if (NULL == path->descendant) {
 		free(path->name);
 		free(path->short_file_name);
@@ -74,8 +74,8 @@ enum f12_error _lf12_build_path(char **input_parts,
 	return F12_SUCCESS;
 }
 
-enum f12_error _lf12_split_input(const char *input,
-				 char ***input_parts, int *part_count)
+enum lf12_error _lf12_split_input(const char *input,
+				  char ***input_parts, int *part_count)
 {
 	if (input[0] == '/') {
 		/* omit leading slash */
@@ -129,8 +129,9 @@ enum f12_error _lf12_split_input(const char *input,
 	return F12_SUCCESS;
 }
 
-struct f12_directory_entry *f12_entry_from_path(struct f12_directory_entry
-						*entry, struct f12_path *path)
+struct lf12_directory_entry *lf12_entry_from_path(struct lf12_directory_entry
+						  *entry,
+						  struct lf12_path *path)
 {
 	if (NULL == path) {
 		return entry;
@@ -144,17 +145,17 @@ struct f12_directory_entry *f12_entry_from_path(struct f12_directory_entry
 			if (NULL == path->descendant) {
 				return &entry->children[i];
 			}
-			return f12_entry_from_path(&entry->children[i],
-						   path->descendant);
+			return lf12_entry_from_path(&entry->children[i],
+						    path->descendant);
 		}
 	}
 
 	return NULL;
 }
 
-enum f12_error f12_parse_path(const char *input, struct f12_path **path)
+enum lf12_error lf12_parse_path(const char *input, struct lf12_path **path)
 {
-	enum f12_error err;
+	enum lf12_error err;
 
 	char **input_parts = NULL;
 	int input_part_count = 0;
@@ -166,7 +167,7 @@ enum f12_error f12_parse_path(const char *input, struct f12_path **path)
 		return err;
 	}
 
-	*path = malloc(sizeof(struct f12_path));
+	*path = malloc(sizeof(struct lf12_path));
 
 	if (*path == NULL) {
 		free(input_parts[0]);
@@ -188,14 +189,14 @@ enum f12_error f12_parse_path(const char *input, struct f12_path **path)
 	return F12_SUCCESS;
 }
 
-void f12_free_path(struct f12_path *path)
+void lf12_free_path(struct lf12_path *path)
 {
 	if (NULL == path) {
 		return;
 	}
 
 	if (NULL != path->descendant) {
-		f12_free_path(path->descendant);
+		lf12_free_path(path->descendant);
 	}
 
 	free(path->name);
@@ -204,8 +205,8 @@ void f12_free_path(struct f12_path *path)
 	free(path);
 }
 
-enum f12_path_relations f12_path_get_parent(struct f12_path *path_a,
-					    struct f12_path *path_b)
+enum lf12_path_relations lf12_path_get_parent(struct lf12_path *path_a,
+					      struct lf12_path *path_b)
 {
 	if (NULL == path_a) {
 		if (NULL == path_b) {
@@ -239,18 +240,18 @@ enum f12_path_relations f12_path_get_parent(struct f12_path *path_a,
 	return F12_PATHS_UNRELATED;
 }
 
-enum f12_error f12_path_create_directories(struct f12_metadata *f12_meta,
-					   struct f12_directory_entry *entry,
-					   struct f12_path *path)
+enum lf12_error lf12_path_create_directories(struct lf12_metadata *f12_meta,
+					     struct lf12_directory_entry *entry,
+					     struct lf12_path *path)
 {
-	enum f12_error err;
+	enum lf12_error err;
 
 	for (int i = 0; i < entry->child_count; i++) {
 		if (0 == memcmp(entry->children[i].ShortFileName,
 				path->short_file_name, 8) &&
 		    0 == memcmp(entry->children[i].ShortFileExtension,
 				path->short_file_extension, 3)) {
-			if (!f12_is_directory(&entry->children[i])) {
+			if (!lf12_is_directory(&entry->children[i])) {
 				return F12_NOT_A_DIR;
 			}
 
@@ -258,9 +259,9 @@ enum f12_error f12_path_create_directories(struct f12_metadata *f12_meta,
 				return F12_SUCCESS;
 			}
 
-			return f12_path_create_directories(f12_meta,
-							   &entry->children[i],
-							   path->descendant);
+			return lf12_path_create_directories(f12_meta,
+							    &entry->children[i],
+							    path->descendant);
 		}
 	}
 
@@ -272,8 +273,8 @@ enum f12_error f12_path_create_directories(struct f12_metadata *f12_meta,
 			memcpy(&(entry->children[i].ShortFileExtension),
 			       path->short_file_extension, 3);
 			entry->children[i].parent = entry;
-			err = f12_create_directory_table(f12_meta,
-							 &(entry->children[i]));
+			err = lf12_create_directory_table(f12_meta,
+							  &entry->children[i]);
 			if (err != F12_SUCCESS) {
 				return err;
 			}
@@ -282,9 +283,9 @@ enum f12_error f12_path_create_directories(struct f12_metadata *f12_meta,
 				return F12_SUCCESS;
 			}
 
-			return f12_path_create_directories(f12_meta,
-							   &entry->children[i],
-							   path->descendant);
+			return lf12_path_create_directories(f12_meta,
+							    &entry->children[i],
+							    path->descendant);
 		}
 	}
 

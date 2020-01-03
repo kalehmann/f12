@@ -2,15 +2,15 @@
 #define LF12_PATH_H
 
 /**
- * Populates a f12_path structure from an array of directory and file names.
+ * Populates a lf12_path structure from an array of directory and file names.
  *
  * @param input_parts a pointer to an array of file and directory names
  * @param part_count the number of file and directory names in the array
- * @param path a pointer to the f12_path structure to populate
+ * @param path a pointer to the lf12_path structure to populate
  * @return F12_SUCCESS or any other error that occurred
  */
-enum f12_error _lf12_build_path(char **input_parts,
-				int part_count, struct f12_path *path);
+enum lf12_error _lf12_build_path(char **input_parts,
+				 int part_count, struct lf12_path *path);
 
 /**
  * Splits a filepath into its components.
@@ -23,7 +23,7 @@ enum f12_error _lf12_build_path(char **input_parts,
  * written into.
  * @return F12_SUCCESS or any other error that occurred
  */
-enum f12_error _lf12_split_input(const char *input,
-				 char ***input_parts, int *part_count);
+enum lf12_error _lf12_split_input(const char *input,
+				  char ***input_parts, int *part_count);
 
 #endif

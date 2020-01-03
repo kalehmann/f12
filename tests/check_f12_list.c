@@ -29,30 +29,31 @@
  * |-> (empty)        |
  * |-> (empty)        |
  */
-struct f12_directory_entry *dir;
+struct lf12_directory_entry *dir;
 
 void setup(void)
 {
-	struct f12_directory_entry *child;
+	struct lf12_directory_entry *child;
 
-	dir = calloc(1, sizeof(struct f12_directory_entry));
+	dir = calloc(1, sizeof(struct lf12_directory_entry));
 	ck_assert_ptr_nonnull(dir);
 
-	dir->FileAttributes = F12_ATTR_SUBDIRECTORY;
+	dir->FileAttributes = LF12_ATTR_SUBDIRECTORY;
 	dir->child_count = 8;
 	dir->parent = NULL;
-	dir->children = calloc(8, sizeof(struct f12_directory_entry));
+	dir->children = calloc(8, sizeof(struct lf12_directory_entry));
 	ck_assert_ptr_nonnull(dir->children);
 
 	for (int i = 0; i < 6; i++) {
 		child = &dir->children[i];
 
 		if (i < 4) {
-			child->FileAttributes = F12_ATTR_SUBDIRECTORY;
+			child->FileAttributes = LF12_ATTR_SUBDIRECTORY;
 		}
 		child->parent = dir;
 		child->child_count = 4;
-		child->children = calloc(4, sizeof(struct f12_directory_entry));
+		child->children =
+			calloc(4, sizeof(struct lf12_directory_entry));
 	}
 
 	memmove(&dir->children[0].ShortFileName, "BIN     ", 8);
@@ -115,15 +116,15 @@ void setup(void)
 
 void teardown(void)
 {
-	f12_free_entry(dir);
+	lf12_free_entry(dir);
 }
 
-START_TEST(test_f12_list_width)
+START_TEST(test_f12__f12_list_width)
 {
-	enum f12_error err;
+	enum lf12_error err;
 	size_t width;
 
-	err = list_width(dir, 4, 2, &width, 1);
+	err = _f12_list_width(dir, 4, 2, &width, 1);
 
 	ck_assert_int_eq(err, F12_SUCCESS);
 	// The longest lines are
@@ -133,7 +134,7 @@ START_TEST(test_f12_list_width)
 	// with a length of 17 characters each.
 	ck_assert_int_eq(width, 17);
 
-	err = list_width(dir, 4, 2, &width, 0);
+	err = _f12_list_width(dir, 4, 2, &width, 0);
 
 	ck_assert_int_eq(err, F12_SUCCESS);
 	// The longest line in the top level directory is
@@ -145,22 +146,22 @@ START_TEST(test_f12_list_width)
 END_TEST
 // *INDENT-ON*
 
-START_TEST(test_f12_list_size_len)
+START_TEST(test_f12__f12_list_size_len)
 {
 	size_t len;
-	struct f12_directory_entry *devices = &dir->children[1];
+	struct lf12_directory_entry *devices = &dir->children[1];
 
-	len = list_size_len(dir, 1);
+	len = _f12_list_size_len(dir, 1);
 
 	// The longest formated file lengths are
 	// "1302 bytes" for BIN/COPY and
 	// "2500 bytes" for BOOT.CFG with 10 bytes each;
 	ck_assert_int_eq(len, 10);
 
-	len = list_size_len(devices, 0);
+	len = _f12_list_size_len(devices, 0);
 	// Device "0" has the longest formatted size
 	// "1440 KiB  " with 10 bytes.
-	// Note the additional two spaces after KiB. The format_bytes function
+	// Note the additional two spaces after KiB. The _f12_format_bytes function
 	// adds them to let every suffix (bytes, KiB, MiB, GiB) have the same
 	// length. This makes it easier to print the sizes aligned in a table.
 	ck_assert_int_eq(len, 10);
@@ -175,8 +176,8 @@ TCase *f12_list_case(void)
 
 	tc_f12_list = tcase_create("f12 list");
 	tcase_add_checked_fixture(tc_f12_list, setup, teardown);
-	tcase_add_test(tc_f12_list, test_f12_list_width);
-	tcase_add_test(tc_f12_list, test_f12_list_size_len);
+	tcase_add_test(tc_f12_list, test_f12__f12_list_width);
+	tcase_add_test(tc_f12_list, test_f12__f12_list_size_len);
 
 	return tc_f12_list;
 }

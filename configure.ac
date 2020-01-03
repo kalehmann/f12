@@ -1,85 +1,33 @@
-# AC_INIT - perform the initialization and verification
+# AC_INIT - initialize autoconf
 # Required arguments: package name and version
 # Optional arguments: bug-report address, tarname and url.
 AC_INIT([f12], [1.0], [mail@kalehmann.de])
-# Is needed to use the archiver.
-AM_PROG_AR
+# AC_INIT_AUTOMAKE - initialize automake
+# Required for the generation of makefiles.
+# Only argument is a space seperated list of compiler options.
+AM_INIT_AUTOMAKE([subdir-objects -Wall foreign])
 
-# Determine the c compiler to use.
+AM_PROG_AR
+# Determine the C compiler to use.
 AC_PROG_CC
 # Activate libtool
 AC_PROG_LIBTOOL
 
-AC_DEFUN([AC_FEAT_COVERAGE], [
-	dnl Check for --enable-coverage
-
-	AC_MSG_CHECKING([whether to enable coverage])
-	AC_ARG_ENABLE([coverage],
-		[AS_HELP_STRING([--enable-coverage],
-			[compile with coverage (default is no)])],
-		[enable_coverage=yes],
-		[enable_coverage=no])
-
-	AM_CONDITIONAL([ENABLECOVERAGE], [test "x${enable_coverage}" = "xyes"])
-	AC_MSG_RESULT($enable_coverage)
-
-	AS_IF([test "x${enable_coverage}" = "xyes"], [
-		AC_CHECK_TOOL([GCOV], [gcov], [:])
-		AS_IF([test "x${GCOV}" = "x:"],
-			[AC_MSG_ERROR([gcov is needed for coverage])])
-
-		AC_CHECK_TOOL([LCOV], [lcov], [:])
-		AS_IF([test "x${LCOV}" = ":"],
-			[AC_MSG_ERROR([lcov is needed for coverage])])
-
-		AC_CHECK_TOOL([GENHTML], [genhtml], [:])
-		AS_IF([test "x${GENHTML}" = "x:"],
-			[AC_MSG_ERROR([genhtml is needed for coverage])])
-
-		COVERAGE_CFLAGS="-g -O0 -fprofile-arcs -ftest-coverage"
-		COVERAGE_LDFLAGS="-lgcov --coverage -static"
-
-		AC_SUBST([COVERAGE_CFLAGS])
-		AC_SUBST([COVERAGE_LDFLAGS])
-	])
-])
-
-AC_DEFUN([AC_FEAT_BEAUTIFY], [
-	dnl Check for --enable-beautify
-
-	AC_MSG_CHECKING([Whether to enable beautify])
-	AC_ARG_ENABLE([beautify],
-		[AS_HELP_STRING([--enable-beautify],
-			[enable beautification (default is no)])],
-		[enable_beautify=yes],
-		[enable_beautify=no])
-	AM_CONDITIONAL([ENABLEBEAUTIFY], [test "x${enable_beautify}" = "xyes"])
-	AC_MSG_RESULT($enable_beautify)
-
-	AS_IF([test "x${enable_beautify}" = "xyes"], [
-		AC_CHECK_TOOL([INDENT], [indent], [:])
-		AS_IF([test "x${INDENT}" = "x:"],
-			[AC_MSG_ERROR([indent is needed for beautification])])
-	])
-])
-
-AC_FEAT_COVERAGE
-AC_FEAT_BEAUTIFY
-
-PKG_CHECK_MODULES([CHECK], [check >= 0.9.6])
-
-# Required for the generate makefiles.
-# Only argument is a space seperated list of compiler options.
-AM_INIT_AUTOMAKE([subdir-objects -Wall foreign])
-
+# Add the directory m4 to the search path for macro files
 AC_CONFIG_MACRO_DIRS([m4])
+
+# Add --enable-beautify
+AC_FEAT_BEAUTIFY
+# Add --enable-coverage
+AC_FEAT_COVERAGE
+
+# Make sure that libcheck is installed. The minimum version is 0.11.0 as it
+# introduced ck_assert_mem_eq and ck_assert_mem_ne
+PKG_CHECK_MODULES([CHECK], [check >= 0.11.0])
 
 # Creates the files from templates (.in-files)
 AC_CONFIG_FILES([
   Makefile
-  src/libfat12/Makefile
-  src/Makefile
-  tests/Makefile
 ])
 # Creates and runs the config.status file
 AC_OUTPUT

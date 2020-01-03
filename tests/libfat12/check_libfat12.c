@@ -1,7 +1,7 @@
 #include <check.h>
 #include <stdlib.h>
-#include "../src/libfat12/libfat12.h"
-#include "libfat12/tests.h"
+#include "../../src/libfat12/libfat12.h"
+#include "tests.h"
 
 Suite *libfat12_suite(void)
 {

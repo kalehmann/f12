@@ -11,7 +11,7 @@ static int ceil_div(int a, int b)
 	return (a + b - 1) / b;
 }
 
-void info_dump_bpb(struct f12_metadata *f12_meta, char **output)
+void _f12_info_dump_bpb(struct lf12_metadata *f12_meta, char **output)
 {
 	struct bios_parameter_block *bpb = f12_meta->bpb;
 
@@ -48,8 +48,8 @@ void info_dump_bpb(struct f12_metadata *f12_meta, char **output)
 }
 
 void
-initialize_bpb(struct bios_parameter_block *bpb,
-	       struct f12_create_arguments *args)
+_f12_initialize_bpb(struct bios_parameter_block *bpb,
+		    struct f12_create_arguments *args)
 {
 	size_t size;
 
@@ -197,8 +197,8 @@ initialize_bpb(struct bios_parameter_block *bpb,
 	bpb->LargeSectors = bpb->LogicalSectors;
 	bpb->Flags = 0;
 	bpb->Signature = 0;
-	bpb->SectorsPerFat = sectors_per_fat(bpb);
-	f12_generate_volume_id(&(bpb->VolumeID));
+	bpb->SectorsPerFat = _f12_sectors_per_fat(bpb);
+	lf12_generate_volume_id(&(bpb->VolumeID));
 
 	if (NULL != args->volume_label) {
 		if (strlen(args->volume_label) < 12) {
@@ -219,7 +219,7 @@ initialize_bpb(struct bios_parameter_block *bpb,
 	memcpy(&(bpb->FileSystem), "FAT12    ", 9);
 }
 
-uint16_t sectors_per_fat(struct bios_parameter_block *bpb)
+uint16_t _f12_sectors_per_fat(struct bios_parameter_block *bpb)
 {
 	// Layout of a fat12 formated partition:
 	// Boot related stuff, File allocation tables, Root directory, data

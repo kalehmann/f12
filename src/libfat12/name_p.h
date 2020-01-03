@@ -8,6 +8,6 @@
  * @param entry the directory entry to get the path length for
  * @return the length of the entries path
  */
-size_t _lf12_get_path_length(struct f12_directory_entry *entry);
+size_t _lf12_get_path_length(struct lf12_directory_entry *entry);
 
 #endif

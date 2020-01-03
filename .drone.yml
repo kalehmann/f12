@@ -19,9 +19,11 @@ steps:
         - name: "unit-tests"
           image: "registry.kalehmann.de/testing/f12:latest"
           commands:
-                - "make check || (cat tests/test-suite.log && exit 1)"
+                - "make check || (cat test-suite.log && exit 1)"
           depends_on:
                 - "build"
+          environment:
+                GCOV_PREFIX: "/tmp/unit-tests"
         - name: "bats"
           image: "registry.kalehmann.de/testing/f12:latest"
           commands:

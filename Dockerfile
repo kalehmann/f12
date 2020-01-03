@@ -1,4 +1,4 @@
-FROM debian
+FROM debian:10-slim
 
 RUN apt-get update \
     	&& apt-get upgrade -y \
@@ -17,14 +17,14 @@ RUN apt-get update \
 	valgrind \
 	&& rm -rf /var/lib/apt/lists/*
 
-RUN curl -L https://github.com/libcheck/check/releases/download/0.12.0/check-0.12.0.tar.gz | tar zx \
-	&& cd check-0.12.0 \
+RUN curl -L https://github.com/libcheck/check/releases/download/0.13.0/check-0.13.0.tar.gz | tar zx \
+	&& cd check-0.13.0 \
 	&& ./configure \
 	&& make \
 	&& make check \
 	&& make install \
 	&& cd .. \
-	&& rm -rf check-0.12.0
+	&& rm -rf check-0.13.0
 
 RUN git clone https://github.com/bats-core/bats-core.git \
 	&& cd bats-core \
@@ -32,4 +32,6 @@ RUN git clone https://github.com/bats-core/bats-core.git \
 	&& cd .. \
 	&& rm -rf bats-core
 
+RUN echo "/usr/local/lib" > /etc/ld.so.conf.d/usr-local-lib.conf \
+	&& ldconfig
 
