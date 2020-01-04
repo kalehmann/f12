@@ -1,7 +1,7 @@
 #! /usr/bin/env bats
 # -*- mode: sh -*-
 #
-# Copyright 2019 by Karsten Lehmann <mail@kalehmann.de>
+# Copyright 2019 - 2020 by Karsten Lehmann <mail@kalehmann.de>
 #
 # This file defines functional tests for f12 using bats
 # <https://github.com/bats-core/bats-core>.
@@ -315,6 +315,29 @@ fi
     _run ./src/f12 create "${TEST_IMAGE}" --root-dir=Readme.md
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Expected the root dir to be a directory"* ]]
+}
+
+@test "I can specify a file to boot when I create a fat12 image with a root directory" {
+    _run ./src/f12 create "${TEST_IMAGE}" --root-dir=tests/fixtures/TEST --boot-file=BOOT.BIN
+    [[ "$status" -eq 0 ]]
+}
+
+@test "I get an error when I specify a boot file without the root-dir option during the creation of a fat12 image" {
+    _run ./src/f12 create "${TEST_IMAGE}" --boot-file=BOOT.BIN
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Can not use the boot-file option without also specifying a root directory"* ]]
+}
+
+@test "I get an error when I specify a boot file that does not exist in the root directory during the creation of a fat12 image" {
+    _run ./src/f12 create "${TEST_IMAGE}" --root-dir=tests/fixtures/TEST --boot-file=NOF.ILE
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"Could not find NOF.ILE in the root directory"* ]]
+}
+
+@test "I get an error when I specify a boot file in a subdirectory" {
+    _run ./src/f12 create "${TEST_IMAGE}" --root-dir=tests/fixtures/TEST --boot-file=SUBDIR1/FILE1.TXT
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == *"The boot file can not be in a subdirectory"* ]]
 }
 
 @test "I can delete a file from a fat12 image" {
@@ -686,7 +709,7 @@ fi
     _run ./src/f12 put --recursive "${TEST_IMAGE}" tests/fixtures/TEST NEW/TESTDIR
     [[ "$status" -eq 0 ]]
     _run ./src/f12 list "${TEST_IMAGE}" NEW/TESTDIR
-    [[ "${#lines[@]}" == "6" ]]
+    [[ "${#lines[@]}" == "7" ]]
     _run ./src/f12 list "${TEST_IMAGE}" NEW/TESTDIR/SUBDIR1
     [[ "${#lines[@]}" == "3" ]]
     [[ "${lines[2]}" == "|-> FILE1.TXT" ]]

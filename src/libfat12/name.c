@@ -76,11 +76,11 @@ char *lf12_convert_name(const char *name)
 		return NULL;
 	}
 
-	for (int i = 0; i < 11; i++) {
-		converted_name[i] = ' ';
+	for (int j = 0; j < 11; j++) {
+		converted_name[j] = ' ';
 	}
 
-	while ((c = *(name++)) != '\0') {
+	while ((c = *(name++)) != '\0' && i < 11) {
 		if (c == '.' && *name != '\0' && *name != '.') {
 			i = 8;
 			continue;

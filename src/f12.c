@@ -43,6 +43,8 @@ install_simple_bootloader(FILE * fp,
 	}
 
 	if (!file_exists) {
+		free(boot_name_8_3);
+
 		return F12_FILE_NOT_FOUND;
 	}
 
@@ -220,6 +222,17 @@ int f12_create(struct f12_create_arguments *args, char **output)
 	}
 
 	if (args->boot_file) {
+		if (strchr(args->boot_file, '/')) {
+			lf12_free_metadata(f12_meta);
+			fclose(fp);
+			free(*output);
+
+			asprintf(output, "Error: The boot file can not be in "
+				 "a subdirectory\n");
+
+			return EXIT_FAILURE;
+		}
+
 		err = install_simple_bootloader(fp, f12_meta, args->boot_file,
 						output);
 		if (F12_SUCCESS != err) {
