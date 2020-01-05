@@ -67,6 +67,11 @@ enum lf12_error _f12_list_f12_entry(struct lf12_directory_entry *entry,
 		return F12_SUCCESS;
 	}
 
+	if (LF12_ATTR_LFN == entry->FileAttributes) {
+		// Ignore VFAT Long FileName entries
+		return F12_SUCCESS;
+	}
+
 	if (args->creation_date) {
 		date = entry->CreateDate;
 		time = entry->PasswordHashOrCreateTime;
