@@ -1077,8 +1077,6 @@ enum lf12_error lf12_create_entry_from_path(struct lf12_metadata *f12_meta,
 enum lf12_error lf12_create_image(FILE * fp, struct lf12_metadata *f12_meta)
 {
 	struct bios_parameter_block *bpb = f12_meta->bpb;
-	size_t file_size = bpb->LargeSectors * bpb->SectorSize;
-
 	void *sector = calloc(bpb->SectorSize, 1);
 	if (NULL == sector) {
 		return F12_ALLOCATION_ERROR;
@@ -1090,6 +1088,26 @@ enum lf12_error lf12_create_image(FILE * fp, struct lf12_metadata *f12_meta)
 	free(sector);
 
 	lf12_write_metadata(fp, f12_meta);
+
+	return F12_SUCCESS;
+}
+
+enum lf12_error lf12_install_bootloader(FILE * fp,
+					struct lf12_metadata *f12_meta,
+					char *bootloader)
+{
+	if (-1 == fseek(fp, 0, SEEK_SET)) {
+		lf12_save_errno();
+
+		return F12_IO_ERROR;
+	}
+	if (512 != fwrite(bootloader, 1, 512, fp)) {
+		lf12_save_errno();
+
+		return F12_IO_ERROR;
+	}
+
+	write_bpb(fp, f12_meta);
 
 	return F12_SUCCESS;
 }

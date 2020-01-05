@@ -27,6 +27,7 @@ enum opts {
 	OPT_CREATE_NUMBER_OF_FATS,
 	OPT_CREATE_ROOT_DIR_ENTRIES,
 	OPT_CREATE_DRIVE_NUMBER,
+	OPT_CREATE_BOOT_FILE,
 	OPT_DEL_SOFT_DELETE,
 	OPT_INFO_DUMP_BPB,
 	OPT_LIST_WITH_SIZE,
@@ -176,6 +177,13 @@ error_t parser_create(int key, char *arg, struct argp_state *state)
 		create_arguments->drive_number = (uint8_t) temp;
 
 		return 0;
+	case (OPT_CREATE_BOOT_FILE):
+		if (NULL != create_arguments->boot_file) {
+			argp_usage(state);
+		}
+		create_arguments->boot_file = arg;
+
+		return 0;
 	}
 
 	return ARGP_ERR_UNKNOWN;
@@ -253,6 +261,14 @@ static struct argp_option create_options[] = {
 		.arg = "NUMBER",
 		.flags = 0,
 		.doc = NULL,
+		.group = 0
+	},
+	{
+		.name = "boot-file",
+		.key = OPT_CREATE_BOOT_FILE,
+		.arg = "FILE PATH",
+		.flags = 0,
+		.doc = "Any file in the root directory that will be booted",
 		.group = 0
 	},
 	{ 0 }

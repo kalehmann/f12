@@ -1,6 +1,32 @@
 # Include the macros in the m4 directories
 ACLOCAL_AMFLAGS = -I m4
 
+NASM = nasm
+NASM_FLAGS = -f bin
+
+default_bootcode_sources = boot/default/bootcode.asm
+default_bootcode_includes = boot/default/dos_4_0_ebpb.inc
+default_bootcode_binary = boot/default/bootcode.bin
+default_bootcode_built_sources = boot/default/default_bootcode.c
+
+$(default_bootcode_binary): $(default_bootcode_sources) $(default_bootcode_includes)
+	$(NASM) $(NASM_FLAGS) \
+		-o $(default_bootcode_binary) \
+		-i boot/default/ \
+		$(default_bootcode_sources)
+$(default_bootcode_built_sources): $(default_bootcode_binary)
+	xxd -i $(default_bootcode_binary) > $(default_bootcode_built_sources)
+
+simple_bootloader_binary = boot/simple_bootloader/sibolo/bootloader.bin
+simple_bootloader_built_sources = boot/simple_bootloader/simple_bootloader.c
+
+$(simple_bootloader_binary):
+	$(MAKE) -C boot/simple_bootloader/sibolo
+$(simple_bootloader_built_sources): $(simple_bootloader_binary)
+	xxd -i $(simple_bootloader_binary) | \
+		sed s/boot_simple_bootloader_sibolo_bootloader_bin/boot_simple_bootloader/g \
+		> $(simple_bootloader_built_sources)
+
 # The main program(s) to build
 bin_PROGRAMS = src/f12
 # The library to build
@@ -22,6 +48,11 @@ src_libfat12_libfat12_la_CFLAGS = $(COVERAGE_CFLAGS)
 
 # Source files for the main program
 src_f12_SOURCES = \
+	$(default_bootcode_built_sources) \
+	$(simple_bootloader_built_sources) \
+	boot/default/bootcode.h \
+	boot/simple_bootloader/simple_bootloader.h \
+	boot/simple_bootloader/sibolo_set_8_3_name.c \
 	src/bpb.c \
 	src/bpb.h \
 	src/f12.c \
@@ -39,6 +70,8 @@ src_f12_CFLAGS = $(COVERAGE_CFLAGS)
 src_f12_LDADD = src/libfat12/libfat12.la
 # Additional linker flags for the libraries linked to the main program
 src_f12_LDFLAGS = $(COVERAGE_LDFLAGS)
+# Additional dependecies for the main program
+EXTRA_src_f12_DEPENDENCIES = default_bootcode
 
 # All the programs that are build for tests
 check_PROGRAMS = \
@@ -100,6 +133,10 @@ endif
 clean-local:
 	rm -f tests.info
 	rm -rf coverage-html
+	rm -f $(default_bootcode_binary)
+	rm -f $(default_bootcode_built_sources)
+	rm -f $(simple_bootloader_binary)
+	rm -f $(simple_bootloader_built_sources)
 	find . -type f \( -name ".gcov" -o -name "*.gcda" -o -name "*.gcno" \) -delete
 
-.PHONY: beautify coverage-report
+.PHONY: beautify coverage-report default_bootcode

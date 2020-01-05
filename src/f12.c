@@ -18,6 +18,41 @@
 #include "format.h"
 #include "list.h"
 #include "libfat12/libfat12.h"
+#include "../boot/default/bootcode.h"
+#include "../boot/simple_bootloader/simple_bootloader.h"
+
+static enum lf12_error
+install_simple_bootloader(FILE * fp,
+			  struct lf12_metadata *f12_meta,
+			  const char *boot_name, char **output)
+{
+	struct lf12_directory_entry *root_dir = f12_meta->root_dir;
+	unsigned char file_exists = 0;
+	char *boot_name_8_3 = lf12_convert_name(boot_name);
+	if (NULL == boot_name_8_3) {
+		return F12_ALLOCATION_ERROR;
+	}
+
+	for (int i = 0; i < root_dir->child_count; i++) {
+		if (0 == memcmp(root_dir->children[i].ShortFileName,
+				boot_name_8_3, 8) &&
+		    0 == memcmp(root_dir->children[i].ShortFileExtension,
+				boot_name_8_3 + 8, 3)) {
+			file_exists = 1;
+		}
+	}
+
+	if (!file_exists) {
+		free(boot_name_8_3);
+
+		return F12_FILE_NOT_FOUND;
+	}
+
+	sibolo_set_8_3_name(boot_name_8_3);
+	free(boot_name_8_3);
+
+	return lf12_install_bootloader(fp, f12_meta, boot_simple_bootloader);
+}
 
 static enum lf12_error
 recursive_del_entry(FILE * fp,
@@ -122,6 +157,27 @@ int f12_create(struct f12_create_arguments *args, char **output)
 		return err;
 	}
 
+	if (args->boot_file == NULL) {
+		err = lf12_install_bootloader(fp, f12_meta,
+					      boot_default_bootcode_bin);
+		if (F12_SUCCESS != err) {
+			free(*output);
+			asprintf(output, "Error: %s\n", lf12_strerror(err));
+			lf12_free_metadata(f12_meta);
+			fclose(fp);
+
+			return EXIT_FAILURE;
+		}
+	} else if (args->root_dir_path == NULL) {
+		free(*output);
+		lf12_free_metadata(f12_meta);
+		fclose(fp);
+		asprintf(output, "Error: Can not use the boot-file option "
+			 "without also specifying a root directory\n");
+
+		return EXIT_FAILURE;
+	}
+
 	if (NULL == args->root_dir_path) {
 		lf12_free_metadata(f12_meta);
 		fclose(fp);
@@ -165,13 +221,45 @@ int f12_create(struct f12_create_arguments *args, char **output)
 		return EXIT_FAILURE;
 	}
 
+	if (args->boot_file) {
+		if (strchr(args->boot_file, '/')) {
+			lf12_free_metadata(f12_meta);
+			fclose(fp);
+			free(*output);
+
+			asprintf(output, "Error: The boot file can not be in "
+				 "a subdirectory\n");
+
+			return EXIT_FAILURE;
+		}
+
+		err = install_simple_bootloader(fp, f12_meta, args->boot_file,
+						output);
+		if (F12_SUCCESS != err) {
+			lf12_free_metadata(f12_meta);
+			fclose(fp);
+			free(*output);
+
+			if (F12_FILE_NOT_FOUND == err) {
+				asprintf(output,
+					 "Error: Could not find %s in the root"
+					 " directory\n", args->boot_file);
+			} else {
+				asprintf(output, "Error: %s\n",
+					 lf12_strerror(err));
+			}
+
+			return EXIT_FAILURE;
+		}
+	}
+
 	err = lf12_write_metadata(fp, f12_meta);
 	lf12_free_metadata(f12_meta);
 	fclose(fp);
-
 	if (F12_SUCCESS != err) {
 		free(*output);
 		asprintf(output, "Error: %s\n", lf12_strerror(err));
+
 		return EXIT_FAILURE;
 	}
 

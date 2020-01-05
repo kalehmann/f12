@@ -7,9 +7,7 @@
 
 enum lf12_error lf12_create_root_dir_meta(struct lf12_metadata *f12_meta)
 {
-	enum lf12_error err;
 	struct bios_parameter_block *bpb = f12_meta->bpb;
-	size_t fat_size = bpb->SectorsPerFat * bpb->SectorSize;
 	uint16_t cluster_count =
 		bpb->LogicalSectors / bpb->SectorsPerCluster + 2;
 	struct lf12_directory_entry *root_dir = NULL;

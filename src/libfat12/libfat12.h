@@ -299,6 +299,18 @@ enum lf12_error lf12_create_entry_from_path(struct lf12_metadata *f12_meta,
  */
 enum lf12_error lf12_create_image(FILE * fp, struct lf12_metadata *f12_meta);
 
+/**
+ * Install a bootloader into a fat12 image
+ *
+ * @param fp a pointer to the file to install a bootloader into
+ * @param f12_meta a pointer to the metadata of the fat12 image
+ * @param bootloader a pointer to the binary bootloader data (should always be
+ *                   512 bytes)
+ */
+enum lf12_error lf12_install_bootloader(FILE * fp,
+					struct lf12_metadata *f12_meta,
+					char *bootloader);
+
 // metadata.c
 /**
  * Get the size of a fat12 image in bytes by its metadata
@@ -384,7 +396,7 @@ char *lf12_get_file_name(struct lf12_directory_entry *entry);
  * @return a pointer to an array of 11 chars with the filename in the 8.3
  * format, that must be freed after use or NULL on failure
  */
-char *lf12_convert_name(char *name);
+char *lf12_convert_name(const char *name);
 
 /**
  * Get the full path of a directory entry in the image.
