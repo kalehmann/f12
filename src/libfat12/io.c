@@ -950,9 +950,9 @@ enum lf12_error lf12_create_file(FILE * fp,
 		return err;
 	}
 	/*
-         * The archive attribute is used to mark files, that are not backuped
-         * yet.
-         */
+	 * The archive attribute is used to mark files, that are not backuped
+	 * yet.
+	 */
 	entry->FileAttributes |= LF12_ATTR_ARCHIVE;
 	entry->FirstCluster = first_cluster;
 	entry->FileSize = file_size;

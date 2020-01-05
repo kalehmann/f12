@@ -69,12 +69,39 @@ START_TEST(test_lf12_get_file_name)
 END_TEST
 // *INDENT-ON*
 
+START_TEST(test_lf12_sanitize_file_name_char)
+{
+	ck_assert_int_eq(_lf12_sanitize_file_name_char('A'), 'A');
+	ck_assert_int_eq(_lf12_sanitize_file_name_char('Z'), 'Z');
+	ck_assert_int_eq(_lf12_sanitize_file_name_char('4'), '4');
+	ck_assert_int_eq(_lf12_sanitize_file_name_char('-'), '-');
+	ck_assert_int_eq(_lf12_sanitize_file_name_char('.'), '_');
+	ck_assert_int_eq(_lf12_sanitize_file_name_char('q'), 'Q');
+	ck_assert_int_eq(_lf12_sanitize_file_name_char('+'), '_');
+	ck_assert_int_eq(_lf12_sanitize_file_name_char(' '), ' ');
+}
+// *INDENT-OFF*
+END_TEST
+// *INDENT-ON*
+
 START_TEST(test_lf12_convert_name)
 {
-	char *name = lf12_convert_name("FILE.BIN");
+	char *name;
 
+	name = lf12_convert_name("FILE.BIN");
 	ck_assert_mem_eq(name, "FILE    BIN", 11);
+	free(name);
 
+	name = lf12_convert_name("file.bin");
+	ck_assert_mem_eq(name, "FILE    BIN", 11);
+	free(name);
+
+	name = lf12_convert_name("reallylongfilename.txt");
+	ck_assert_mem_eq(name, "REALLYLOTXT", 11);
+	free(name);
+
+	name = lf12_convert_name(" file 1  .t x t  ");
+	ck_assert_mem_eq(name, "FILE 1  TXT", 11);
 	free(name);
 }
 // *INDENT-OFF*
@@ -88,6 +115,7 @@ TCase *libfat12_name_case(void)
 	tc_libfat12_name = tcase_create("libfat12 filename");
 	tcase_add_test(tc_libfat12_name, test_lf12_get_path_length);
 	tcase_add_test(tc_libfat12_name, test_lf12_get_file_name);
+	tcase_add_test(tc_libfat12_name, test_lf12_sanitize_file_name_char);
 	tcase_add_test(tc_libfat12_name, test_lf12_convert_name);
 
 	return tc_libfat12_name;

@@ -4,6 +4,42 @@
 #include "libfat12.h"
 #include "name_p.h"
 
+static void convert_short_file_name(const char *name, char *converted_name)
+{
+	char c;
+	int i = 0;
+
+	while ((c = *(name++)) != '\0' && '.' != c && i < 8) {
+		if (' ' == c && 0 == i) {
+			// Omit leading spaces
+			continue;
+		}
+
+		converted_name[i++] = _lf12_sanitize_file_name_char(c);
+	}
+}
+
+static void convert_short_file_extension(const char *name, char *converted_name)
+{
+	char c;
+	int i = 8;
+
+	name = strchr(name, '.');
+
+	if (NULL == name) {
+		return;
+	}
+
+	while ((c = *(++name)) != '\0' && i < 11) {
+		if (' ' == c) {
+			// Omit all spaces in the file extension
+			continue;
+		}
+
+		converted_name[i++] = _lf12_sanitize_file_name_char(c);
+	}
+}
+
 size_t _lf12_get_path_length(struct lf12_directory_entry *entry)
 {
 	size_t path_length = 1;
@@ -67,26 +103,34 @@ char *lf12_get_file_name(struct lf12_directory_entry *entry)
 	return result;
 }
 
+char _lf12_sanitize_file_name_char(const char character)
+{
+	const char *valid_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		"0123456789!#$%&'()@`_-{}~ ";
+
+	if (strchr(valid_chars, character)) {
+		return character;
+	}
+
+	if (0x60 < character && 0x7b > character) {
+		return character - 0x20;
+	}
+
+	return '_';
+}
+
 char *lf12_convert_name(const char *name)
 {
-	int i = 0;
-	char *converted_name = malloc(11), c;
+	char *converted_name = malloc(11);
 
 	if (NULL == converted_name) {
 		return NULL;
 	}
 
-	for (int j = 0; j < 11; j++) {
-		converted_name[j] = ' ';
-	}
+	memset(converted_name, ' ', 11);
 
-	while ((c = *(name++)) != '\0' && i < 11) {
-		if (c == '.' && *name != '\0' && *name != '.') {
-			i = 8;
-			continue;
-		}
-		converted_name[i++] = c;
-	}
+	convert_short_file_name(name, converted_name);
+	convert_short_file_extension(name, converted_name);
 
 	return converted_name;
 }
