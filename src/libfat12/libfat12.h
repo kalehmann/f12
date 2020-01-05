@@ -27,8 +27,26 @@ enum lf12_path_relations {
 	F12_PATHS_SECOND,
 };
 
-/* directory entry attributes */
-#define LF12_ATTR_SUBDIRECTORY 0x10
+/**
+ * Attributes for offset 0x0b of a directory entry (member FileAttributes of the
+ * lf12_directory_entry structure)
+ */
+enum lf12_entry_attributes {
+	LF12_ATTR_READ_ONLY = 0x01,
+	LF12_ATTR_HIDDEN = 0x02,
+	LF12_ATTR_SYSTEM = 0x04,
+	LF12_ATTR_VOLUME_LABEL = 0x08,
+	/*
+	 * VFAT Long File Name
+	 * Combination of the attribute LF12_ATTR_READ_ONLY, LF12_ATTR_HIDDEN,
+	 * LF12_ATTR_SYSTEM and LF12_ATTR_VOLUME_LABEL
+	 */
+	LF12_ATTR_LFN = 0x0f,
+	LF12_ATTR_SUBDIRECTORY = 0x10,
+	LF12_ATTR_ARCHIVE = 0x20,
+	LF12_ATTR_DEVICE = 0x40,
+	LF12_ATTR_RESERVED = 0x80,
+};
 
 struct bios_parameter_block {
 	// Label of the software that created the image, 8 bytes plus the termination
@@ -75,9 +93,9 @@ struct bios_parameter_block {
 struct lf12_directory_entry {
 	char ShortFileName[8];
 	char ShortFileExtension[3];
-	char FileAttributes;
-	char UserAttributes;
-	char CreateTimeOrFirstCharacter;
+	uint8_t FileAttributes;
+	uint8_t UserAttributes;
+	uint8_t CreateTimeOrFirstCharacter;
 	uint16_t PasswordHashOrCreateTime;
 	uint16_t CreateDate;
 	uint16_t OwnerIdOrLastAccessDate;
