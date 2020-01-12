@@ -73,16 +73,16 @@ size_t _lf12_get_path_length(struct lf12_directory_entry *entry)
 char *lf12_get_file_name(struct lf12_directory_entry *entry)
 {
 	char name[13], *result;
-	int length = 0;
+	size_t length = 8;
 	int i = 0;
 
-	while (i < 8 &&
-	       entry->ShortFileName[i] != 0 && entry->ShortFileName[i] != ' ') {
-		name[length++] = entry->ShortFileName[i++];
+	memcpy(name, entry->ShortFileName, length);
+	while (length > 0 && name[length - 1] == ' ') {
+		length--;
 	}
 	if (entry->ShortFileExtension[0] != ' ') {
-		name[length++] = '.';
-		i = 0;
+		name[length] = '.';
+		length++;
 
 		while (i < 3 &&
 		       entry->ShortFileExtension[i] != 0 &&
@@ -91,9 +91,7 @@ char *lf12_get_file_name(struct lf12_directory_entry *entry)
 		}
 	}
 	name[length++] = 0;
-
 	result = malloc(length);
-
 	if (NULL == result) {
 		return NULL;
 	}
