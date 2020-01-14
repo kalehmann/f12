@@ -9,6 +9,81 @@
 #include <sys/stat.h>
 
 #include "filesystem.h"
+#include "libfat12/libfat12.h"
+
+static char *convert_path(char *restrict path)
+{
+	char *final_path = calloc(1, 1);
+	char delimiter[2] = "/";
+	char *part = NULL;
+	char *converted_part = NULL;
+	char *temp = NULL;
+	struct lf12_directory_entry entry = { 0 };
+
+	part = strtok(path, delimiter);
+	while (NULL != part) {
+		converted_part = lf12_convert_name(part);
+		if (NULL == converted_part) {
+			free(final_path);
+
+			return NULL;
+		}
+
+		memcpy(&entry.ShortFileName, converted_part, 8);
+		memcpy(&entry.ShortFileExtension, converted_part + 8, 3);
+		free(converted_part);
+
+		converted_part = lf12_get_file_name(&entry);
+		if (NULL == converted_part) {
+			free(final_path);
+
+			return NULL;
+		}
+
+		temp = final_path;
+		asprintf(&final_path, "%s/%s", final_path, converted_part);
+		free(temp);
+		free(converted_part);
+
+		part = strtok(NULL, delimiter);
+	}
+
+	return final_path;
+}
+
+static char *destination_path(const char *source, const char *destination)
+{
+	size_t src_len = strlen(source);
+	size_t dest_len = strlen(destination);
+	size_t src_offset = dest_len;
+	size_t path_len = src_len + dest_len + 1;
+	unsigned char dest_has_delim = 1;
+	char *restrict path = NULL;
+	char *converted_path = NULL;
+
+	if ('/' != destination[dest_len - 1]) {
+		dest_has_delim = 0;
+		path_len++;
+		src_offset++;
+	}
+
+	path = malloc(path_len);
+	if (NULL == path) {
+		return NULL;
+	}
+
+	strcpy(path, destination);
+	if (!dest_has_delim) {
+		path[dest_len] = '/';
+	}
+
+	strcpy(path + src_offset, source);
+
+	converted_path = convert_path(path);
+	free(path);
+
+	return converted_path;
+}
 
 int _f12_dump_f12_structure(FILE * fp, struct lf12_metadata *f12_meta,
 			    struct lf12_directory_entry *entry, char *dest_path,
@@ -94,14 +169,16 @@ int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
 		  char **output)
 {
 	enum lf12_error err;
-	char *path = args->source;
+	char *source_dir_path = args->source;
+	size_t source_offset = strlen(source_dir_path);
 	char *dest = args->destination;
 	char *temp;
 	char *src_path;
-	char putpath[1024];
-	char *const paths[] = { path, NULL };
+	char *putpath;
+	char *const paths[] = { source_dir_path, NULL };
 
 	FTS *ftsp = fts_open(paths, FTS_PHYSICAL | FTS_NOCHDIR, NULL);
+	FILE *src;
 	FTSENT *ent;
 
 	if (ftsp == NULL) {
@@ -112,68 +189,63 @@ int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
 	while (1) {
 		ent = fts_read(ftsp);
 		if (ent == NULL) {
-			if (errno == 0)
+			if (errno == 0) {
 				// No more items, leave
 				break;
-			else {
-				asprintf(output, "fts_read error: %s\n",
-					 strerror(errno));
-
-				return -1;
 			}
+			asprintf(output, "fts_read error: %s\n",
+				 strerror(errno));
+
+			return -1;
 		}
 
-		if (ent->fts_info & FTS_F) {
-			FILE *src;
-			src_path = ent->fts_path + strlen(path);
-			memcpy(putpath, dest, strlen(dest));
-			memcpy(putpath + strlen(dest), src_path,
-			       strlen(src_path) + 1);
+		if (!(ent->fts_info & FTS_F)) {
+			continue;
+		}
+		src_path = ent->fts_path + source_offset;
+		putpath = destination_path(src_path, dest);
 
-			if (args->verbose) {
-				temp = *output;
-				asprintf(output, "%s%s -> %s\n", *output,
-					 src_path, putpath);
-				free(temp);
-			}
+		if (args->verbose) {
+			temp = *output;
+			asprintf(output, "%s%s -> %s\n", *output,
+				 src_path, putpath);
+			free(temp);
+		}
 
-			if (NULL == (src = fopen(ent->fts_path, "r"))) {
-				temp = *output;
-				asprintf(output,
-					 "%s\nCannot open source file %s\n",
-					 *output, ent->fts_path);
-				free(temp);
+		if (NULL == (src = fopen(ent->fts_path, "r"))) {
+			temp = *output;
+			asprintf(output, "%s\nCannot open source file %s\n",
+				 *output, ent->fts_path);
+			free(temp);
 
-				return -1;
-			}
-			struct lf12_path *dest;
+			return -1;
+		}
+		struct lf12_path *dest;
 
-			err = lf12_parse_path(putpath, &dest);
-			if (F12_SUCCESS != err) {
-				temp = *output;
-				if (NULL != *output) {
-					asprintf(output, "%s\n%s\n", *output,
-						 lf12_strerror(err));
-				} else {
-					asprintf(output, "%s\n",
-						 lf12_strerror(err));
-				}
-				free(temp);
-
-				return -1;
-			}
-
-			err = lf12_create_file(fp, f12_meta, dest, src,
-					       created);
-			lf12_free_path(dest);
-			if (F12_SUCCESS != err) {
-				temp = *output;
-				asprintf(output, "%s\nError : %s\n", *output,
+		err = lf12_parse_path(putpath, &dest);
+		free(putpath);
+		if (F12_SUCCESS != err) {
+			temp = *output;
+			if (NULL != *output) {
+				asprintf(output, "%s\n%s\n", *output,
 					 lf12_strerror(err));
-				free(temp);
-
-				return -1;
+			} else {
+				asprintf(output, "%s\n", lf12_strerror(err));
 			}
+			free(temp);
+
+			return -1;
+		}
+
+		err = lf12_create_file(fp, f12_meta, dest, src, created);
+		lf12_free_path(dest);
+		if (F12_SUCCESS != err) {
+			temp = *output;
+			asprintf(output, "%s\nError : %s\n", *output,
+				 lf12_strerror(err));
+			free(temp);
+
+			return -1;
 		}
 	}
 
