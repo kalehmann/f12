@@ -53,6 +53,21 @@ START_TEST(test_lf12_get_path_length)
 END_TEST
 // *INDENT-ON*
 
+START_TEST(test_lf12_get_file_name)
+{
+	char *name;
+	name = lf12_get_file_name("TEST    ", "DAT");
+	ck_assert_str_eq(name, "TEST.DAT");
+	free(name);
+
+	name = lf12_get_file_name("SUBDIR 2", "   ");
+	ck_assert_str_eq(name, "SUBDIR 2");
+	free(name);
+}
+// *INDENT-OFF*
+END_TEST
+// *INDENT-ON*
+
 START_TEST(test_lf12_get_entry_file_name)
 {
 	struct lf12_directory_entry entry;
@@ -120,6 +135,7 @@ TCase *libfat12_name_case(void)
 
 	tc_libfat12_name = tcase_create("libfat12 filename");
 	tcase_add_test(tc_libfat12_name, test_lf12_get_path_length);
+	tcase_add_test(tc_libfat12_name, test_lf12_get_file_name);
 	tcase_add_test(tc_libfat12_name, test_lf12_get_entry_file_name);
 	tcase_add_test(tc_libfat12_name, test_lf12_sanitize_file_name_char);
 	tcase_add_test(tc_libfat12_name, test_lf12_convert_name);

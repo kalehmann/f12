@@ -70,24 +70,24 @@ size_t _lf12_get_path_length(struct lf12_directory_entry *entry)
 	return path_length;
 }
 
-char *lf12_get_entry_file_name(struct lf12_directory_entry *entry)
+char *lf12_get_file_name(const char *short_file_name,
+			 const char *short_file_extension)
 {
 	char name[13], *result;
 	size_t length = 8;
 	int i = 0;
 
-	memcpy(name, entry->ShortFileName, length);
+	memcpy(name, short_file_name, length);
 	while (length > 0 && name[length - 1] == ' ') {
 		length--;
 	}
-	if (entry->ShortFileExtension[0] != ' ') {
+	if (short_file_extension[0] != ' ') {
 		name[length] = '.';
 		length++;
 
-		while (i < 3 &&
-		       entry->ShortFileExtension[i] != 0 &&
-		       entry->ShortFileExtension[i] != ' ') {
-			name[length++] = entry->ShortFileExtension[i++];
+		while (i < 3 && short_file_extension[i] != 0 &&
+		       short_file_extension[i] != ' ') {
+			name[length++] = short_file_extension[i++];
 		}
 	}
 	name[length++] = 0;
@@ -99,6 +99,12 @@ char *lf12_get_entry_file_name(struct lf12_directory_entry *entry)
 	memcpy(result, name, length);
 
 	return result;
+}
+
+char *lf12_get_entry_file_name(struct lf12_directory_entry *entry)
+{
+	return lf12_get_file_name(entry->ShortFileName,
+				  entry->ShortFileExtension);
 }
 
 char _lf12_sanitize_file_name_char(const char character)

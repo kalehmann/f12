@@ -29,11 +29,9 @@ static char *convert_path(char *restrict path)
 			return NULL;
 		}
 
-		memcpy(&entry.ShortFileName, converted_part, 8);
-		memcpy(&entry.ShortFileExtension, converted_part + 8, 3);
-		free(converted_part);
-
-		converted_part = lf12_get_entry_file_name(&entry);
+		temp = converted_part;
+		converted_part = lf12_get_file_name(temp, temp + 8);
+		free(temp);
 		if (NULL == converted_part) {
 			free(final_path);
 

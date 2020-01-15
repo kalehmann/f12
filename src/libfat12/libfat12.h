@@ -399,6 +399,16 @@ long lf12_read_entry_timestamp(uint16_t date, uint16_t time, uint8_t msecs);
 
 // name.c
 /**
+ * Generates a human readable filename in the format name.extension from a 8.3
+ * file name.
+ * 
+ * @param short_file_name the 8.3 short file name
+ * @param short_file_extension the 8.3 short file extension
+ * @return a pointer to the file name that must be freed or NULL on failure
+ */
+char *lf12_get_file_name(const char *short_file_name,
+			 const char *short_file_extension);
+/**
  * Generates a human readable filename in the format name.extension from a fat12
  * directory entry.
  *
