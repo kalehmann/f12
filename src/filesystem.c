@@ -33,7 +33,7 @@ static char *convert_path(char *restrict path)
 		memcpy(&entry.ShortFileExtension, converted_part + 8, 3);
 		free(converted_part);
 
-		converted_part = lf12_get_file_name(&entry);
+		converted_part = lf12_get_entry_file_name(&entry);
 		if (NULL == converted_part) {
 			free(final_path);
 
@@ -136,7 +136,7 @@ int _f12_dump_f12_structure(FILE * fp, struct lf12_metadata *f12_meta,
 			continue;
 		}
 
-		char *child_name = lf12_get_file_name(child_entry);
+		char *child_name = lf12_get_entry_file_name(child_entry);
 
 		if (NULL == child_name) {
 			return -1;

@@ -77,7 +77,7 @@ enum lf12_error _f12_dump_move(struct lf12_directory_entry *src,
 
 			return err;
 		}
-		file_name = lf12_get_file_name(src);
+		file_name = lf12_get_entry_file_name(src);
 		if (*output) {
 			tmp = *output;
 			asprintf(output, "%s%s -> %s/%s\n", *output,
@@ -134,7 +134,7 @@ enum lf12_error _f12_dump_move(struct lf12_directory_entry *src,
 		}
 
 		tmp = *output;
-		file_name = lf12_get_file_name(src);
+		file_name = lf12_get_entry_file_name(src);
 		asprintf(output, "%s -> %s/%s%s\n", *output,
 			 dest_path, file_name, src_path + src_offset);
 		free(file_name);

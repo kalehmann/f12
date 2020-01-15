@@ -70,7 +70,7 @@ size_t _lf12_get_path_length(struct lf12_directory_entry *entry)
 	return path_length;
 }
 
-char *lf12_get_file_name(struct lf12_directory_entry *entry)
+char *lf12_get_entry_file_name(struct lf12_directory_entry *entry)
 {
 	char name[13], *result;
 	size_t length = 8;
@@ -150,7 +150,7 @@ enum lf12_error lf12_get_entry_path(struct lf12_directory_entry *entry,
 	(*path) += path_length - 1;
 
 	do {
-		entry_name = lf12_get_file_name(tmp_entry);
+		entry_name = lf12_get_entry_file_name(tmp_entry);
 		if (NULL == entry_name) {
 			free(*path);
 

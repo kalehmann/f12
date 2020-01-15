@@ -53,21 +53,21 @@ START_TEST(test_lf12_get_path_length)
 END_TEST
 // *INDENT-ON*
 
-START_TEST(test_lf12_get_file_name)
+START_TEST(test_lf12_get_entry_file_name)
 {
 	struct lf12_directory_entry entry;
 	char *name;
 	memmove(&entry.ShortFileName, "FILE    ", 8);
 	memmove(&entry.ShortFileExtension, "BIN", 3);
 
-	name = lf12_get_file_name(&entry);
+	name = lf12_get_entry_file_name(&entry);
 	ck_assert_str_eq(name, "FILE.BIN");
 	free(name);
 
 	memmove(&entry.ShortFileName, "TEXT  2 ", 8);
 	memmove(&entry.ShortFileExtension, "T  ", 3);
 
-	name = lf12_get_file_name(&entry);
+	name = lf12_get_entry_file_name(&entry);
 	ck_assert_str_eq(name, "TEXT  2.T");
 	free(name);
 }
@@ -120,7 +120,7 @@ TCase *libfat12_name_case(void)
 
 	tc_libfat12_name = tcase_create("libfat12 filename");
 	tcase_add_test(tc_libfat12_name, test_lf12_get_path_length);
-	tcase_add_test(tc_libfat12_name, test_lf12_get_file_name);
+	tcase_add_test(tc_libfat12_name, test_lf12_get_entry_file_name);
 	tcase_add_test(tc_libfat12_name, test_lf12_sanitize_file_name_char);
 	tcase_add_test(tc_libfat12_name, test_lf12_convert_name);
 

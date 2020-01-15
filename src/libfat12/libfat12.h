@@ -405,7 +405,7 @@ long lf12_read_entry_timestamp(uint16_t date, uint16_t time, uint8_t msecs);
  * @param entry the directory entry to generate the file name from
  * @return a pointer to the file name that must be freed or NULL on failure
  */
-char *lf12_get_file_name(struct lf12_directory_entry *entry);
+char *lf12_get_entry_file_name(struct lf12_directory_entry *entry);
 
 /**
  * Converts a human readable filename to the 8.3 format

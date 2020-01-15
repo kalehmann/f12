@@ -117,7 +117,7 @@ enum lf12_error _f12_list_f12_entry(struct lf12_directory_entry *entry,
 		name_padding = name_width - 4 - depth;
 	}
 
-	char *name = lf12_get_file_name(entry);
+	char *name = lf12_get_entry_file_name(entry);
 	if (NULL == name) {
 		return F12_ALLOCATION_ERROR;
 	}
@@ -157,7 +157,7 @@ enum lf12_error _f12_list_width(struct lf12_directory_entry *root_entry,
 	char *entry_name = NULL;
 
 	if (!lf12_is_directory(root_entry)) {
-		entry_name = lf12_get_file_name(root_entry);
+		entry_name = lf12_get_entry_file_name(root_entry);
 		if (NULL == entry_name) {
 			return F12_ALLOCATION_ERROR;
 		}
@@ -177,7 +177,7 @@ enum lf12_error _f12_list_width(struct lf12_directory_entry *root_entry,
 			continue;
 		}
 
-		entry_name = lf12_get_file_name(entry);
+		entry_name = lf12_get_entry_file_name(entry);
 		if (NULL == entry_name) {
 			return F12_ALLOCATION_ERROR;
 		}
