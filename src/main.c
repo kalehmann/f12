@@ -271,6 +271,14 @@ static struct argp_option create_options[] = {
 		.doc = "Any file in the root directory that will be booted",
 		.group = 0
 	},
+	{
+		.name = "verbose",
+		.key = 'v',
+		.arg = NULL,
+		.flags = 0,
+		.doc = NULL,
+		.group = 0
+	},
 	{ 0 }
 };
 // *INDENT-ON*
@@ -854,6 +862,7 @@ int main(int argc, char *argv[])
 	switch (arguments.command) {
 	case COMMAND_CREATE:
 		create_arguments.device_path = arguments.device_path;
+		create_arguments.verbose = arguments.verbose;
 		res = f12_create(&create_arguments, &output);
 		break;
 	case COMMAND_DEL:

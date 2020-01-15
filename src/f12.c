@@ -207,7 +207,7 @@ int f12_create(struct f12_create_arguments *args, char **output)
 		.device_path = args->device_path,
 		.source = args->root_dir_path,
 		.destination = "",
-		.verbose = 1,
+		.verbose = args->verbose,
 		.recursive = 1,
 	};
 
