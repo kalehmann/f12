@@ -13,7 +13,7 @@
 
 static char *convert_path(char *restrict path)
 {
-	char *final_path = calloc(1, 1);
+	char *final_path = NULL;
 	char delimiter[2] = "/";
 	char *part = NULL;
 	char *converted_part = NULL;
@@ -40,11 +40,15 @@ static char *convert_path(char *restrict path)
 			return NULL;
 		}
 
-		temp = final_path;
-		asprintf(&final_path, "%s/%s", final_path, converted_part);
-		free(temp);
-		free(converted_part);
-
+		if (!final_path) {
+			final_path = converted_part;
+		} else {
+			temp = final_path;
+			asprintf(&final_path, "%s/%s", final_path,
+				 converted_part);
+			free(temp);
+			free(converted_part);
+		}
 		part = strtok(NULL, delimiter);
 	}
 
@@ -170,7 +174,7 @@ int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
 {
 	enum lf12_error err;
 	char *source_dir_path = args->source;
-	size_t source_offset = strlen(source_dir_path);
+	size_t source_offset = strlen(source_dir_path) + 1;
 	char *dest = args->destination;
 	char *temp;
 	char *src_path;
@@ -207,7 +211,7 @@ int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
 
 		if (args->verbose) {
 			temp = *output;
-			asprintf(output, "%s%s -> %s\n", *output,
+			asprintf(output, "%s'%s' -> '%s'\n", *output,
 				 src_path, putpath);
 			free(temp);
 		}
