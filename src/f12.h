@@ -8,6 +8,7 @@ struct f12_create_arguments {
 	char *root_dir_path;
 	char *volume_label;
 	char *boot_file;
+	int verbose;
 	unsigned int volume_size;
 	uint16_t sector_size;
 	uint16_t sectors_per_cluster;
