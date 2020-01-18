@@ -129,6 +129,14 @@ beautify:
 	indent $$(find . -name "*.[ch]")
 endif
 
+# Build and tag the docker image for development
+docker-image:
+	docker build \
+		--tag "registry.kalehmann.de/testing/f12:latest" \
+		--pull \
+		--file Dockerfile \
+		.
+
 # Additional cleanup for coverage reports
 clean-local:
 	rm -f tests.info
