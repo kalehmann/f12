@@ -1,9 +1,10 @@
+# Add the po directory to the SUBDIRS variable. This is needed for GNU gettext
+SUBDIRS = po
+
 # Include the macros in the m4 directories
 ACLOCAL_AMFLAGS = -I m4
 
-
-# Add the po directory to the SUBDIRS variable. This is needed for GNU gettext
-SUBDIRS = po
+DEFS += -DLOCALEDIR=\"$(localedir)\"
 
 NASM = nasm
 NASM_FLAGS = -f bin

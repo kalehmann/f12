@@ -846,6 +846,13 @@ int main(int argc, char *argv[])
 	struct f12_move_arguments move_arguments = { 0 };
 	struct f12_put_arguments put_arguments = { 0 };
 
+	setlocale(LC_ALL, "");
+
+#ifdef ENABLE_NLS
+	bindtextdomain(PACKAGE, LOCALEDIR);
+	textdomain(PACKAGE);
+#endif
+
 	arguments.create_arguments = &create_arguments;
 	arguments.del_arguments = &del_arguments;
 	arguments.get_arguments = &get_arguments;
