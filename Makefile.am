@@ -1,6 +1,10 @@
 # Include the macros in the m4 directories
 ACLOCAL_AMFLAGS = -I m4
 
+
+# Add the po directory to the SUBDIRS variable. This is needed for GNU gettext
+SUBDIRS = po
+
 NASM = nasm
 NASM_FLAGS = -f bin
 
@@ -148,3 +152,5 @@ clean-local:
 	find . -type f \( -name ".gcov" -o -name "*.gcda" -o -name "*.gcno" \) -delete
 
 .PHONY: beautify coverage-report default_bootcode
+
+EXTRA_DIST = config.rpath m4/ChangeLog
