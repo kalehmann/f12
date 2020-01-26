@@ -73,11 +73,13 @@ static long int parse_long(char *str)
 
 	if (errno != 0) {
 		fprintf(stderr,
-			"An error occurred while parsing %s as a number: %s\n",
-			str, strerror(errno));
+			_("An error occurred while parsing %s as a number: "
+			  "%s\n"), str, strerror(errno));
+
 		exit(EXIT_FAILURE);
 	} else if (endptr == str || *endptr != 0) {
-		fprintf(stderr, "Could not parse %s as number\n", str);
+		fprintf(stderr, _("Could not parse %s as number\n"), str);
+
 		exit(EXIT_FAILURE);
 	}
 
@@ -120,7 +122,10 @@ error_t parser_create(int key, char *arg, struct argp_state *state)
 	case (OPT_CREATE_SIZE):
 		temp = parse_long(arg);
 		if (temp < 10 || temp > 32768) {
-			fprintf(stderr, "Invalid size\n");
+			fprintf(stderr,
+				_("Invalid value for the creation size: %ld\n"),
+				temp);
+
 			exit(EXIT_FAILURE);
 		}
 		create_arguments->volume_size = (uint16_t) temp;
@@ -129,7 +134,9 @@ error_t parser_create(int key, char *arg, struct argp_state *state)
 	case (OPT_CREATE_SECTOR_SIZE):
 		temp = parse_long(arg);
 		if (512 > temp || 4096 < temp || !power_of_two(temp)) {
-			fprintf(stderr, "Sector size %s out of range\n", arg);
+			fprintf(stderr, _("Sector size %ld is out of range\n"),
+				temp);
+
 			exit(EXIT_FAILURE);
 		}
 		create_arguments->sector_size = (uint16_t) temp;
@@ -138,7 +145,10 @@ error_t parser_create(int key, char *arg, struct argp_state *state)
 	case (OPT_CREATE_SECTORS_PER_CLUSTER):
 		temp = parse_long(arg);
 		if (!power_of_two(temp) || temp > 128) {
-			fprintf(stderr, "Sectors per cluster out of range\n");
+			fprintf(stderr,
+				_("Sectors per cluster value %ld is out of "
+				  "range\n"), temp);
+
 			exit(EXIT_FAILURE);
 		}
 		create_arguments->sectors_per_cluster = (uint16_t) temp;
@@ -147,7 +157,9 @@ error_t parser_create(int key, char *arg, struct argp_state *state)
 	case (OPT_CREATE_RESERVED_SECTORS):
 		temp = parse_long(arg);
 		if (temp < 1 || temp > 65535) {
-			fprintf(stderr, "Reserved sectors out of range\n");
+			fprintf(stderr,
+				_("Reserved sectors value %ld is out of "
+				  "range\n"), temp);
 			exit(EXIT_FAILURE);
 		}
 		create_arguments->reserved_sectors = (uint16_t) temp;
@@ -157,7 +169,9 @@ error_t parser_create(int key, char *arg, struct argp_state *state)
 		temp = parse_long(arg);
 		if (temp < 1 || temp > 2) {
 			fprintf(stderr,
-				"Invalid number of file allocation tables\n");
+				_("The number of file allocation tables %ld is "
+				  "invalid\n"), temp);
+
 			exit(EXIT_FAILURE);
 		}
 		create_arguments->number_of_fats = (uint8_t) temp;
@@ -166,7 +180,10 @@ error_t parser_create(int key, char *arg, struct argp_state *state)
 	case (OPT_CREATE_ROOT_DIR_ENTRIES):
 		temp = parse_long(arg);
 		if (temp != 64 && temp != 112 && temp != 224 && temp != 512) {
-			fprintf(stderr, "Invalid number of root dir entries\n");
+			fprintf(stderr,
+				_("The number of root directory entries %ld is "
+				  "invalid\n"), temp);
+
 			exit(EXIT_FAILURE);
 		}
 		create_arguments->root_dir_entries = (uint16_t) temp;
@@ -196,7 +213,7 @@ static struct argp_option create_options[] = {
 		.key = OPT_CREATE_ROOT_DIR,
 		.arg = "PATH",
 		.flags = 0,
-		.doc = NULL,
+		.doc = "The path to the a ",
 		.group = 0
 	},
 	{
@@ -268,7 +285,8 @@ static struct argp_option create_options[] = {
 		.key = OPT_CREATE_BOOT_FILE,
 		.arg = "FILE PATH",
 		.flags = 0,
-		.doc = "Any file in the root directory that will be booted",
+		.doc = gettext_noop("Any file in the root directory that will "
+				    "be booted"),
 		.group = 0
 	},
 	{
@@ -682,7 +700,7 @@ static struct argp_option options[] = {
 		.key = 0,
 		.arg = NULL,
 		.flags = 0,
-		.doc = "General options:",
+		.doc = gettext_noop("General options:"),
 		.group = -3
 	},
 	{
@@ -832,7 +850,11 @@ static struct argp argp = {
 	.doc = doc,
 	.children = children,
 	.help_filter = NULL,
+#ifdef ENABLE_NLS
+	.argp_domain = PACKAGE
+#else
 	.argp_domain = NULL
+#endif
 };
 
 int main(int argc, char *argv[])

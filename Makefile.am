@@ -4,8 +4,6 @@ SUBDIRS = po
 # Include the macros in the m4 directories
 ACLOCAL_AMFLAGS = -I m4
 
-DEFS += -DLOCALEDIR=\"$(localedir)\"
-
 NASM = nasm
 NASM_FLAGS = -f bin
 
@@ -155,3 +153,4 @@ clean-local:
 .PHONY: beautify coverage-report default_bootcode
 
 EXTRA_DIST = config.rpath m4/ChangeLog
+AM_CPPFLAGS = -DLOCALEDIR='"$(localedir)"'

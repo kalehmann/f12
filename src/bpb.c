@@ -15,27 +15,26 @@ void _f12_info_dump_bpb(struct lf12_metadata *f12_meta, char **output)
 {
 	struct bios_parameter_block *bpb = f12_meta->bpb;
 
-	char *text =
-		"\n"
-		"Bios Parameter Block\n"
-		"  OEMLabel:\t\t\t%s\n"
-		"  Sector size:\t\t\t%d bytes\n"
-		"  Sectors per cluster:\t\t%d\n"
-		"  Reserved sectors:\t\t%d\n"
-		"  Number of fats:\t\t%d\n"
-		"  Root directory entries:\t%d\n"
-		"  Logical sectors:\t\t%d\n"
-		"  Medium byte:\t\t\t0x%02x\n"
-		"  Sectors per fat:\t\t%d\n"
-		"  Sectors per track:\t\t%d\n"
-		"  Number of heads:\t\t%d\n"
-		"  Hidden sectors:\t\t%d\n"
-		"  Logical sectors (large):\t%d\n"
-		"  Drive number:\t\t\t0x%02x\n"
-		"  Flags:\t\t\t0x%02x\n"
-		"  Signature:\t\t\t0x%02x\n"
-		"  VolumeID:\t\t\t0x%08x\n"
-		"  Volume label:\t\t\t%s\n" "  File system:\t\t\t%s\n";
+	char *text = _("\n"
+		       "Bios Parameter Block\n"
+		       "  OEMLabel:\t\t\t%s\n"
+		       "  Sector size:\t\t\t%d bytes\n"
+		       "  Sectors per cluster:\t\t%d\n"
+		       "  Reserved sectors:\t\t%d\n"
+		       "  Number of fats:\t\t%d\n"
+		       "  Root directory entries:\t%d\n"
+		       "  Logical sectors:\t\t%d\n"
+		       "  Medium byte:\t\t\t0x%02x\n"
+		       "  Sectors per fat:\t\t%d\n"
+		       "  Sectors per track:\t\t%d\n"
+		       "  Number of heads:\t\t%d\n"
+		       "  Hidden sectors:\t\t%d\n"
+		       "  Logical sectors (large):\t%d\n"
+		       "  Drive number:\t\t\t0x%02x\n"
+		       "  Flags:\t\t\t0x%02x\n"
+		       "  Signature:\t\t\t0x%02x\n"
+		       "  VolumeID:\t\t\t0x%08x\n"
+		       "  Volume label:\t\t\t%s\n  File system:\t\t\t%s\n");
 
 	asprintf(output, text, bpb->OEMLabel, bpb->SectorSize,
 		 bpb->SectorsPerCluster,

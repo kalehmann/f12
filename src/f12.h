@@ -6,6 +6,7 @@
 #include <locale.h>
 
 #define _(STRING) gettext(STRING)
+#define gettext_noop(STRING) STRING
 
 struct f12_create_arguments {
 	char *device_path;
