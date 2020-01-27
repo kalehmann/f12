@@ -305,7 +305,7 @@ fi
 @test "I get an error when I speficy a nonexistent directory as root directory during the creation of a fat12 image" {
     _run ./src/f12 create "${TEST_IMAGE}" --root-dir=root-dir
     [[ "$status" -eq 1 ]]
-    [[ "$output" == *"Can not open source file"* ]]
+    [[ "$output" == *"Can not open the root directory root-dir"* ]]
 }
 
 @test "I get an error when I specify a regular file as root directory during the creation of a fat12 image" {
