@@ -117,9 +117,6 @@ LIST_CREATE_REGEX="${LIST_REGEX}[[:space:]]*${DATETIME_REGEX}"
 LIST_CREATE_MOD_REGEX="${LIST_CREATE_REGEX}[[:space:]]{2}${DATETIME_REGEX}"
 LIST_CREATE_MOD_ACC_REGEX="${LIST_CREATE_MOD_REGEX}[[:space:]]{2}${DATE_REGEX}"
 
-echo ${SECTORS_CLUSTER_REGEX} > sc.out
-echo ${SECTOR_SIZE_REGEX} > ss.out
-
 setup() {
     if [[ "${BATS_TEST_NUMBER}" -eq 1 ]]; then
         tap_setup
