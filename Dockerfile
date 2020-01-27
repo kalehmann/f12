@@ -9,6 +9,7 @@ RUN apt-get update \
 	build-essential \
 	ca-certificates \
 	curl \
+	gettext \
 	git \
 	indent \
 	lcov \
