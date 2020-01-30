@@ -184,7 +184,7 @@ int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
 	FTSENT *ent;
 
 	if (ftsp == NULL) {
-		asprintf(output, "fts_open error: %s\n", strerror(errno));
+		asprintf(output, _("fts_open error: %s\n"), strerror(errno));
 		return -1;
 	}
 
@@ -195,7 +195,7 @@ int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
 				// No more items, leave
 				break;
 			}
-			asprintf(output, "fts_read error: %s\n",
+			asprintf(output, _("fts_read error: %s\n"),
 				 strerror(errno));
 
 			return -1;
@@ -216,7 +216,7 @@ int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
 
 		if (NULL == (src = fopen(ent->fts_path, "r"))) {
 			temp = *output;
-			asprintf(output, "%s\nCannot open source file %s\n",
+			asprintf(output, _("%s\nCannot open source file %s\n"),
 				 *output, ent->fts_path);
 			free(temp);
 
@@ -243,7 +243,7 @@ int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
 		lf12_free_path(dest);
 		if (F12_SUCCESS != err) {
 			temp = *output;
-			asprintf(output, "%s\nError : %s\n", *output,
+			asprintf(output, _("%s\nError : %s\n"), *output,
 				 lf12_strerror(err));
 			free(temp);
 
@@ -253,7 +253,7 @@ int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
 
 	if (fts_close(ftsp) == -1) {
 		temp = *output;
-		asprintf(output, "%s\nfts_close error: %s\n", *output,
+		asprintf(output, _("%s\nfts_close error: %s\n"), *output,
 			 strerror(errno));
 		free(temp);
 

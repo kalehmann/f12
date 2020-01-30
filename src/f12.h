@@ -2,6 +2,11 @@
 #define FAT12_H
 
 #include <inttypes.h>
+#include <libintl.h>
+#include <locale.h>
+
+#define _(STRING) gettext(STRING)
+#define gettext_noop(STRING) STRING
 
 struct f12_create_arguments {
 	char *device_path;

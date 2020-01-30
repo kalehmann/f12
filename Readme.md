@@ -30,11 +30,57 @@ autoreconf --install
 make
 ```
 
-### Testing f12
+### Development
+
+#### I18n
+
+##### Extracting marked strings
+
+First update the list of source files to extract marked strings from:
+
+```
+find src -type f \( -name "*.c" -or -name "*.h" \) -print > po/POTFILES.in
+```
+
+Now extract all marked strings:
+
+```
+make -C po update-po
+```
+
+##### Create new translations
+
+Create a new translation:
+
+```
+msginit \
+	--input=po/f12.pot \
+	--output-file=po/<language code>.po \
+	--locale=<ll_CC[.encoding]>
+```
+
+For exmaple to create a German translation run:
+
+```
+msginit \
+	--input=po/f12.pot \
+	--output-file=po/de.po \
+	--locale=de_DE
+```
+
+Now add the language to to the file `po/LINGUAS`
+
+##### Compile the translations
+
+```
+make -C po update-gmo
+```
+
+#### Testing f12
 
 This program features different types of automated testing.
 
-#### Unit tests
+##### Unit tests
 
 f12 has a small number of unit tests. These can be run with
 
@@ -42,7 +88,7 @@ f12 has a small number of unit tests. These can be run with
 make check
 ```
 
-#### Highlevel tests
+##### Highlevel tests
 
 There exists also a bunch of high level tests which cover most of the
 applications functions. These are implemented using

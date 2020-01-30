@@ -1,0 +1,233 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Karsten Lehmann <mail@kalehmann.de>
+# This file is distributed under the same license as the f12 package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: f12 1.0\n"
+"Report-Msgid-Bugs-To: mail@kalehmann.de\n"
+"POT-Creation-Date: 2020-01-24 21:00+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/bpb.c:18
+#, c-format
+msgid ""
+"\n"
+"Bios Parameter Block\n"
+"  OEMLabel:\t\t\t%s\n"
+"  Sector size:\t\t\t%d bytes\n"
+"  Sectors per cluster:\t\t%d\n"
+"  Reserved sectors:\t\t%d\n"
+"  Number of fats:\t\t%d\n"
+"  Root directory entries:\t%d\n"
+"  Logical sectors:\t\t%d\n"
+"  Medium byte:\t\t\t0x%02x\n"
+"  Sectors per fat:\t\t%d\n"
+"  Sectors per track:\t\t%d\n"
+"  Number of heads:\t\t%d\n"
+"  Hidden sectors:\t\t%d\n"
+"  Logical sectors (large):\t%d\n"
+"  Drive number:\t\t\t0x%02x\n"
+"  Flags:\t\t\t0x%02x\n"
+"  Signature:\t\t\t0x%02x\n"
+"  VolumeID:\t\t\t0x%08x\n"
+"  Volume label:\t\t\t%s\n"
+"  File system:\t\t\t%s\n"
+msgstr ""
+
+#: src/f12.c:126 src/f12.c:290 src/f12.c:361 src/f12.c:419 src/f12.c:481
+#: src/f12.c:588 src/f12.c:758
+#, c-format
+msgid "Error opening image: %s\n"
+msgstr ""
+
+#: src/f12.c:168
+#, c-format
+msgid "Error while installing the default bootcode: %s\n"
+msgstr ""
+
+#: src/f12.c:181
+msgid ""
+"Error: Can not use the boot-file option without also specifying a root "
+"directory\n"
+msgstr ""
+
+#: src/f12.c:195
+#, c-format
+msgid "Can not open the root directory %s\n"
+msgstr ""
+
+#: src/f12.c:206
+msgid "Expected the root dir to be a directory\n"
+msgstr ""
+
+#: src/f12.c:239
+msgid "Error: The boot file can not be in a subdirectory\n"
+msgstr ""
+
+#: src/f12.c:254
+#, c-format
+msgid "Error: Could not find %s in the root directory\n"
+msgstr ""
+
+#: src/f12.c:259
+#, c-format
+msgid "Error while installing the simple bootloader: %s\n"
+msgstr ""
+
+#: src/f12.c:274
+#, c-format
+msgid "Error while writing the metadata to the image: %s\n"
+msgstr ""
+
+#: src/f12.c:297 src/f12.c:368 src/f12.c:427 src/f12.c:490 src/f12.c:597
+#: src/f12.c:766
+#, c-format
+msgid "Error loading image: %s\n"
+msgstr ""
+
+#: src/f12.c:319 src/f12.c:387
+#, c-format
+msgid "The file %s was not found on the device\n"
+msgstr ""
+
+#: src/f12.c:337
+#, c-format
+msgid "Error while deletion: %s\n"
+msgstr ""
+
+#: src/f12.c:436
+#, c-format
+msgid ""
+"F12 info\n"
+"  Partition size:\t\t%s\n"
+"  Used bytes:\t\t\t%s\n"
+"  Files:\t\t\t%d\n"
+"  Directories:\t\t\t%d\n"
+msgstr ""
+
+#: src/f12.c:473 src/f12.c:579 src/f12.c:750
+#, c-format
+msgid "Allocation error: %s\n"
+msgstr ""
+
+#: src/f12.c:524
+msgid "File not found\n"
+msgstr ""
+
+#: src/f12.c:606
+msgid "Can not move the root directory\n"
+msgstr ""
+
+#: src/f12.c:638
+msgid "Can not move the directory into a child\n"
+msgstr ""
+
+#: src/f12.c:659 src/f12.c:684
+#, c-format
+msgid "File or directory %s not found\n"
+msgstr ""
+
+#: src/f12.c:698 src/f12.c:707 src/f12.c:716 src/f12.c:729 src/f12.c:860
+#, c-format
+msgid "Error: %s\n"
+msgstr ""
+
+#: src/f12.c:775 src/f12.c:822
+msgid "Can not open source file\n"
+msgstr ""
+
+#: src/f12.c:784
+msgid "Can not replace root directory\n"
+msgstr ""
+
+#: src/f12.c:846
+msgid "Source file has unsupported type\n"
+msgstr ""
+
+#: src/main.c:77
+#, c-format
+msgid "An error occurred while parsing %s as a number: %s\n"
+msgstr ""
+
+#: src/main.c:82
+#, c-format
+msgid "Could not parse %s as number\n"
+msgstr ""
+
+#: src/main.c:127
+#, c-format
+msgid "Invalid value for the creation size: %ld\n"
+msgstr ""
+
+#: src/main.c:138
+#, c-format
+msgid "Sector size %ld is out of range\n"
+msgstr ""
+
+#: src/main.c:151
+#, c-format
+msgid "Sectors per cluster value %ld is out of range\n"
+msgstr ""
+
+#: src/main.c:164
+#, c-format
+msgid "Reserved sectors value %ld is out of range\n"
+msgstr ""
+
+#: src/main.c:176
+#, c-format
+msgid "The number of file allocation tables %ld is invalid\n"
+msgstr ""
+
+#: src/main.c:189
+#, c-format
+msgid "The number of root directory entries %ld is invalid\n"
+msgstr ""
+
+#: src/main.c:293
+msgid "Any file in the root directory that will be booted"
+msgstr ""
+
+#: src/main.c:707
+msgid "General options:"
+msgstr ""
+
+#: src/filesystem.c:187
+#, c-format
+msgid "fts_open error: %s\n"
+msgstr ""
+
+#: src/filesystem.c:198
+#, c-format
+msgid "fts_read error: %s\n"
+msgstr ""
+
+#: src/filesystem.c:219
+#, c-format
+msgid ""
+"%s\n"
+"Cannot open source file %s\n"
+msgstr ""
+
+#: src/filesystem.c:246
+#, c-format
+msgid ""
+"%s\n"
+"Error : %s\n"
+msgstr ""
+
+#: src/filesystem.c:256
+#, c-format
+msgid ""
+"%s\n"
+"fts_close error: %s\n"
+msgstr ""

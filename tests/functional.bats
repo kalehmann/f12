@@ -117,9 +117,6 @@ LIST_CREATE_REGEX="${LIST_REGEX}[[:space:]]*${DATETIME_REGEX}"
 LIST_CREATE_MOD_REGEX="${LIST_CREATE_REGEX}[[:space:]]{2}${DATETIME_REGEX}"
 LIST_CREATE_MOD_ACC_REGEX="${LIST_CREATE_MOD_REGEX}[[:space:]]{2}${DATE_REGEX}"
 
-echo ${SECTORS_CLUSTER_REGEX} > sc.out
-echo ${SECTOR_SIZE_REGEX} > ss.out
-
 setup() {
     if [[ "${BATS_TEST_NUMBER}" -eq 1 ]]; then
         tap_setup
@@ -308,7 +305,7 @@ fi
 @test "I get an error when I speficy a nonexistent directory as root directory during the creation of a fat12 image" {
     _run ./src/f12 create "${TEST_IMAGE}" --root-dir=root-dir
     [[ "$status" -eq 1 ]]
-    [[ "$output" == *"Can not open source file"* ]]
+    [[ "$output" == *"Can not open the root directory root-dir"* ]]
 }
 
 @test "I get an error when I specify a regular file as root directory during the creation of a fat12 image" {

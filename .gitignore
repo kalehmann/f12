@@ -36,6 +36,10 @@
 # Do not ignore GNU indent profile
 !.indent.pro
 
+# Do not ignore files and directories needed for i18n
+!po
+!config.rpath
+
 # Ignore temp files
 *.#*.c
 *.#*.h

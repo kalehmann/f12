@@ -1,3 +1,6 @@
+# Add the po directory to the SUBDIRS variable. This is needed for GNU gettext
+SUBDIRS = po
+
 # Include the macros in the m4 directories
 ACLOCAL_AMFLAGS = -I m4
 
@@ -129,6 +132,14 @@ beautify:
 	indent $$(find . -name "*.[ch]")
 endif
 
+# Build and tag the docker image for development
+docker-image:
+	docker build \
+		--tag "registry.kalehmann.de/testing/f12:latest" \
+		--pull \
+		--file Dockerfile \
+		.
+
 # Additional cleanup for coverage reports
 clean-local:
 	rm -f tests.info
@@ -140,3 +151,6 @@ clean-local:
 	find . -type f \( -name ".gcov" -o -name "*.gcda" -o -name "*.gcno" \) -delete
 
 .PHONY: beautify coverage-report default_bootcode
+
+EXTRA_DIST = config.rpath m4/ChangeLog
+AM_CPPFLAGS = -DLOCALEDIR='"$(localedir)"'

@@ -1,0 +1,7 @@
+!.gitignore
+!Makevars
+!Makefile.am
+!f12.pot
+!*.po
+!POTFILES.in
+!LINGUAS

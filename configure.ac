@@ -27,7 +27,15 @@ PKG_CHECK_MODULES([CHECK], [check >= 0.11.0])
 
 # Creates the files from templates (.in-files)
 AC_CONFIG_FILES([
+  po/Makefile.in
   Makefile
 ])
+
+# Set the version of GNU gettext
+AM_GNU_GETTEXT_VERSION([0.19.8])
+# Check for the presense of GNU gettext
+# The first argument, intlsymbol should always be [external]
+AM_GNU_GETTEXT([external])
+
 # Creates and runs the config.status file
 AC_OUTPUT
