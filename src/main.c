@@ -213,7 +213,9 @@ static struct argp_option create_options[] = {
 		.key = OPT_CREATE_ROOT_DIR,
 		.arg = "PATH",
 		.flags = 0,
-		.doc = "The path to the a ",
+		.doc = gettext_noop("The path to the directory which contents "
+				    "will be put in the root directory of the "
+				    "created image"),
 		.group = 0
 	},
 	{
@@ -221,7 +223,8 @@ static struct argp_option create_options[] = {
 		.key = OPT_CREATE_VOLUME_LABEL,
 		.arg = "NAME",
 		.flags = 0,
-		.doc = NULL,
+		.doc = gettext_noop("The volume label of the created image "
+      				    "(at maximum 11 characters)"),
 		.group = 0
 	},
 	{
@@ -229,7 +232,10 @@ static struct argp_option create_options[] = {
 		.key = OPT_CREATE_SIZE,
 		.arg = "SIZE",
 		.flags = 0,
-		.doc = NULL,
+		.doc = gettext_noop("The size of the created image in KiB "
+				    "(At least 10 and at maximum 32768). "
+				    "If no value is given, the default of 1440 "
+				    "is used."),
 		.group = 0
 	},
 	{
@@ -237,7 +243,12 @@ static struct argp_option create_options[] = {
 		.key = OPT_CREATE_SECTOR_SIZE,
 		.arg = "SIZE",
 		.flags = 0,
-		.doc = NULL,
+		.doc = gettext_noop("The sector size written into the metadata "
+				    "of the created image in bytes "
+				    "(The value must be a power of two and at "
+				    "least 512 and at maximum 4096). "
+				    "The default value depends on the size of "
+				    "the image."),
 		.group = 0
 	},
 	{
@@ -245,7 +256,11 @@ static struct argp_option create_options[] = {
 		.key = OPT_CREATE_SECTORS_PER_CLUSTER,
 		.arg = "N",
 		.flags = 0,
-		.doc = NULL,
+		.doc = gettext_noop("The number of sectors per cluster written "
+				    "in the metadata of the image "
+				    "(The value must be a power of two and at "
+				    "maximum 128). The default value depends "
+				    "on the size of the image."),
 		.group = 0
 	},
 	{
@@ -253,7 +268,10 @@ static struct argp_option create_options[] = {
 		.key = OPT_CREATE_RESERVED_SECTORS,
 		.arg = "N",
 		.flags = 0,
-		.doc = NULL,
+		.doc = gettext_noop("The number of reserved sectors written "
+				    "into the metadata of the image "
+				    "(The value must be at least 1 and at "
+				    "maximum 65535). The default value is 1."),
 		.group = 0
 	},
 	{
@@ -261,7 +279,9 @@ static struct argp_option create_options[] = {
 		.key = OPT_CREATE_NUMBER_OF_FATS,
 		.arg = "N",
 		.flags = 0,
-		.doc = NULL,
+		.doc = gettext_noop("The number of file allocation tables of "
+				    "the image. (Allowed values are 1 and 2). "
+				    "The default value is 2."),
 		.group = 0
 	},
 	{
@@ -269,7 +289,11 @@ static struct argp_option create_options[] = {
 		.key = OPT_CREATE_ROOT_DIR_ENTRIES,
 		.arg = "N",
 		.flags = 0,
-		.doc = NULL,
+		.doc = gettext_noop("The number of directory entries in the "
+				    "root directory of the image. "
+				    "(Allowed values are 64, 112, 224 and 512"
+				    "). The default value depends on the image "
+				    "size."),
 		.group = 0
 	},
 	{
@@ -277,7 +301,8 @@ static struct argp_option create_options[] = {
 		.key = OPT_CREATE_DRIVE_NUMBER,
 		.arg = "NUMBER",
 		.flags = 0,
-		.doc = NULL,
+		.doc = gettext_noop("The drive number written to the metadata "
+				    "of the image. (Any value from 0 to 255)."),
 		.group = 0
 	},
 	{
@@ -340,7 +365,7 @@ static struct argp_option del_options[] = {
 		.key = 'r',
 		.arg = NULL,
 		.flags = 0,
-		.doc = NULL,
+		.doc = gettext_noop("Allow deletion of directories."),
 		.group = 0
 	},
 	{
@@ -436,7 +461,8 @@ static struct argp_option info_options[] = {
 		.key = OPT_INFO_DUMP_BPB,
 		.arg = NULL,
 		.flags = 0,
-		.doc = NULL,
+		.doc = gettext_noop("Print all the parameters of the bios "
+				    "parameter block."),
 		.group = 0
 	},
 	{ 0 }
@@ -494,7 +520,8 @@ static struct argp_option list_options[] = {
 		.key = OPT_LIST_CREATION_DATE,
 		.arg = NULL,
 		.flags = 0,
-		.doc = NULL,
+		.doc = gettext_noop("Print the creation date of each entry in "
+				    "the format YYYY-MM-DD hh:mm:ss."),
 		.group = 0
 	},
 	{
@@ -502,7 +529,8 @@ static struct argp_option list_options[] = {
 		.key = OPT_LIST_MODIFICATION_DATE,
 		.arg = NULL,
 		.flags = 0,
-		.doc = NULL,
+		.doc = gettext_noop("Print the modification date of each entry "
+				    "in the format YYYY-MM-DD hh:mm:ss."),
 		.group = 0
 	},
 	{
@@ -510,7 +538,8 @@ static struct argp_option list_options[] = {
 		.key = OPT_LIST_ACCESS_DATE,
 		.arg = NULL,
 		.flags = 0,
-		.doc = NULL,
+		.doc = gettext_noop("Print the access date of each entry in "
+				    "the format YYYY-MM-DD hh:mm:ss."),
 		.group = 0
 	},
 	{
@@ -518,7 +547,7 @@ static struct argp_option list_options[] = {
 		.key = OPT_LIST_WITH_SIZE,
 		.arg = NULL,
 		.flags = 0,
-		.doc = NULL,
+		.doc = gettext_noop("Show the size of each file."),
 		.group = 0
 	},
 	{
@@ -526,7 +555,7 @@ static struct argp_option list_options[] = {
 		.key = 'r',
 		.arg = NULL,
 		.flags = 0,
-		.doc = NULL,
+		.doc = gettext_noop("List the contents of subdirectories."),
 		.group = 0
 	},
 	{ 0 }
@@ -687,9 +716,12 @@ static struct argp_child children[] = {
 };
 // *INDENT-ON*
 
-static char doc[] = "This is the documentation\n"
-	"The following options are available: \v"
-	"This comes after the documentation";
+static char doc[] = gettext_noop("f12 is a tool for managing disk images of "
+				 "fat12 formatted drives\n"
+				 "The following options are available: \v"
+				 "For further information checkout the Readme "
+				 "at https://keller.kalehmann.de/git/f12/"
+				 "Reamde.md");
 
 static char args_doc[] = "COMMAND";
 
@@ -716,7 +748,7 @@ static struct argp_option options[] = {
 		.key = 'v',
 		.arg = NULL,
 		.flags = 0,
-		.doc = NULL,
+		.doc = gettext_noop("Show additional information in the output."),
 		.group = -3
 	},
 	{ 0 }
