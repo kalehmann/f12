@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: f12 1.0\n"
 "Report-Msgid-Bugs-To: mail@kalehmann.de\n"
-"POT-Creation-Date: 2020-01-24 21:00+0100\n"
+"POT-Creation-Date: 2020-01-31 22:13+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -43,68 +43,68 @@ msgid ""
 "  File system:\t\t\t%s\n"
 msgstr ""
 
-#: src/f12.c:126 src/f12.c:290 src/f12.c:361 src/f12.c:419 src/f12.c:481
-#: src/f12.c:588 src/f12.c:758
+#: src/f12.c:126 src/f12.c:288 src/f12.c:359 src/f12.c:417 src/f12.c:479
+#: src/f12.c:586 src/f12.c:756
 #, c-format
 msgid "Error opening image: %s\n"
 msgstr ""
 
-#: src/f12.c:168
+#: src/f12.c:167
 #, c-format
 msgid "Error while installing the default bootcode: %s\n"
 msgstr ""
 
-#: src/f12.c:181
+#: src/f12.c:179
 msgid ""
 "Error: Can not use the boot-file option without also specifying a root "
 "directory\n"
 msgstr ""
 
-#: src/f12.c:195
+#: src/f12.c:194
 #, c-format
 msgid "Can not open the root directory %s\n"
 msgstr ""
 
-#: src/f12.c:206
+#: src/f12.c:205
 msgid "Expected the root dir to be a directory\n"
 msgstr ""
 
-#: src/f12.c:239
+#: src/f12.c:237
 msgid "Error: The boot file can not be in a subdirectory\n"
 msgstr ""
 
-#: src/f12.c:254
+#: src/f12.c:252
 #, c-format
 msgid "Error: Could not find %s in the root directory\n"
 msgstr ""
 
-#: src/f12.c:259
+#: src/f12.c:257
 #, c-format
 msgid "Error while installing the simple bootloader: %s\n"
 msgstr ""
 
-#: src/f12.c:274
+#: src/f12.c:272
 #, c-format
 msgid "Error while writing the metadata to the image: %s\n"
 msgstr ""
 
-#: src/f12.c:297 src/f12.c:368 src/f12.c:427 src/f12.c:490 src/f12.c:597
-#: src/f12.c:766
+#: src/f12.c:295 src/f12.c:366 src/f12.c:425 src/f12.c:488 src/f12.c:595
+#: src/f12.c:764
 #, c-format
 msgid "Error loading image: %s\n"
 msgstr ""
 
-#: src/f12.c:319 src/f12.c:387
+#: src/f12.c:317 src/f12.c:385
 #, c-format
 msgid "The file %s was not found on the device\n"
 msgstr ""
 
-#: src/f12.c:337
+#: src/f12.c:335
 #, c-format
 msgid "Error while deletion: %s\n"
 msgstr ""
 
-#: src/f12.c:436
+#: src/f12.c:434
 #, c-format
 msgid ""
 "F12 info\n"
@@ -114,91 +114,187 @@ msgid ""
 "  Directories:\t\t\t%d\n"
 msgstr ""
 
-#: src/f12.c:473 src/f12.c:579 src/f12.c:750
+#: src/f12.c:471 src/f12.c:577 src/f12.c:748
 #, c-format
 msgid "Allocation error: %s\n"
 msgstr ""
 
-#: src/f12.c:524
+#: src/f12.c:522
 msgid "File not found\n"
 msgstr ""
 
-#: src/f12.c:606
+#: src/f12.c:604
 msgid "Can not move the root directory\n"
 msgstr ""
 
-#: src/f12.c:638
+#: src/f12.c:636
 msgid "Can not move the directory into a child\n"
 msgstr ""
 
-#: src/f12.c:659 src/f12.c:684
+#: src/f12.c:657 src/f12.c:682
 #, c-format
 msgid "File or directory %s not found\n"
 msgstr ""
 
-#: src/f12.c:698 src/f12.c:707 src/f12.c:716 src/f12.c:729 src/f12.c:860
+#: src/f12.c:696 src/f12.c:705 src/f12.c:714 src/f12.c:727 src/f12.c:858
 #, c-format
 msgid "Error: %s\n"
 msgstr ""
 
-#: src/f12.c:775 src/f12.c:822
+#: src/f12.c:773 src/f12.c:820
 msgid "Can not open source file\n"
 msgstr ""
 
-#: src/f12.c:784
+#: src/f12.c:782
 msgid "Can not replace root directory\n"
 msgstr ""
 
-#: src/f12.c:846
+#: src/f12.c:844
 msgid "Source file has unsupported type\n"
 msgstr ""
 
-#: src/main.c:77
+#: src/main.c:76
 #, c-format
 msgid "An error occurred while parsing %s as a number: %s\n"
 msgstr ""
 
-#: src/main.c:82
+#: src/main.c:81
 #, c-format
 msgid "Could not parse %s as number\n"
 msgstr ""
 
-#: src/main.c:127
+#: src/main.c:126
 #, c-format
 msgid "Invalid value for the creation size: %ld\n"
 msgstr ""
 
-#: src/main.c:138
+#: src/main.c:137
 #, c-format
 msgid "Sector size %ld is out of range\n"
 msgstr ""
 
-#: src/main.c:151
+#: src/main.c:149
 #, c-format
 msgid "Sectors per cluster value %ld is out of range\n"
 msgstr ""
 
-#: src/main.c:164
+#: src/main.c:161
 #, c-format
 msgid "Reserved sectors value %ld is out of range\n"
 msgstr ""
 
-#: src/main.c:176
+#: src/main.c:172
 #, c-format
 msgid "The number of file allocation tables %ld is invalid\n"
 msgstr ""
 
-#: src/main.c:189
+#: src/main.c:184
 #, c-format
 msgid "The number of root directory entries %ld is invalid\n"
 msgstr ""
 
-#: src/main.c:293
+#: src/main.c:216
+msgid ""
+"The path to the directory which contents will be put in the root directory "
+"of the created image"
+msgstr ""
+
+#: src/main.c:226
+msgid "The volume label of the created image (at maximum 11 characters)"
+msgstr ""
+
+#: src/main.c:235
+msgid ""
+"The size of the created image in KiB (At least 10 and at maximum 32768). If "
+"no value is given, the default of 1440 is used."
+msgstr ""
+
+#: src/main.c:246
+msgid ""
+"The sector size written into the metadata of the created image in bytes (The "
+"value must be a power of two and at least 512 and at maximum 4096). The "
+"default value depends on the size of the image."
+msgstr ""
+
+#: src/main.c:259
+msgid ""
+"The number of sectors per cluster written in the metadata of the image (The "
+"value must be a power of two and at maximum 128). The default value depends "
+"on the size of the image."
+msgstr ""
+
+#: src/main.c:271
+msgid ""
+"The number of reserved sectors written into the metadata of the image (The "
+"value must be at least 1 and at maximum 65535). The default value is 1."
+msgstr ""
+
+#: src/main.c:282
+msgid ""
+"The number of file allocation tables of the image. (Allowed values are 1 and "
+"2). The default value is 2."
+msgstr ""
+
+#: src/main.c:292
+msgid ""
+"The number of directory entries in the root directory of the image. (Allowed "
+"values are 64, 112, 224 and 512). The default value depends on the image "
+"size."
+msgstr ""
+
+#: src/main.c:304
+msgid ""
+"The drive number written to the metadata of the image. (Any value from 0 to "
+"255)."
+msgstr ""
+
+#: src/main.c:313
 msgid "Any file in the root directory that will be booted"
 msgstr ""
 
-#: src/main.c:707
+#: src/main.c:368
+msgid "Allow deletion of directories."
+msgstr ""
+
+#: src/main.c:464
+msgid "Print all the parameters of the bios parameter block."
+msgstr ""
+
+#: src/main.c:523
+msgid ""
+"Print the creation date of each entry in the format YYYY-MM-DD hh:mm:ss."
+msgstr ""
+
+#: src/main.c:532
+msgid ""
+"Print the modification date of each entry in the format YYYY-MM-DD hh:mm:ss."
+msgstr ""
+
+#: src/main.c:541
+msgid "Print the access date of each entry in the format YYYY-MM-DD hh:mm:ss."
+msgstr ""
+
+#: src/main.c:550
+msgid "Show the size of each file."
+msgstr ""
+
+#: src/main.c:558
+msgid "List the contents of subdirectories."
+msgstr ""
+
+#: src/main.c:719
+msgid ""
+"f12 is a tool for managing disk images of fat12 formatted drives\n"
+"The following options are available: \vFor further information checkout the "
+"Readme at https://keller.kalehmann.de/git/f12/Reamde.md"
+msgstr ""
+
+#: src/main.c:735
 msgid "General options:"
+msgstr ""
+
+#: src/main.c:751
+msgid "Show additional information in the output."
 msgstr ""
 
 #: src/filesystem.c:187
