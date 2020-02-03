@@ -6,23 +6,23 @@ f12 is an experimental tool to access fat12 images without requiring superuser
 privileges for mounting them.
 
 It has the ability to
-- create fat12 images
+- create fat12 images and optionally install a bootloader and specify a file to
+boot
 - delete files or directories on fat12 images
-- get files or directories from them
-- get information about them
-- list their contents
-- move around files and directories on fat12 images
+- get files or directories from fat12 images
+- print information about fat12 images
+- list the contents of fat12 images
+- move files and directories around on fat12 images
 - put files or directories on fat12 images
 
 ### Do not actually use this!
 
-While this tool may work, it is still experimental. It may work or not. If you
-really need something like this, you should use
+While this tool works for my purposes, it is still experimental. It may work or not. If you really need something like this, you should use
 [GNU mtools](https://www.gnu.org/software/mtools/).
 
 ### Building f12 from source
 
-Run the following commands:
+After checking out this repository run the following commands in it:
 
 ```
 autoreconf --install
