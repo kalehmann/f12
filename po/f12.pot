@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: f12 1.0\n"
 "Report-Msgid-Bugs-To: mail@kalehmann.de\n"
-"POT-Creation-Date: 2020-01-31 22:13+0100\n"
+"POT-Creation-Date: 2020-02-04 22:10+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -43,68 +43,68 @@ msgid ""
 "  File system:\t\t\t%s\n"
 msgstr ""
 
-#: src/f12.c:126 src/f12.c:288 src/f12.c:359 src/f12.c:417 src/f12.c:479
-#: src/f12.c:586 src/f12.c:756
+#: src/f12.c:132 src/f12.c:294 src/f12.c:365 src/f12.c:423 src/f12.c:485
+#: src/f12.c:592 src/f12.c:762
 #, c-format
 msgid "Error opening image: %s\n"
 msgstr ""
 
-#: src/f12.c:167
+#: src/f12.c:173
 #, c-format
 msgid "Error while installing the default bootcode: %s\n"
 msgstr ""
 
-#: src/f12.c:179
+#: src/f12.c:185
 msgid ""
 "Error: Can not use the boot-file option without also specifying a root "
 "directory\n"
 msgstr ""
 
-#: src/f12.c:194
+#: src/f12.c:200
 #, c-format
 msgid "Can not open the root directory %s\n"
 msgstr ""
 
-#: src/f12.c:205
+#: src/f12.c:211
 msgid "Expected the root dir to be a directory\n"
 msgstr ""
 
-#: src/f12.c:237
+#: src/f12.c:243
 msgid "Error: The boot file can not be in a subdirectory\n"
 msgstr ""
 
-#: src/f12.c:252
+#: src/f12.c:258
 #, c-format
 msgid "Error: Could not find %s in the root directory\n"
 msgstr ""
 
-#: src/f12.c:257
+#: src/f12.c:263
 #, c-format
 msgid "Error while installing the simple bootloader: %s\n"
 msgstr ""
 
-#: src/f12.c:272
+#: src/f12.c:278
 #, c-format
 msgid "Error while writing the metadata to the image: %s\n"
 msgstr ""
 
-#: src/f12.c:295 src/f12.c:366 src/f12.c:425 src/f12.c:488 src/f12.c:595
-#: src/f12.c:764
+#: src/f12.c:301 src/f12.c:372 src/f12.c:431 src/f12.c:494 src/f12.c:601
+#: src/f12.c:770
 #, c-format
 msgid "Error loading image: %s\n"
 msgstr ""
 
-#: src/f12.c:317 src/f12.c:385
+#: src/f12.c:323 src/f12.c:391
 #, c-format
 msgid "The file %s was not found on the device\n"
 msgstr ""
 
-#: src/f12.c:335
+#: src/f12.c:341
 #, c-format
 msgid "Error while deletion: %s\n"
 msgstr ""
 
-#: src/f12.c:434
+#: src/f12.c:440
 #, c-format
 msgid ""
 "F12 info\n"
@@ -114,42 +114,42 @@ msgid ""
 "  Directories:\t\t\t%d\n"
 msgstr ""
 
-#: src/f12.c:471 src/f12.c:577 src/f12.c:748
+#: src/f12.c:477 src/f12.c:583 src/f12.c:754
 #, c-format
 msgid "Allocation error: %s\n"
 msgstr ""
 
-#: src/f12.c:522
+#: src/f12.c:528
 msgid "File not found\n"
 msgstr ""
 
-#: src/f12.c:604
+#: src/f12.c:610
 msgid "Can not move the root directory\n"
 msgstr ""
 
-#: src/f12.c:636
+#: src/f12.c:642
 msgid "Can not move the directory into a child\n"
 msgstr ""
 
-#: src/f12.c:657 src/f12.c:682
+#: src/f12.c:663 src/f12.c:688
 #, c-format
 msgid "File or directory %s not found\n"
 msgstr ""
 
-#: src/f12.c:696 src/f12.c:705 src/f12.c:714 src/f12.c:727 src/f12.c:858
+#: src/f12.c:702 src/f12.c:711 src/f12.c:720 src/f12.c:733 src/f12.c:864
 #, c-format
 msgid "Error: %s\n"
 msgstr ""
 
-#: src/f12.c:773 src/f12.c:820
+#: src/f12.c:779 src/f12.c:826
 msgid "Can not open source file\n"
 msgstr ""
 
-#: src/f12.c:782
+#: src/f12.c:788
 msgid "Can not replace root directory\n"
 msgstr ""
 
-#: src/f12.c:844
+#: src/f12.c:850
 msgid "Source file has unsupported type\n"
 msgstr ""
 
@@ -295,6 +295,10 @@ msgstr ""
 
 #: src/main.c:751
 msgid "Show additional information in the output."
+msgstr ""
+
+#: src/main.c:922
+msgid "Error allocating memory for output\n"
 msgstr ""
 
 #: src/filesystem.c:187

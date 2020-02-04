@@ -917,7 +917,12 @@ int main(int argc, char *argv[])
 
 	argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
-	char *output = NULL;
+	char *output = calloc(1, 1);
+	if (NULL == output) {
+		fprintf(stderr, _("Error allocating memory for output\n"));
+
+		return EXIT_FAILURE;
+	}
 	int res = 0;
 
 	switch (arguments.command) {

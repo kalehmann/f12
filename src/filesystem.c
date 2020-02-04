@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "error.h"
 #include "filesystem.h"
 #include "libfat12/libfat12.h"
 
@@ -41,10 +42,8 @@ static char *convert_path(char *restrict path)
 		if (!final_path) {
 			final_path = converted_part;
 		} else {
-			temp = final_path;
-			asprintf(&final_path, "%s/%s", final_path,
+			esprintf(&final_path, "%s/%s", final_path,
 				 converted_part);
-			free(temp);
 			free(converted_part);
 		}
 		part = strtok(NULL, delimiter);
@@ -94,16 +93,14 @@ int _f12_dump_f12_structure(FILE * fp, struct lf12_metadata *f12_meta,
 	int verbose = args->verbose, recursive = args->recursive;
 	enum lf12_error err;
 	struct lf12_directory_entry *child_entry;
-	char *entry_path, *temp;
+	char *entry_path = NULL;
 	int res;
 
 	if (!lf12_is_directory(entry)) {
 		FILE *dest_fp = fopen(dest_path, "w");
 		err = lf12_dump_file(fp, f12_meta, entry, dest_fp);
 		if (F12_SUCCESS != err) {
-			temp = *output;
-			asprintf(output, "%s\n", lf12_strerror(err));
-			free(temp);
+			esprintf(output, "%s\n", lf12_strerror(err));
 			fclose(dest_fp);
 			return -1;
 		}
@@ -113,9 +110,7 @@ int _f12_dump_f12_structure(FILE * fp, struct lf12_metadata *f12_meta,
 	}
 
 	if (!recursive) {
-		temp = *output;
-		asprintf(output, "%s\n", lf12_strerror(F12_IS_DIR));
-		free(temp);
+		esprintf(output, "%s\n", lf12_strerror(F12_IS_DIR));
 
 		return -1;
 	}
@@ -140,17 +135,10 @@ int _f12_dump_f12_structure(FILE * fp, struct lf12_metadata *f12_meta,
 			return -1;
 		}
 
-		asprintf(&entry_path, "%s/%s", dest_path, child_name);
+		esprintf(&entry_path, "%s/%s", dest_path, child_name);
 
 		if (verbose) {
-			temp = *output;
-			if (NULL != *output) {
-				asprintf(output, "%s%s\n", *output, entry_path);
-
-			} else {
-				asprintf(output, "%s\n", entry_path);
-			}
-			free(temp);
+			esprintf(output, "%s%s\n", *output, entry_path);
 		}
 
 		free(child_name);
@@ -174,7 +162,6 @@ int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
 	char *source_dir_path = args->source;
 	size_t source_offset = strlen(source_dir_path) + 1;
 	char *dest = args->destination;
-	char *temp;
 	char *src_path;
 	char *putpath;
 	char *const paths[] = { source_dir_path, NULL };
@@ -184,7 +171,8 @@ int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
 	FTSENT *ent;
 
 	if (ftsp == NULL) {
-		asprintf(output, _("fts_open error: %s\n"), strerror(errno));
+		esprintf(output, _("fts_open error: %s\n"), strerror(errno));
+
 		return -1;
 	}
 
@@ -195,7 +183,7 @@ int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
 				// No more items, leave
 				break;
 			}
-			asprintf(output, _("fts_read error: %s\n"),
+			esprintf(output, _("fts_read error: %s\n"),
 				 strerror(errno));
 
 			return -1;
@@ -208,17 +196,13 @@ int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
 		putpath = destination_path(src_path, dest);
 
 		if (args->verbose) {
-			temp = *output;
-			asprintf(output, "%s'%s' -> '%s'\n", *output,
+			esprintf(output, "%s'%s' -> '%s'\n", *output,
 				 src_path, putpath);
-			free(temp);
 		}
 
 		if (NULL == (src = fopen(ent->fts_path, "r"))) {
-			temp = *output;
-			asprintf(output, _("%s\nCannot open source file %s\n"),
+			esprintf(output, _("%s\nCannot open source file %s\n"),
 				 *output, ent->fts_path);
-			free(temp);
 
 			return -1;
 		}
@@ -227,14 +211,8 @@ int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
 		err = lf12_parse_path(putpath, &dest);
 		free(putpath);
 		if (F12_SUCCESS != err) {
-			temp = *output;
-			if (NULL != *output) {
-				asprintf(output, "%s\n%s\n", *output,
-					 lf12_strerror(err));
-			} else {
-				asprintf(output, "%s\n", lf12_strerror(err));
-			}
-			free(temp);
+			esprintf(output, "%s\n%s\n", *output,
+				 lf12_strerror(err));
 
 			return -1;
 		}
@@ -242,20 +220,16 @@ int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
 		err = lf12_create_file(fp, f12_meta, dest, src, created);
 		lf12_free_path(dest);
 		if (F12_SUCCESS != err) {
-			temp = *output;
-			asprintf(output, _("%s\nError : %s\n"), *output,
+			esprintf(output, _("%s\nError : %s\n"), *output,
 				 lf12_strerror(err));
-			free(temp);
 
 			return -1;
 		}
 	}
 
 	if (fts_close(ftsp) == -1) {
-		temp = *output;
-		asprintf(output, _("%s\nfts_close error: %s\n"), *output,
+		esprintf(output, _("%s\nfts_close error: %s\n"), *output,
 			 strerror(errno));
-		free(temp);
 
 		return -1;
 	}

@@ -1,10 +1,8 @@
-/* Use the not posix conform function asprintf */
-#define _GNU_SOURCE
-
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
+#include "error.h"
 #include "f12.h"
 #include "format.h"
 #include "list.h"
@@ -122,13 +120,11 @@ enum lf12_error _f12_list_f12_entry(struct lf12_directory_entry *entry,
 		return F12_ALLOCATION_ERROR;
 	}
 
-	char *temp = *output;
-	asprintf(output, LIST_FORMAT, temp, depth, "",
+	esprintf(output, LIST_FORMAT, *output, depth, "",
 		 name_padding, name,
 		 creat_buf, creat_pad, mod_buf, mod_pad, acc_buf, acc_pad,
 		 size_str, size_pad);
 	free(name);
-	free(temp);
 	if (args->with_size) {
 		free(size_str);
 	}

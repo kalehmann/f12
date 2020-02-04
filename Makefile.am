@@ -58,6 +58,8 @@ src_f12_SOURCES = \
 	boot/simple_bootloader/sibolo_set_8_3_name.c \
 	src/bpb.c \
 	src/bpb.h \
+	src/error.c \
+	src/error.h \
 	src/f12.c \
 	src/f12.h \
 	src/filesystem.c \
@@ -93,6 +95,7 @@ tests_check_f12_SOURCES = \
 	tests/check_f12_format.c \
 	tests/check_f12_list.c \
 	src/bpb.c \
+	src/error.c \
 	src/format.c \
 	src/list.c
 # Additional compiler flags for the tests of the main program
