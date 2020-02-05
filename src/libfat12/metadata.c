@@ -125,6 +125,7 @@ enum lf12_error lf12_create_metadata(struct lf12_metadata **f12_meta)
 	(*f12_meta)->bpb = calloc(1, sizeof(struct bios_parameter_block));
 	if (NULL == (*f12_meta)->bpb) {
 		free(*f12_meta);
+		*f12_meta = NULL;
 
 		return F12_ALLOCATION_ERROR;
 	}

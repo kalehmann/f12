@@ -771,10 +771,12 @@ enum lf12_error lf12_read_metadata(FILE * fp, struct lf12_metadata **f12_meta)
 	if (F12_SUCCESS != err) {
 		return err;
 	}
-	bpb = (*f12_meta)->bpb;
 
+	bpb = (*f12_meta)->bpb;
 	if (F12_SUCCESS != (err = read_bpb(fp, (*f12_meta)->bpb))) {
-		free(f12_meta);
+		lf12_free_metadata(*f12_meta);
+		*f12_meta = NULL;
+
 		return err;
 	}
 
@@ -788,8 +790,8 @@ enum lf12_error lf12_read_metadata(FILE * fp, struct lf12_metadata **f12_meta)
 	}
 
 	if (F12_SUCCESS != (err = read_fat_entries(fp, *f12_meta))) {
-		free((*f12_meta)->bpb);
-		free(*f12_meta);
+		lf12_free_metadata(*f12_meta);
+		*f12_meta = NULL;
 
 		return err;
 	}
@@ -798,9 +800,8 @@ enum lf12_error lf12_read_metadata(FILE * fp, struct lf12_metadata **f12_meta)
 	(*f12_meta)->end_of_chain_marker = (*f12_meta)->fat_entries[1];
 
 	if (F12_SUCCESS != (err = load_root_dir(fp, *f12_meta))) {
-		free((*f12_meta)->bpb);
-		free((*f12_meta)->fat_entries);
-		free(*f12_meta);
+		lf12_free_metadata(*f12_meta);
+		*f12_meta = NULL;
 
 		return err;
 	}
