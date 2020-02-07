@@ -190,7 +190,7 @@ fi
 @test "I can not create a fat12 image at an inaccessible path" {
     _run ./src/f12 create non/existing/directory/test.img
     [[ "$status" -eq 1 ]]
-    [[ "$output" == *"Error opening image: No such file or directory"* ]]
+    [[ "$output" == *"Error opening image:"* ]]
 }
 
 @test "I can create a fat12 image with a volume label" {
@@ -367,7 +367,7 @@ fi
 @test "I get an error when I try to delete a file from a nonexistant image" {
     _run ./src/f12 del no_image FILE1
     [[ "$status" -eq 1 ]]
-    [[ "$output" == *"Error opening image: No such file or directory"* ]]
+    [[ "$output" == *"Error opening image:"* ]]
 }
 
 @test "I can not delete a directory without the recursive flag" {
@@ -439,7 +439,7 @@ fi
 @test "I get an error when I try to get a file from a nonexistant image" {
     _run ./src/f12 get no_image FILE1.TXT "${TMP_DIR}"/file1.txt
     [[ "$status" -eq 1 ]]
-    [[ "$output" == *"Error opening image: No such file or directory"* ]]
+    [[ "$output" == *"Error opening image:"* ]]
 }
 
 @test "I can not get a directory without the recursive flag" {
@@ -460,7 +460,7 @@ fi
 @test "I get an error when I request info about a nonexistant image" {
     _run ./src/f12 info no_image
     [[ "$status" -eq 1 ]]
-    [[ "$output" == *"Error opening image: No such file or directory"* ]]
+    [[ "$output" == *"Error opening image:"* ]]
 }
 
 @test "I can dump the bios parameter block of a fat12 image" {
@@ -551,7 +551,7 @@ fi
 @test "I get an error when I list the contents of a nonexistant image" {
     _run ./src/f12 list no_image
     [[ "$status" -eq 1 ]]
-    [[ "$output" == *"Error opening image: No such file or directory"* ]]
+    [[ "$output" == *"Error opening image:"* ]]
 }
 
 @test "I get an error when I list the contents of a nonexistant directory" {
@@ -612,7 +612,7 @@ fi
 @test "I can not move a file on a non existant image" {
     _run ./src/f12 move no_image FILE1 FILE2
     [[ "$status" -eq 1 ]]
-    [[ "$output" == *"Error opening image: No such file or directory"* ]]
+    [[ "$output" == *"Error opening image:"* ]]
 }
 
 @test "I can not move a nonexistant file" {
@@ -740,7 +740,7 @@ fi
 @test "I can not put a file to a nonexistent image" {
     _run ./src/f12 put no_image tests/fixtures/TEST/TEST.DAT TESTF.ILE
     [[ "$status" -eq 1 ]]
-    [[ "$output" == *"Error opening image: No such file or directory"* ]]
+    [[ "$output" == *"Error opening image:"* ]]
 }
 
 @test "I can not put a nonexistent file to an image" {
