@@ -55,6 +55,29 @@ install_simple_bootloader(FILE * fp,
 	return lf12_install_bootloader(fp, f12_meta, boot_simple_bootloader);
 }
 
+static int open_image(FILE * fp, struct lf12_metadata **f12_meta, char **output)
+{
+	enum lf12_error err;
+
+	if (NULL == fp) {
+		return print_error(NULL, NULL, output,
+				   _("Error opening image: %s\n"),
+				   strerror(errno));
+	}
+
+	if (NULL == f12_meta) {
+		return EXIT_SUCCESS;
+	}
+
+	if (F12_SUCCESS != (err = lf12_read_metadata(fp, f12_meta))) {
+		return print_error(fp, *f12_meta, output,
+				   _("Error loading image: %s\n"),
+				   lf12_strerror(err));
+	}
+
+	return EXIT_SUCCESS;
+}
+
 static enum lf12_error
 recursive_del_entry(FILE * fp,
 		    struct lf12_metadata *f12_meta,
@@ -110,12 +133,13 @@ int f12_create(struct f12_create_arguments *args, char **output)
 	enum lf12_error err;
 	FILE *fp = NULL;
 	struct lf12_metadata *f12_meta = NULL;
+	int ret;
 	struct stat sb;
 
-	if (NULL == (fp = fopen(args->device_path, "w"))) {
-		return print_error(fp, f12_meta, output,
-				   _("Error opening image: %s\n"),
-				   strerror(errno));
+	fp = fopen(args->device_path, "w");
+	ret = open_image(fp, NULL, output);
+	if (ret != EXIT_SUCCESS) {
+		return ret;
 	}
 
 	if (F12_SUCCESS != (err = lf12_create_metadata(&f12_meta))) {
@@ -237,17 +261,11 @@ int f12_del(struct f12_del_arguments *args, char **output)
 	struct lf12_metadata *f12_meta = NULL;
 	FILE *fp = NULL;
 	struct lf12_path *path;
+	int res;
 
-	if (NULL == (fp = fopen(args->device_path, "r+"))) {
-		return print_error(fp, f12_meta, output,
-				   _("Error opening image: %s\n"),
-				   strerror(errno));
-	}
-
-	if (F12_SUCCESS != (err = lf12_read_metadata(fp, &f12_meta))) {
-		return print_error(fp, f12_meta, output,
-				   _("Error loading image: %s\n"),
-				   lf12_strerror(err));
+	fp = fopen(args->device_path, "r+");
+	if (EXIT_SUCCESS != (res = open_image(fp, &f12_meta, output))) {
+		return res;
 	}
 
 	err = lf12_parse_path(args->path, &path);
@@ -294,16 +312,9 @@ int f12_get(struct f12_get_arguments *args, char **output)
 	int res;
 	struct lf12_path *src_path;
 
-	if (NULL == (fp = fopen(args->device_path, "r+"))) {
-		return print_error(fp, f12_meta, output,
-				   _("Error opening image: %s\n"),
-				   strerror(errno));
-	}
-
-	if (F12_SUCCESS != (err = lf12_read_metadata(fp, &f12_meta))) {
-		return print_error(fp, f12_meta, output,
-				   _("Error loading image: %s\n"),
-				   lf12_strerror(err));
+	fp = fopen(args->device_path, "r+");
+	if (EXIT_SUCCESS != (res = open_image(fp, &f12_meta, output))) {
+		return res;
 	}
 
 	err = lf12_parse_path(args->path, &src_path);
@@ -337,25 +348,17 @@ int f12_get(struct f12_get_arguments *args, char **output)
 int f12_info(struct f12_info_arguments *args, char **output)
 {
 	enum lf12_error err;
-	char *device_path = args->device_path;
 	struct lf12_metadata *f12_meta = NULL;
 	char *formatted_size, *formatted_used_bytes;
 	FILE *fp = NULL;
+	int res;
 
-	if (NULL == (fp = fopen(device_path, "r"))) {
-		return print_error(fp, f12_meta, output,
-				   _("Error opening image: %s\n"),
-				   strerror(errno));
+	fp = fopen(args->device_path, "r+");
+	if (EXIT_SUCCESS != (res = open_image(fp, &f12_meta, output))) {
+		return res;
 	}
-
-	err = lf12_read_metadata(fp, &f12_meta);
 	fclose(fp);
 	fp = NULL;
-	if (F12_SUCCESS != err) {
-		return print_error(fp, f12_meta, output,
-				   _("Error loading image: %s\n"),
-				   lf12_strerror(err));
-	}
 
 	formatted_size = _f12_format_bytes(lf12_get_partition_size(f12_meta));
 	formatted_used_bytes = _f12_format_bytes(lf12_get_used_bytes(f12_meta));
@@ -388,27 +391,19 @@ int f12_info(struct f12_info_arguments *args, char **output)
 
 int f12_list(struct f12_list_arguments *args, char **output)
 {
-	char *device_path = args->device_path;
 	struct lf12_directory_entry *entry;
 	enum lf12_error err;
 	struct lf12_metadata *f12_meta = NULL;
 	FILE *fp = NULL;
 	struct lf12_path *path;
+	int res;
 
-	if (NULL == (fp = fopen(device_path, "r"))) {
-		return print_error(fp, f12_meta, output,
-				   _("Error opening image: %s\n"),
-				   strerror(errno));
+	fp = fopen(args->device_path, "r+");
+	if (EXIT_SUCCESS != (res = open_image(fp, &f12_meta, output))) {
+		return res;
 	}
-
-	err = lf12_read_metadata(fp, &f12_meta);
 	fclose(fp);
 	fp = NULL;
-	if (F12_SUCCESS != err) {
-		return print_error(fp, f12_meta, output,
-				   _("Error loading image: %s\n"),
-				   lf12_strerror(err));
-	}
 
 	if (args->path == NULL || args->path[0] == '\0') {
 		err = _f12_list_entry(f12_meta->root_dir, output, args);
@@ -451,28 +446,22 @@ int f12_list(struct f12_list_arguments *args, char **output)
 	if (F12_SUCCESS == err) {
 		return EXIT_SUCCESS;
 	}
+
 	return print_error(fp, f12_meta, output, "%s\n", lf12_strerror(err));
 }
 
 int f12_move(struct f12_move_arguments *args, char **output)
 {
-	char *device_path = args->device_path;
 	enum lf12_error err;
 	struct lf12_metadata *f12_meta = NULL;
 	FILE *fp = NULL;
+	int res;
 	struct lf12_path *src, *dest;
 	struct lf12_directory_entry *src_entry, *dest_entry;
 
-	if (NULL == (fp = fopen(device_path, "r+"))) {
-		return print_error(fp, f12_meta, output,
-				   _("Error opening image: %s\n"),
-				   strerror(errno));
-	}
-
-	if (F12_SUCCESS != (err = lf12_read_metadata(fp, &f12_meta))) {
-		return print_error(fp, f12_meta, output,
-				   _("Error loading image: %s\n"),
-				   lf12_strerror(err));
+	fp = fopen(args->device_path, "r+");
+	if (EXIT_SUCCESS != (res = open_image(fp, &f12_meta, output))) {
+		return res;
 	}
 
 	err = lf12_parse_path(args->source, &src);
@@ -573,25 +562,14 @@ int f12_put(struct f12_put_arguments *args, char **output)
 	enum lf12_error err;
 	FILE *fp = NULL, *src = NULL;
 	int res;
-	char *device_path = args->device_path;
 	struct lf12_metadata *f12_meta = NULL;
 	struct lf12_path *dest;
 	suseconds_t created = time_usec();
 	struct stat sb;
 
-	if (NULL == (fp = fopen(device_path, "r+"))) {
-		esprintf(output, _("Error opening image: %s\n"),
-			 strerror(errno));
-
-		return EXIT_FAILURE;
-	}
-
-	if (F12_SUCCESS != (err = lf12_read_metadata(fp, &f12_meta))) {
-		fclose(fp);
-		esprintf(output, _("Error loading image: %s\n"),
-			 lf12_strerror(err));
-
-		return EXIT_FAILURE;
+	fp = fopen(args->device_path, "r+");
+	if (EXIT_SUCCESS != (res = open_image(fp, &f12_meta, output))) {
+		return res;
 	}
 
 	if (0 != stat(args->source, &sb)) {
