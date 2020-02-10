@@ -2,9 +2,9 @@
 #include <string.h>
 #include <time.h>
 
+#include "common.h"
 #include "error.h"
 #include "f12.h"
-#include "format.h"
 #include "list.h"
 
 #define LIST_DATETIME_WIDTH 21
@@ -14,6 +14,37 @@ static const char *LIST_FORMAT =
 	"%s%*s|-> %-*s" "%6$*7$s" "%8$*9$s" "%10$*11$s" "%12$*13$s\n";
 static const char *LIST_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S";
 static const char *LIST_DATE_FORMAT = "%Y-%m-%d";
+
+#define STRLEN(s) ( sizeof(s)/sizeof(s[0]) - sizeof(s[0]) )
+
+size_t _f12_digit_count(long number)
+{
+	long n = 10;
+
+	for (int i = 1; i < 20; i++) {
+		if (number < n) {
+			return i;
+		}
+		n *= 10;
+	}
+
+	return 20;
+}
+
+size_t _f12__f12_format_bytes_len(size_t bytes)
+{
+	if (bytes < 10000) {
+		return _f12_digit_count(bytes) + STRLEN(" bytes");
+	} else if (bytes < 10000000) {
+		return _f12_digit_count(bytes / 1024) + STRLEN(" KiB  ");
+	} else if (bytes < 10000000000) {
+		return _f12_digit_count(bytes / (1024 * 1024)) +
+			STRLEN(" MiB  ");
+	}
+
+	return _f12_digit_count(bytes / (1024 * 1024 * 1024)) +
+		STRLEN(" GiB  ");
+}
 
 enum lf12_error _f12_list_entry(struct lf12_directory_entry *entry,
 				char **output, struct f12_list_arguments *args)
@@ -234,4 +265,65 @@ size_t _f12_list_size_len(struct lf12_directory_entry *root_entry,
 	}
 
 	return max_len;
+}
+
+int f12_list(struct f12_list_arguments *args, char **output)
+{
+	struct lf12_directory_entry *entry;
+	enum lf12_error err;
+	struct lf12_metadata *f12_meta = NULL;
+	FILE *fp = NULL;
+	struct lf12_path *path;
+	int res;
+
+	fp = fopen(args->device_path, "r+");
+	if (EXIT_SUCCESS != (res = open_image(fp, &f12_meta, output))) {
+		return res;
+	}
+	fclose(fp);
+	fp = NULL;
+
+	if (args->path == NULL || args->path[0] == '\0') {
+		err = _f12_list_entry(f12_meta->root_dir, output, args);
+		lf12_free_metadata(f12_meta);
+		f12_meta = NULL;
+		if (F12_SUCCESS != err) {
+			return print_error(fp, f12_meta, output, "%s\n",
+					   strerror(err));
+		}
+
+		return EXIT_SUCCESS;
+	}
+
+	err = lf12_parse_path(args->path, &path);
+	if (F12_EMPTY_PATH == err) {
+		err = _f12_list_entry(f12_meta->root_dir, output, args);
+		lf12_free_metadata(f12_meta);
+		f12_meta = NULL;
+		if (F12_SUCCESS != err) {
+			return print_error(fp, f12_meta, output, "%s\n",
+					   strerror(err));
+		}
+
+		return EXIT_SUCCESS;
+	}
+	if (F12_SUCCESS != err) {
+		return print_error(fp, f12_meta, output, "%s\n",
+				   lf12_strerror(err));
+	}
+
+	entry = lf12_entry_from_path(f12_meta->root_dir, path);
+	lf12_free_path(path);
+	if (NULL == entry) {
+		return print_error(fp, f12_meta, output, _("File not found\n"));
+	}
+
+	err = _f12_list_entry(entry, output, args);
+	lf12_free_metadata(f12_meta);
+	f12_meta = NULL;
+	if (F12_SUCCESS == err) {
+		return EXIT_SUCCESS;
+	}
+
+	return print_error(fp, f12_meta, output, "%s\n", lf12_strerror(err));
 }

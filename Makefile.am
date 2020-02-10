@@ -56,18 +56,17 @@ src_f12_SOURCES = \
 	boot/default/bootcode.h \
 	boot/simple_bootloader/simple_bootloader.h \
 	boot/simple_bootloader/sibolo_set_8_3_name.c \
-	src/bpb.c \
-	src/bpb.h \
-	src/error.c \
-	src/error.h \
-	src/f12.c \
+	src/common.c \
+	src/common.h \
+	src/create.c \
+	src/del.c \
 	src/f12.h \
-	src/filesystem.c \
-	src/filesystem.h \
-	src/format.c \
-	src/format.h \
+	src/get.c \
+	src/info.c \
 	src/list.c \
 	src/list.h \
+	src/move.c \
+	src/put.c \
 	src/main.c
 # Additional compiler flags for the main program
 src_f12_CFLAGS = $(COVERAGE_CFLAGS)
@@ -90,13 +89,17 @@ TESTS = $(check_PROGRAMS)
 
 # Sources for the tests of the main program
 tests_check_f12_SOURCES = \
+	$(default_bootcode_built_sources) \
+	$(simple_bootloader_built_sources) \
+	boot/default/bootcode.h \
+	boot/simple_bootloader/simple_bootloader.h \
+	boot/simple_bootloader/sibolo_set_8_3_name.c \
 	tests/check_f12.c \
-	tests/check_f12_bpb.c \
-	tests/check_f12_format.c \
+	tests/check_f12_create.c \
+	tests/check_f12_common.c \
 	tests/check_f12_list.c \
-	src/bpb.c \
-	src/error.c \
-	src/format.c \
+	src/create.c \
+	src/common.c \
 	src/list.c
 # Additional compiler flags for the tests of the main program
 tests_check_f12_CFLAGS = @CHECK_CFLAGS@ $(COVERAGE_CFLAGS)

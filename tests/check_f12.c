@@ -5,14 +5,14 @@
 Suite *f12_suite(void)
 {
 	Suite *s;
-	TCase *tc_f12_bpb, *tc_f12_format, *tc_f12_list;
+	TCase *tc_f12_create, *tc_f12_common, *tc_f12_list;
 
 	s = suite_create("f12");
-	tc_f12_bpb = f12_bpb_case();
-	tc_f12_format = f12_format_case();
+	tc_f12_create = f12_create_case();
+	tc_f12_common = f12_common_case();
 	tc_f12_list = f12_list_case();
-	suite_add_tcase(s, tc_f12_bpb);
-	suite_add_tcase(s, tc_f12_format);
+	suite_add_tcase(s, tc_f12_create);
+	suite_add_tcase(s, tc_f12_common);
 	suite_add_tcase(s, tc_f12_list);
 
 	return s;

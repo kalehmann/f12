@@ -1,7 +1,8 @@
 #include <check.h>
 #include <inttypes.h>
 
-#include "../src/bpb.h"
+#include "../src/create.h"
+#include "../src/f12.h"
 #include "tests.h"
 
 START_TEST(test_f12__f12_initialize_bpb)
@@ -73,13 +74,13 @@ START_TEST(test_f12__f12_sectors_per_fat)
 END_TEST
 // *INDENT-ON*
 
-TCase *f12_bpb_case(void)
+TCase *f12_create_case(void)
 {
-	TCase *tc_f12_bpb;
+	TCase *tc_f12_create;
 
-	tc_f12_bpb = tcase_create("f12 bpb");
-	tcase_add_test(tc_f12_bpb, test_f12__f12_initialize_bpb);
-	tcase_add_test(tc_f12_bpb, test_f12__f12_sectors_per_fat);
+	tc_f12_create = tcase_create("f12 create");
+	tcase_add_test(tc_f12_create, test_f12__f12_initialize_bpb);
+	tcase_add_test(tc_f12_create, test_f12__f12_sectors_per_fat);
 
-	return tc_f12_bpb;
+	return tc_f12_create;
 }

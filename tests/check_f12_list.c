@@ -170,6 +170,28 @@ START_TEST(test_f12__f12_list_size_len)
 END_TEST
 // *INDENT-ON*
 
+START_TEST(test_f12__f12_digit_count)
+{
+	ck_assert_int_eq(2, _f12_digit_count(42));
+	ck_assert_int_eq(5, _f12_digit_count(54321));
+}
+// *INDENT-OFF*
+END_TEST
+// *INDENT-ON*
+
+START_TEST(test_f12__f12__f12_format_bytes_len)
+{
+	// "5 bytes"
+	ck_assert_int_eq(_f12__f12_format_bytes_len(5), 7);
+	// "50 KiB  "
+	ck_assert_int_eq(_f12__f12_format_bytes_len(50000), 8);
+	//  "117 MiB  " 
+	ck_assert_int_eq(_f12__f12_format_bytes_len(123456789), 9);
+}
+// *INDENT-OFF*
+END_TEST
+// *INDENT-ON*
+
 TCase *f12_list_case(void)
 {
 	TCase *tc_f12_list;
@@ -178,6 +200,8 @@ TCase *f12_list_case(void)
 	tcase_add_checked_fixture(tc_f12_list, setup, teardown);
 	tcase_add_test(tc_f12_list, test_f12__f12_list_width);
 	tcase_add_test(tc_f12_list, test_f12__f12_list_size_len);
+	tcase_add_test(tc_f12_list, test_f12__f12_digit_count);
+	tcase_add_test(tc_f12_list, test_f12__f12__f12_format_bytes_len);
 
 	return tc_f12_list;
 }

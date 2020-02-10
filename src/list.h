@@ -5,6 +5,22 @@
 #include "libfat12/libfat12.h"
 
 /**
+ * @return the number of digits the given number has in the decimal system 
+ */
+size_t _f12_digit_count(long number);
+
+/**
+ * Returns the length of the string returned by the function _f12_format_bytes
+ * for the number passed in the bytes parameter.
+ *
+ * @param bytes the argument passed to the _f12_format_bytes function to return
+ *              the string length for
+ * @return the length of the string returned by the function _f12_format_bytes
+ * for the number passed in the bytes parameter. 
+ */
+size_t _f12__f12_format_bytes_len(size_t bytes);
+
+/**
  * Lists a directory or single file on a fat 12 image. If it is a directory, it
  * lists the directory itself and all its childs.
  *

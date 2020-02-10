@@ -1,16 +1,42 @@
-/* Use the not posix conform function asprintf */
 #define _GNU_SOURCE
 
 #include <errno.h>
 #include <fts.h>
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
+#include <time.h>
 
-#include "error.h"
-#include "filesystem.h"
-#include "libfat12/libfat12.h"
+#include "common.h"
+#include "f12.h"
+
+char *_f12_format_bytes(size_t bytes)
+{
+	char *out;
+
+	if (bytes < 10000) {
+		asprintf(&out, "%ld bytes", bytes);
+	} else if (bytes < 10000000) {
+		asprintf(&out, "%ld KiB  ", bytes / 1024);
+	} else if (bytes < 10000000000) {
+		asprintf(&out, "%ld MiB  ", bytes / (1024 * 1024));
+	} else {
+		asprintf(&out, "%ld GiB  ", bytes / (1024 * 1024 * 1024));
+	}
+
+	return out;
+}
+
+static int evasprintf(char **strp, const char *fmt, va_list ap)
+{
+	char *tmp = *strp;
+	int ret = vasprintf(strp, fmt, ap);
+	if (tmp) {
+		free(tmp);
+	}
+
+	return ret;
+}
 
 static char *convert_path(char *restrict path)
 {
@@ -84,74 +110,6 @@ static char *destination_path(const char *source, const char *destination)
 	free(path);
 
 	return converted_path;
-}
-
-int _f12_dump_f12_structure(FILE * fp, struct lf12_metadata *f12_meta,
-			    struct lf12_directory_entry *entry, char *dest_path,
-			    struct f12_get_arguments *args, char **output)
-{
-	int verbose = args->verbose, recursive = args->recursive;
-	enum lf12_error err;
-	struct lf12_directory_entry *child_entry;
-	char *entry_path = NULL;
-	int res;
-
-	if (!lf12_is_directory(entry)) {
-		FILE *dest_fp = fopen(dest_path, "w");
-		err = lf12_dump_file(fp, f12_meta, entry, dest_fp);
-		if (F12_SUCCESS != err) {
-			esprintf(output, "%s\n", lf12_strerror(err));
-			fclose(dest_fp);
-			return -1;
-		}
-		fclose(dest_fp);
-
-		return 0;
-	}
-
-	if (!recursive) {
-		esprintf(output, "%s\n", lf12_strerror(F12_IS_DIR));
-
-		return -1;
-	}
-
-	if (0 != mkdir(dest_path, 0777)) {
-		if (errno != EEXIST) {
-			return -1;
-		}
-	}
-
-	for (int i = 0; i < entry->child_count; i++) {
-		child_entry = &entry->children[i];
-
-		if (lf12_entry_is_empty(child_entry)
-		    || lf12_is_dot_dir(child_entry)) {
-			continue;
-		}
-
-		char *child_name = lf12_get_entry_file_name(child_entry);
-
-		if (NULL == child_name) {
-			return -1;
-		}
-
-		esprintf(&entry_path, "%s/%s", dest_path, child_name);
-
-		if (verbose) {
-			esprintf(output, "%s%s\n", *output, entry_path);
-		}
-
-		free(child_name);
-		res = _f12_dump_f12_structure(fp, f12_meta, child_entry,
-					      entry_path, args, output);
-		free(entry_path);
-
-		if (res) {
-			return res;
-		}
-	}
-
-	return 0;
 }
 
 int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
@@ -235,4 +193,69 @@ int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
 	}
 
 	return 0;
+}
+
+int esprintf(char **strp, const char *fmt, ...)
+{
+	int ret;
+	va_list ap;
+
+	va_start(ap, fmt);
+	ret = evasprintf(strp, fmt, ap);
+	va_end(ap);
+
+	return ret;
+}
+
+int open_image(FILE * fp, struct lf12_metadata **f12_meta, char **output)
+{
+	enum lf12_error err;
+
+	if (NULL == fp) {
+		return print_error(NULL, NULL, output,
+				   _("Error opening image: %s\n"),
+				   strerror(errno));
+	}
+
+	if (NULL == f12_meta) {
+		return EXIT_SUCCESS;
+	}
+
+	if (F12_SUCCESS != (err = lf12_read_metadata(fp, f12_meta))) {
+		return print_error(fp, *f12_meta, output,
+				   _("Error loading image: %s\n"),
+				   lf12_strerror(err));
+	}
+
+	return EXIT_SUCCESS;
+}
+
+int print_error(FILE * fp, struct lf12_metadata *f12_meta, char **strp,
+		char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	if (NULL != fp) {
+		fclose(fp);
+	}
+	if (NULL != f12_meta) {
+		lf12_free_metadata(f12_meta);
+	}
+
+	evasprintf(strp, fmt, ap);
+	va_end(ap);
+
+	return EXIT_FAILURE;
+}
+
+suseconds_t time_usec(void)
+{
+	struct timeval tv = { 0 };
+	time_t timer = 0;
+
+	gettimeofday(&tv, NULL);
+	timer = time(NULL);
+
+	return timer * 1000000 + tv.tv_usec;
 }
