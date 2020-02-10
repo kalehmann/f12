@@ -38,29 +38,20 @@ steps:
                 - "build"
           environment:
                 TMP_DIR: "/tmp/bats"
+                VALGRIND: "1"
+                VALGRIND_TAP: "valgrind.tap"
         - name: "coverage-report"
           image: "registry.kalehmann.de/testing/f12:latest"
           commands:
                 - "make coverage-report"
           depends_on:
                 - "bats"
-        - name: "bats-valgrind"
-          image: "registry.kalehmann.de/testing/f12:latest"
-          commands:
-                - "/usr/local/bin/bats --tap tests/functional.bats"
-          depends_on:
-                - "build"
-          environment:
-                GCOV_PREFIX: "/tmp/bats-valgrind"
-                TMP_DIR: "/tmp/bats-valgrind"
-                VALGRIND: "1"
-                VALGRIND_TAP: "valgrind.tap"
         - name: "valgrind-log"
           image: "registry.kalehmann.de/testing/f12:latest"
           commands:
                 - "cat valgrind.tap"
           depends_on:
-                - "bats-valgrind"
+                - "bats"
           when:
                 status:
                         - "failure"
