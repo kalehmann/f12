@@ -30,6 +30,7 @@
 #                output for the tests including valgrinds output as comment on an error
 #                gets written to the file specified in this variable.
 
+BINARY=./bin/f12
 FIXTURE_IMAGE=tests/fixtures/test.img.bak
 TMP_DIR=${TMP_DIR:-tests/tmp}
 TEST_IMAGE=${TMP_DIR}/test.img
@@ -175,7 +176,7 @@ else
 fi
 
 @test "I can get the help" {
-    _run ./src/f12 --help
+    _run "${BINARY}" --help
     [[ "$status" -eq 0 ]]
     [[ "$output" == *"The following options are available"* ]]
     [[ "$output" == *"put DEVICE"* ]]
@@ -188,77 +189,78 @@ fi
 }
 
 @test "I can not create a fat12 image at an inaccessible path" {
-    _run ./src/f12 create non/existing/directory/test.img
+    _run "${BINARY}" create non/existing/directory/test.img
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Error opening image:"* ]]
 }
 
 @test "I can create a fat12 image with a volume label" {
-    _run ./src/f12 create "${TEST_IMAGE}" --volume-label="NEWF12IMAGE"
+    _run "${BINARY}" create "${TEST_IMAGE}" --volume-label="NEWF12IMAGE"
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 info "${TEST_IMAGE}" --dump-bpb
+    _run "${BINARY}" info "${TEST_IMAGE}" --dump-bpb
     [[ "$status" -eq 0 ]]
     [[ "$output" =~ ${VOLUME_LABEL_REGEX} ]]
     [[ "${BASH_REMATCH[1]}" == "NEWF12IMAGE" ]]
 }
 
 @test "I can set the drive number when I create a fat12 image" {
-    _run ./src/f12 create "${TEST_IMAGE}" --drive-number=0x81
+    _run "${BINARY}" create "${TEST_IMAGE}" --drive-number=0x81
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 info --dump-bpb "${TEST_IMAGE}"
+    _run "${BINARY}" info --dump-bpb "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     [[ "$output" =~ ${DRIVE_NUMBER_REGEX} ]]
     [[ "${BASH_REMATCH[1]}" == "0x81" ]]
 }
 
 @test "I can specify the number of root directory entries when I create a fat12 image" {
-    _run ./src/f12 create "${TEST_IMAGE}" --root-dir-entries=112
+    _run "${BINARY}" create "${TEST_IMAGE}" --root-dir-entries=112
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 info "${TEST_IMAGE}" --dump-bpb
+    _run "${BINARY}" info "${TEST_IMAGE}" --dump-bpb
     [[ "$status" -eq 0 ]]
     [[ "$output" =~ ${ROOT_DIR_ENTRIES_REGEX} ]]
     [[ "${BASH_REMATCH[1]}" -eq 112 ]]
     for i in {1..112}
     do
-	run ./src/f12 put "${TEST_IMAGE}" tests/fixtures/TEST/DATA.BIN FILE"${i}".BIN
+	# Do not use the valgrind wrapper _run here, it will take forever
+	run "${BINARY}" put "${TEST_IMAGE}" tests/fixtures/TEST/DATA.BIN FILE"${i}".BIN
 	[[ "$status" -eq 0 ]]
     done
-    _run ./src/f12 put "${TEST_IMAGE}" tests/fixtures/TEST/DATA.BIN DATA.BIN
+    _run "${BINARY}" put "${TEST_IMAGE}" tests/fixtures/TEST/DATA.BIN DATA.BIN
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Directory full"* ]]
 }
 
 @test "I can specify the sector size when I create a fat12 image" {
-    _run ./src/f12 create "${TEST_IMAGE}" --sector-size=4096
+    _run "${BINARY}" create "${TEST_IMAGE}" --sector-size=4096
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 info --dump-bpb "${TEST_IMAGE}"
+    _run "${BINARY}" info --dump-bpb "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     [[ "$output" =~ ${SECTOR_SIZE_REGEX} ]]
     [[ "${BASH_REMATCH[1]}" -eq 4096 ]]
 }
 
 @test "I can specify the number of sectors per cluster when I create a fat12 image" {
-    _run ./src/f12 create "${TEST_IMAGE}" --sectors-per-cluster=4
+    _run "${BINARY}" create "${TEST_IMAGE}" --sectors-per-cluster=4
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 info --dump-bpb "${TEST_IMAGE}"
+    _run "${BINARY}" info --dump-bpb "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     [[ "$output" =~ ${SECTORS_CLUSTER_REGEX} ]]
     [[ "${BASH_REMATCH[1]}" -eq 4 ]]
 }
 
 @test "I can specify the number of file allocation tables when I create a fat12 image" {
-    _run ./src/f12 create "${TEST_IMAGE}" --number-of-fats=1
+    _run "${BINARY}" create "${TEST_IMAGE}" --number-of-fats=1
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 info --dump-bpb "${TEST_IMAGE}"
+    _run "${BINARY}" info --dump-bpb "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     [[ "$output" =~ ${FAT_COUNT_REGEX} ]]
     [[ "${BASH_REMATCH[1]}" -eq 1 ]]
 }
 
 @test "I change the geometry and medium byte when I create a fat12 image with a specified size" {
-    _run ./src/f12 create "${TEST_IMAGE}" --size=2880
+    _run "${BINARY}" create "${TEST_IMAGE}" --size=2880
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 info --dump-bpb "${TEST_IMAGE}"
+    _run "${BINARY}" info --dump-bpb "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     [[ "$output" =~ ${SECTOR_SIZE_REGEX} ]]
     [[ "${BASH_REMATCH[1]}" -eq 512 ]]
@@ -269,9 +271,9 @@ fi
     [[ "$output" =~ ${MEDIUM_BYTE_REGEX} ]]
     [[ "${BASH_REMATCH[1]}" == "0xf0" ]]
 
-    _run ./src/f12 create "${TEST_IMAGE}" --size=160
+    _run "${BINARY}" create "${TEST_IMAGE}" --size=160
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 info --dump-bpb "${TEST_IMAGE}"
+    _run "${BINARY}" info --dump-bpb "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     [[ "$output" =~ ${SECTOR_SIZE_REGEX} ]]
     [[ "${BASH_REMATCH[1]}" -eq 512 ]]
@@ -284,9 +286,9 @@ fi
 }
 
 @test "I can use a local folder as root directory when I create a fat12 image" {
-    _run ./src/f12 create "${TEST_IMAGE}" --root-dir=tests/fixtures/TEST
+    _run "${BINARY}" create "${TEST_IMAGE}" --root-dir=tests/fixtures/TEST
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 list --recursive "${TEST_IMAGE}"
+    _run "${BINARY}" list --recursive "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     [[ "$output" == *"SUBDIR1"* ]]
     [[ "$output" == *"FILE1.TXT"* ]]
@@ -294,98 +296,98 @@ fi
     [[ "$output" == *"FILE2.TXT"* ]]
     [[ "$output" == *"DATA.BIN"* ]]
     [[ "$output" == *"TEST.DAT"* ]]
-    _run ./src/f12 get "${TEST_IMAGE}" SUBDIR1/FILE1.TXT "${TMP_DIR}"/file1.txt
+    _run "${BINARY}" get "${TEST_IMAGE}" SUBDIR1/FILE1.TXT "${TMP_DIR}"/file1.txt
     run cat "${TMP_DIR}"/file1.txt
     [[ "$output" == "test" ]]
-    _run ./src/f12 get "${TEST_IMAGE}" TEST.DAT "${TMP_DIR}"/test.dat
+    _run "${BINARY}" get "${TEST_IMAGE}" TEST.DAT "${TMP_DIR}"/test.dat
     run cat "${TMP_DIR}"/test.dat
     [[ "$output" == "1234" ]]
 }
 
 @test "I get an error when I speficy a nonexistent directory as root directory during the creation of a fat12 image" {
-    _run ./src/f12 create "${TEST_IMAGE}" --root-dir=root-dir
+    _run "${BINARY}" create "${TEST_IMAGE}" --root-dir=root-dir
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Can not open the root directory root-dir"* ]]
 }
 
 @test "I get an error when I specify a regular file as root directory during the creation of a fat12 image" {
-    _run ./src/f12 create "${TEST_IMAGE}" --root-dir=Readme.md
+    _run "${BINARY}" create "${TEST_IMAGE}" --root-dir=Readme.md
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Expected the root dir to be a directory"* ]]
 }
 
 @test "I can specify a file to boot when I create a fat12 image with a root directory" {
-    _run ./src/f12 create "${TEST_IMAGE}" --root-dir=tests/fixtures/TEST --boot-file=BOOT.BIN
+    _run "${BINARY}" create "${TEST_IMAGE}" --root-dir=tests/fixtures/TEST --boot-file=BOOT.BIN
     [[ "$status" -eq 0 ]]
 }
 
 @test "I get an error when I specify a boot file without the root-dir option during the creation of a fat12 image" {
-    _run ./src/f12 create "${TEST_IMAGE}" --boot-file=BOOT.BIN
+    _run "${BINARY}" create "${TEST_IMAGE}" --boot-file=BOOT.BIN
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Can not use the boot-file option without also specifying a root directory"* ]]
 }
 
 @test "I get an error when I specify a boot file that does not exist in the root directory during the creation of a fat12 image" {
-    _run ./src/f12 create "${TEST_IMAGE}" --root-dir=tests/fixtures/TEST --boot-file=NOF.ILE
+    _run "${BINARY}" create "${TEST_IMAGE}" --root-dir=tests/fixtures/TEST --boot-file=NOF.ILE
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Could not find NOF.ILE in the root directory"* ]]
 }
 
 @test "I get an error when I specify a boot file in a subdirectory" {
-    _run ./src/f12 create "${TEST_IMAGE}" --root-dir=tests/fixtures/TEST --boot-file=SUBDIR1/FILE1.TXT
+    _run "${BINARY}" create "${TEST_IMAGE}" --root-dir=tests/fixtures/TEST --boot-file=SUBDIR1/FILE1.TXT
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"The boot file can not be in a subdirectory"* ]]
 }
 
 @test "I can delete a file from a fat12 image" {
-    _run ./src/f12 del "${TEST_IMAGE}" FOLDER1/DATA.DAT
+    _run "${BINARY}" del "${TEST_IMAGE}" FOLDER1/DATA.DAT
     [[ "$status" -eq 0 ]]
-    run ./src/f12 list "${TEST_IMAGE}" FOLDER1/DATA.DAT
+    _run "${BINARY}" list "${TEST_IMAGE}" FOLDER1/DATA.DAT
     [[ "$output" == "File not found" ]]
 }
 
 @test "I can delete a directory from a fat12 image" {
-    _run ./src/f12 del --recursive "${TEST_IMAGE}" FOLDER1
+    _run "${BINARY}" del --recursive "${TEST_IMAGE}" FOLDER1
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 list "${TEST_IMAGE}"
+    _run "${BINARY}" list "${TEST_IMAGE}"
     [[ "$output" != *"FOLDER1"* ]]
 }
 
 @test "I can list all the files and subdirectories when deleting a directory" {
-    _run ./src/f12 del --recursive --verbose "${TEST_IMAGE}" FOLDER1
+    _run "${BINARY}" del --recursive --verbose "${TEST_IMAGE}" FOLDER1
     [[ "$status" -eq 0 ]]
     [[ "$output" == *"/FOLDER1/SUBDIR/SECRET.TXT"* ]]
     [[ "$output" == *"/FOLDER1/DATA.DAT"* ]]
 }
 
 @test "I get an error when I try to delete a nonexistant file" {
-    _run ./src/f12 del "${TEST_IMAGE}" NON/EXISTANT/FILE
+    _run "${BINARY}" del "${TEST_IMAGE}" NON/EXISTANT/FILE
     [[ "$status" -eq 1 ]]
     [[ "$output" ==  *"The file NON/EXISTANT/FILE was not found"* ]]
 }
 
 @test "I get an error when I try to delete a file from a nonexistant image" {
-    _run ./src/f12 del no_image FILE1
+    _run "${BINARY}" del no_image FILE1
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Error opening image:"* ]]
 }
 
 @test "I can not delete a directory without the recursive flag" {
-    _run ./src/f12 del "${TEST_IMAGE}" FOLDER1
+    _run "${BINARY}" del "${TEST_IMAGE}" FOLDER1
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Error: Target is a directory. Maybe use the recursive flag"* ]]
-    _run ./src/f12 list "${TEST_IMAGE}"
+    _run "${BINARY}" list "${TEST_IMAGE}"
     [[ "$output" == *"FOLDER1"* ]]
 }
 
 @test "I can decrease the number of files by deleting one" {
-    _run ./src/f12 info "${TEST_IMAGE}"
+    _run "${BINARY}" info "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     [[ "$output" =~ ${FILE_COUNT_REGEX} ]]
     OLD_FILE_COUNT="${BASH_REMATCH[1]}"
-    _run ./src/f12 del "${TEST_IMAGE}" FOLDER1/DATA.DAT
+    _run "${BINARY}" del "${TEST_IMAGE}" FOLDER1/DATA.DAT
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 info "${TEST_IMAGE}"
+    _run "${BINARY}" info "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     [[ "$output" =~ ${FILE_COUNT_REGEX} ]]
     NEW_FILE_COUNT="${BASH_REMATCH[1]}"
@@ -393,13 +395,13 @@ fi
 }
 
 @test "I can decrease the number of directories by deleting one" {
-    _run ./src/f12 info "${TEST_IMAGE}"
+    _run "${BINARY}" info "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     [[ "$output" =~ ${DIR_COUNT_REGEX} ]]
     OLD_DIR_COUNT="${BASH_REMATCH[1]}"
-    _run ./src/f12 del "${TEST_IMAGE}" --recursive FOLDER2
+    _run "${BINARY}" del "${TEST_IMAGE}" --recursive FOLDER2
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 info "${TEST_IMAGE}"
+    _run "${BINARY}" info "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     [[ "$output" =~ ${DIR_COUNT_REGEX} ]]
     NEW_DIR_COUNT="${BASH_REMATCH[1]}"
@@ -407,7 +409,7 @@ fi
 }
 
 @test "I can get a file from a fat12 image" {
-    _run ./src/f12 get "${TEST_IMAGE}" FOLDER1/SUBDIR/SECRET.TXT "${TMP_DIR}"/secret.txt
+    _run "${BINARY}" get "${TEST_IMAGE}" FOLDER1/SUBDIR/SECRET.TXT "${TMP_DIR}"/secret.txt
     [[ "$status" -eq 0 ]]
     run cat "${TMP_DIR}"/secret.txt
     [[ "$output" == "12345678" ]]
@@ -415,14 +417,14 @@ fi
 
 @test "I can get a large file from a fat12 image" {
     checksum="$(md5sum LICENSE.txt | awk '{ print $1 }')"
-    _run ./src/f12 put "${TEST_IMAGE}" LICENSE.txt TEXT.TXT
-    _run ./src/f12 get "${TEST_IMAGE}" TEXT.TXT "${TMP_DIR}"/license.txt
+    _run "${BINARY}" put "${TEST_IMAGE}" LICENSE.txt TEXT.TXT
+    _run "${BINARY}" get "${TEST_IMAGE}" TEXT.TXT "${TMP_DIR}"/license.txt
     [[ "$status" -eq 0 ]]
     [[ "$checksum" == "$(md5sum ${TMP_DIR}/license.txt | awk '{ print $1 }')" ]]
 }
 
 @test "I can get a directory from a fat12 image" {
-    _run ./src/f12 get "${TEST_IMAGE}" FOLDER1/SUBDIR "${TMP_DIR}"/subdir --recursive
+    _run "${BINARY}" get "${TEST_IMAGE}" FOLDER1/SUBDIR "${TMP_DIR}"/subdir --recursive
     [[ "$status" -eq 0 ]]
     [[ -d "${TMP_DIR}"/subdir ]]
     [[ -f "${TMP_DIR}"/subdir/SECRET.TXT ]]
@@ -431,25 +433,25 @@ fi
 }
 
 @test "I get an error when I try to get a nonexistant file" {
-    _run ./src/f12 get "${TEST_IMAGE}" NON/EXISTANT/FILE "${TMP_DIR}"/non.file
+    _run "${BINARY}" get "${TEST_IMAGE}" NON/EXISTANT/FILE "${TMP_DIR}"/non.file
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"The file NON/EXISTANT/FILE was not found on the device"* ]]
 }
 
 @test "I get an error when I try to get a file from a nonexistant image" {
-    _run ./src/f12 get no_image FILE1.TXT "${TMP_DIR}"/file1.txt
+    _run "${BINARY}" get no_image FILE1.TXT "${TMP_DIR}"/file1.txt
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Error opening image:"* ]]
 }
 
 @test "I can not get a directory without the recursive flag" {
-    _run ./src/f12 get "${TEST_IMAGE}" FOLDER1 "${TMP_DIR}"/folder1
+    _run "${BINARY}" get "${TEST_IMAGE}" FOLDER1 "${TMP_DIR}"/folder1
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Target is a directory. Maybe use the recursive flag"* ]]
 }
 
 @test "I can get info about a fat12 image" {
-    _run ./src/f12 info "${TEST_IMAGE}"
+    _run "${BINARY}" info "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     [[ "$output" == *"Partition size"* ]]
     [[ "$output" == *"Used bytes"* ]]
@@ -458,13 +460,13 @@ fi
 }
 
 @test "I get an error when I request info about a nonexistant image" {
-    _run ./src/f12 info no_image
+    _run "${BINARY}" info no_image
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Error opening image:"* ]]
 }
 
 @test "I can dump the bios parameter block of a fat12 image" {
-    _run ./src/f12 info --dump-bpb "${TEST_IMAGE}"
+    _run "${BINARY}" info --dump-bpb "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     [[ "$output" == *"Bios Parameter Block"* ]]
     [[ "$output" == *"OEMLabel"* ]]
@@ -476,7 +478,7 @@ fi
 }
 
 @test "I can list the content of a fat12 image" {
-    _run ./src/f12 list "${TEST_IMAGE}"
+    _run "${BINARY}" list "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     [[ "${lines[0]}" == "|-> FOLDER1" ]]
     [[ "${lines[1]}" == "|-> FOLDER2" ]]
@@ -484,7 +486,7 @@ fi
 }
 
 @test "I can list the content of a fat12 image recursively" {
-    _run ./src/f12 list --recursive "${TEST_IMAGE}"
+    _run "${BINARY}" list --recursive "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     [[ "$output" == *"FOLDER1"* ]]
     [[ "$output" == *"SUBDIR"* ]]
@@ -495,7 +497,7 @@ fi
 }
 
 @test "I can list the content of a specific directory on a fat12 image" {
-    _run ./src/f12 list "${TEST_IMAGE}" FOLDER2
+    _run "${BINARY}" list "${TEST_IMAGE}" FOLDER2
     [[ "$status" -eq 0 ]]
     [[ "${lines[0]}" == "|-> ." ]]
     [[ "${lines[1]}" == "|-> .." ]]
@@ -503,7 +505,7 @@ fi
 }
 
 @test "I can list the content of a specific directory on a fat12 image recursively" {
-    _run ./src/f12 list --recursive "${TEST_IMAGE}" FOLDER1
+    _run "${BINARY}" list --recursive "${TEST_IMAGE}" FOLDER1
     [[ "$status" -eq 0 ]]
     [[ "${lines[0]}" == "|-> ." ]]
     [[ "${lines[1]}" == "|-> .." ]]
@@ -515,7 +517,7 @@ fi
 }
 
 @test "I can list the creation dates of files and directories" {
-    _run ./src/f12 list --recursive --creation "${TEST_IMAGE}"
+    _run "${BINARY}" list --recursive --creation "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     for line in "${lines[@]}"
     do
@@ -524,7 +526,7 @@ fi
 }
 
 @test "I can list the creation, modification and access dates of all entries in a subdirectory" {
-    _run ./src/f12 list --recursive --creation --modification --access "${TEST_IMAGE}" FOLDER1
+    _run "${BINARY}" list --recursive --creation --modification --access "${TEST_IMAGE}" FOLDER1
     for line in "${lines[@]}"
     do
 	[[ "${line}" =~ ${LIST_CREATE_MOD_ACC_REGEX} ]]
@@ -532,243 +534,243 @@ fi
 }
 
 @test "I can list the size of files" {
-    _run ./src/f12 list --recursive --with-size "${TEST_IMAGE}"
+    _run "${BINARY}" list --recursive --with-size "${TEST_IMAGE}"
     [[ "$output" =~ $(list_size_regex SECRET.TXT "9 bytes") ]]
     [[ "$output" =~ $(list_size_regex FILE.BIN "15 bytes") ]]
 }
 
 @test "I can list the size of a single file" {
-    _run ./src/f12 list --with-size "${TEST_IMAGE}" FOLDER2/TEXT.TXT
+    _run "${BINARY}" list --with-size "${TEST_IMAGE}" FOLDER2/TEXT.TXT
     [[ "$output" == "|-> TEXT.TXT 7 bytes" ]]
 }
 
 @test "I can list a single file" {
-    _run ./src/f12 list "${TEST_IMAGE}" FILE.BIN
+    _run "${BINARY}" list "${TEST_IMAGE}" FILE.BIN
     [[ "$status" -eq 0 ]]
     [[ "$output" == *"FILE.BIN"* ]]
 }
 
 @test "I get an error when I list the contents of a nonexistant image" {
-    _run ./src/f12 list no_image
+    _run "${BINARY}" list no_image
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Error opening image:"* ]]
 }
 
 @test "I get an error when I list the contents of a nonexistant directory" {
-    _run ./src/f12 list "${TEST_IMAGE}" NON/EXISTANT/DIRECTORY
+    _run "${BINARY}" list "${TEST_IMAGE}" NON/EXISTANT/DIRECTORY
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"File not found"* ]]
 }
 
 @test "I can move a file on a fat12 image" {
-    _run ./src/f12 move "${TEST_IMAGE}" FILE.BIN FOLDER2
+    _run "${BINARY}" move "${TEST_IMAGE}" FILE.BIN FOLDER2
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 list "${TEST_IMAGE}" FILE.BIN
+    _run "${BINARY}" list "${TEST_IMAGE}" FILE.BIN
     [[ "$output" == "File not found" ]]
-    _run ./src/f12 get "${TEST_IMAGE}" FOLDER2/FILE.BIN "${TMP_DIR}"/file.bin
+    _run "${BINARY}" get "${TEST_IMAGE}" FOLDER2/FILE.BIN "${TMP_DIR}"/file.bin
     run cat "${TMP_DIR}"/file.bin
     [[ "$output" == "Binary COntent" ]]
 }
 
 @test "I can move a directory on a fat12 image" {
-    _run ./src/f12 move --recursive "${TEST_IMAGE}" FOLDER1 FOLDER2
+    _run "${BINARY}" move --recursive "${TEST_IMAGE}" FOLDER1 FOLDER2
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 list "${TEST_IMAGE}" FOLDER1
+    _run "${BINARY}" list "${TEST_IMAGE}" FOLDER1
     [[ "$output" == "File not found" ]]
-    _run ./src/f12 get "${TEST_IMAGE}" FOLDER2/FOLDER1/SUBDIR/SECRET.TXT "${TMP_DIR}"/secret.txt
+    _run "${BINARY}" get "${TEST_IMAGE}" FOLDER2/FOLDER1/SUBDIR/SECRET.TXT "${TMP_DIR}"/secret.txt
     [[ "$status" -eq 0 ]]
     run cat "${TMP_DIR}"/secret.txt
     [[ "$output" == "12345678" ]]
 }
 
 @test "I can move a subdirectory into the root directory" {
-    _run ./src/f12 move --recursive "${TEST_IMAGE}" FOLDER1/SUBDIR /
+    _run "${BINARY}" move --recursive "${TEST_IMAGE}" FOLDER1/SUBDIR /
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 list "${TEST_IMAGE}" SUBDIR
+    _run "${BINARY}" list "${TEST_IMAGE}" SUBDIR
     [[ "$status" -eq 0 ]]
     [[ "$output" == *"SECRET.TXT"* ]]
-    _run ./src/f12 list "${TEST_IMAGE}" FOLDER1/SUBDIR
+    _run "${BINARY}" list "${TEST_IMAGE}" FOLDER1/SUBDIR
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"File not found"* ]]
 }
 
 @test "I can list all affected files during a movement" {
-    _run ./src/f12 move --recursive --verbose "${TEST_IMAGE}" FOLDER1 FOLDER2
+    _run "${BINARY}" move --recursive --verbose "${TEST_IMAGE}" FOLDER1 FOLDER2
     [[ "$status" -eq 0 ]]
     [[ "$output" == *"/FOLDER1/SUBDIR -> /FOLDER2/FOLDER1/SUBDIR"* ]]
     [[ "$output" == *"/FOLDER1/SUBDIR/SECRET.TXT -> /FOLDER2/FOLDER1/SUBDIR/SECRET.TXT"* ]]
     [[ "$output" == *"/FOLDER1/DATA.DAT -> /FOLDER2/FOLDER1/DATA.DAT"* ]]
-    _run ./src/f12 move --recursive --verbose "${TEST_IMAGE}" FOLDER2/FOLDER1 /
+    _run "${BINARY}" move --recursive --verbose "${TEST_IMAGE}" FOLDER2/FOLDER1 /
     [[ "$status" -eq 0 ]]
     [[ "$output" == *"/FOLDER2/FOLDER1/SUBDIR -> /FOLDER1/SUBDIR"* ]]
     [[ "$output" == *"/FOLDER2/FOLDER1/SUBDIR/SECRET.TXT -> /FOLDER1/SUBDIR/SECRET.TXT"* ]]
     [[ "$output" == *"/FOLDER2/FOLDER1/DATA.DAT -> /FOLDER1/DATA.DAT"* ]]
 
-    _run ./src/f12 move --recursive --verbose "${TEST_IMAGE}" FOLDER1/DATA.DAT /
+    _run "${BINARY}" move --recursive --verbose "${TEST_IMAGE}" FOLDER1/DATA.DAT /
     [[ "$status" -eq 0 ]]
     [[ "$output" == *"/FOLDER1/DATA.DAT -> /DATA.DAT"* ]]
 }
 
 @test "I can not move a file on a non existant image" {
-    _run ./src/f12 move no_image FILE1 FILE2
+    _run "${BINARY}" move no_image FILE1 FILE2
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Error opening image:"* ]]
 }
 
 @test "I can not move a nonexistant file" {
-    _run ./src/f12 move "${TEST_IMAGE}" FILE1 FOLDER2
+    _run "${BINARY}" move "${TEST_IMAGE}" FILE1 FOLDER2
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"File or directory FILE1 not found"* ]]
 }
 
 @test "I can not move a file into a nonexistant directory" {
-    _run ./src/f12 move "${TEST_IMAGE}" FILE.BIN NOFOLDER
+    _run "${BINARY}" move "${TEST_IMAGE}" FILE.BIN NOFOLDER
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"File or directory NOFOLDER not found"* ]]
 }
 
 @test "I can not move a directory without the recursive flag" {
-    _run ./src/f12 move "${TEST_IMAGE}" FOLDER1 FOLDER2
+    _run "${BINARY}" move "${TEST_IMAGE}" FOLDER1 FOLDER2
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Target is a directory. Maybe use the recursive flag"* ]]
 }
 
 @test "I can not move a directory into a file" {
-    _run ./src/f12 move "${TEST_IMAGE}" --recursive FOLDER1 FILE.BIN
+    _run "${BINARY}" move "${TEST_IMAGE}" --recursive FOLDER1 FILE.BIN
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Not a directory"* ]]
 }
 
 @test "I can not move the root directory into a subdirectory" {
-    _run ./src/f12 move --recursive "${TEST_IMAGE}" / /FOLDER1
+    _run "${BINARY}" move --recursive "${TEST_IMAGE}" / /FOLDER1
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Can not move the root directory"* ]]
 }
 
 @test "I can not move a directory into a subdirectory of it" {
-    _run ./src/f12 move --recursive "${TEST_IMAGE}" FOLDER1 FOLDER1/SUBDIR
+    _run "${BINARY}" move --recursive "${TEST_IMAGE}" FOLDER1 FOLDER1/SUBDIR
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Can not move the directory into a child"* ]]
 }
 
 @test "I can have source and destination be the same directory when using move" {
-    _run ./src/f12 move --recursive "${TEST_IMAGE}" FOLDER1 FOLDER1
+    _run "${BINARY}" move --recursive "${TEST_IMAGE}" FOLDER1 FOLDER1
     [[ "$status" -eq 0 ]]
 }
 
 @test "I can put a single file in the root directory of a fat12 image" {
-    _run ./src/f12 put "${TEST_IMAGE}" tests/fixtures/test.txt TEST.TXT
+    _run "${BINARY}" put "${TEST_IMAGE}" tests/fixtures/test.txt TEST.TXT
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 list "${TEST_IMAGE}"
+    _run "${BINARY}" list "${TEST_IMAGE}"
     [[ "$output" == *"TEST.TXT"* ]]
-    _run ./src/f12 get "${TEST_IMAGE}" TEST.TXT "${TMP_DIR}"/test.txt
+    _run "${BINARY}" get "${TEST_IMAGE}" TEST.TXT "${TMP_DIR}"/test.txt
     [[ "$status" -eq 0 ]]
     run cat "${TMP_DIR}"/test.txt
     [[ "$output" == "This is test content" ]]
 }
 
 @test "I can put a single file in a non existing subdirectory of a fat12 image" {
-    _run ./src/f12 put "${TEST_IMAGE}" tests/fixtures/test.txt NEW_DIR/TEST.TXT
+    _run "${BINARY}" put "${TEST_IMAGE}" tests/fixtures/test.txt NEW_DIR/TEST.TXT
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 list "${TEST_IMAGE}" NEW_DIR
+    _run "${BINARY}" list "${TEST_IMAGE}" NEW_DIR
     [[ "$output" == *"TEST.TXT"* ]]
-    _run ./src/f12 get "${TEST_IMAGE}" NEW_DIR/TEST.TXT "${TMP_DIR}"/test.txt
+    _run "${BINARY}" get "${TEST_IMAGE}" NEW_DIR/TEST.TXT "${TMP_DIR}"/test.txt
     [[ "$status" -eq 0 ]]
     run cat "${TMP_DIR}"/test.txt
     [[ "$output" == "This is test content" ]]
 }
 
 @test "I can put a single file in an existent subdirectory of a fat12 image" {
-    _run ./src/f12 put "${TEST_IMAGE}" tests/fixtures/test.txt FOLDER1/TEST.TXT
+    _run "${BINARY}" put "${TEST_IMAGE}" tests/fixtures/test.txt FOLDER1/TEST.TXT
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 list "${TEST_IMAGE}" FOLDER1
+    _run "${BINARY}" list "${TEST_IMAGE}" FOLDER1
     [[ "$output" == *"TEST.TXT"* ]]
-    _run ./src/f12 get "${TEST_IMAGE}" FOLDER1/TEST.TXT "${TMP_DIR}"/test.txt
+    _run "${BINARY}" get "${TEST_IMAGE}" FOLDER1/TEST.TXT "${TMP_DIR}"/test.txt
     [[ "$status" -eq 0 ]]
     run cat "${TMP_DIR}"/test.txt
     [[ "$output" == "This is test content" ]]
 }
 
 @test "I can overwrite an existing file on a fat12 image by putting another file in its place" {
-    _run ./src/f12 put "${TEST_IMAGE}" tests/fixtures/test.txt NEW/TEST.TXT
+    _run "${BINARY}" put "${TEST_IMAGE}" tests/fixtures/test.txt NEW/TEST.TXT
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 put "${TEST_IMAGE}" tests/fixtures/data.txt NEW/TEST.TXT
+    _run "${BINARY}" put "${TEST_IMAGE}" tests/fixtures/data.txt NEW/TEST.TXT
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 list "${TEST_IMAGE}" NEW
+    _run "${BINARY}" list "${TEST_IMAGE}" NEW
     [[ "${#lines[@]}" == "3" ]]
-    _run ./src/f12 get "${TEST_IMAGE}" NEW/TEST.TXT "${TMP_DIR}"/test.txt
+    _run "${BINARY}" get "${TEST_IMAGE}" NEW/TEST.TXT "${TMP_DIR}"/test.txt
     [[ "$status" -eq 0 ]]
     run cat "${TMP_DIR}"/test.txt
     [[ "$output" == "This is data" ]]
 }
 
 @test "I can put a directory on a fat12 image" {
-    _run ./src/f12 put --recursive "${TEST_IMAGE}" tests/fixtures/TEST NEW/TESTDIR
+    _run "${BINARY}" put --recursive "${TEST_IMAGE}" tests/fixtures/TEST NEW/TESTDIR
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 list "${TEST_IMAGE}" NEW/TESTDIR
+    _run "${BINARY}" list "${TEST_IMAGE}" NEW/TESTDIR
     [[ "${#lines[@]}" == "7" ]]
-    _run ./src/f12 list "${TEST_IMAGE}" NEW/TESTDIR/SUBDIR1
+    _run "${BINARY}" list "${TEST_IMAGE}" NEW/TESTDIR/SUBDIR1
     [[ "${#lines[@]}" == "3" ]]
     [[ "${lines[2]}" == "|-> FILE1.TXT" ]]
-    _run ./src/f12 list "${TEST_IMAGE}" NEW/TESTDIR/SUBDIR2
+    _run "${BINARY}" list "${TEST_IMAGE}" NEW/TESTDIR/SUBDIR2
     [[ "${#lines[@]}" == "3" ]]
     [[ "${lines[2]}" == "|-> FILE2.TXT" ]]
-    _run ./src/f12 get "${TEST_IMAGE}" NEW/TESTDIR/TEST.DAT "${TMP_DIR}"/test.txt
+    _run "${BINARY}" get "${TEST_IMAGE}" NEW/TESTDIR/TEST.DAT "${TMP_DIR}"/test.txt
     [[ "$status" -eq 0 ]]
     run cat "${TMP_DIR}"/test.txt
     [[ "$output" == "1234" ]]
-    _run ./src/f12 get "${TEST_IMAGE}" NEW/TESTDIR/DATA.BIN "${TMP_DIR}"/test.txt
+    _run "${BINARY}" get "${TEST_IMAGE}" NEW/TESTDIR/DATA.BIN "${TMP_DIR}"/test.txt
     [[ "$status" -eq 0 ]]
     _run cat "${TMP_DIR}"/test.txt
     [[ "$output" == "5678" ]]
-    _run ./src/f12 get "${TEST_IMAGE}" NEW/TESTDIR/SUBDIR1/FILE1.TXT "${TMP_DIR}"/test.txt
+    _run "${BINARY}" get "${TEST_IMAGE}" NEW/TESTDIR/SUBDIR1/FILE1.TXT "${TMP_DIR}"/test.txt
     [[ "$status" -eq 0 ]]
     _run cat "${TMP_DIR}"/test.txt
     [[ "$output" == "test" ]]
-    _run ./src/f12 get "${TEST_IMAGE}" NEW/TESTDIR/SUBDIR2/FILE2.TXT "${TMP_DIR}"/test.txt
+    _run "${BINARY}" get "${TEST_IMAGE}" NEW/TESTDIR/SUBDIR2/FILE2.TXT "${TMP_DIR}"/test.txt
     [[ "$status" -eq 0 ]]
     _run cat "${TMP_DIR}"/test.txt
     [[ "$output" == "foo" ]]
 }
 
 @test "I can not use a file as directory when I put a file on a fat12 image" {
-    _run ./src/f12 put "${TEST_IMAGE}" tests/fixtures/TEST/TEST.DAT FOLDER1/DATA.DAT/NEWFILE
+    _run "${BINARY}" put "${TEST_IMAGE}" tests/fixtures/TEST/TEST.DAT FOLDER1/DATA.DAT/NEWFILE
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Not a directory"* ]]
 }
 
 @test "I can not put a file to a nonexistent image" {
-    _run ./src/f12 put no_image tests/fixtures/TEST/TEST.DAT TESTF.ILE
+    _run "${BINARY}" put no_image tests/fixtures/TEST/TEST.DAT TESTF.ILE
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Error opening image:"* ]]
 }
 
 @test "I can not put a nonexistent file to an image" {
-    _run ./src/f12 put "${TEST_IMAGE}" non-existant.file TESTF.ILE
+    _run "${BINARY}" put "${TEST_IMAGE}" non-existant.file TESTF.ILE
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Can not open source file"* ]]
 }
 
 @test "I can not put a directory on an image without the recursive flag" {
-    _run ./src/f12 put "${TEST_IMAGE}" tests/fixtures/TEST TEST
+    _run "${BINARY}" put "${TEST_IMAGE}" tests/fixtures/TEST TEST
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Target is a directory. Maybe use the recursive flag"* ]]
 }
 
 @test "I can not overwrite the root directory by putting a directory in its place" {
-    _run ./src/f12 put "${TEST_IMAGE}" tests/fixtures/TEST /
+    _run "${BINARY}" put "${TEST_IMAGE}" tests/fixtures/TEST /
     [[ "$status" -eq 1 ]]
     [[ "$output" == *"Can not replace root directory"* ]]
 }
 
 @test "I can increase the number of files by putting one to the image" {
-    _run ./src/f12 info "${TEST_IMAGE}"
+    _run "${BINARY}" info "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     [[ "$output" =~ ${FILE_COUNT_REGEX} ]]
     OLD_FILE_COUNT="${BASH_REMATCH[1]}"
-    _run ./src/f12 put "${TEST_IMAGE}" tests/fixtures/TEST/DATA.BIN NEWF.ILE
+    _run "${BINARY}" put "${TEST_IMAGE}" tests/fixtures/TEST/DATA.BIN NEWF.ILE
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 info "${TEST_IMAGE}"
+    _run "${BINARY}" info "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     [[ "$output" =~ ${FILE_COUNT_REGEX} ]]
     NEW_FILE_COUNT="${BASH_REMATCH[1]}"
@@ -777,13 +779,13 @@ fi
 
 
 @test "I can increase the number of directories by putting one to the image" {
-    _run ./src/f12 info "${TEST_IMAGE}"
+    _run "${BINARY}" info "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     [[ "$output" =~ ${DIR_COUNT_REGEX} ]]
     OLD_DIR_COUNT="${BASH_REMATCH[1]}"
-    _run ./src/f12 put "${TEST_IMAGE}" --recursive tests/fixtures/TEST/SUBDIR1 NEWDIR1
+    _run "${BINARY}" put "${TEST_IMAGE}" --recursive tests/fixtures/TEST/SUBDIR1 NEWDIR1
     [[ "$status" -eq 0 ]]
-    _run ./src/f12 info "${TEST_IMAGE}"
+    _run "${BINARY}" info "${TEST_IMAGE}"
     [[ "$status" -eq 0 ]]
     [[ "$output" =~ ${DIR_COUNT_REGEX} ]]
     NEW_DIR_COUNT="${BASH_REMATCH[1]}"
@@ -791,7 +793,7 @@ fi
 }
 
 @test "I see the paths of all new files when I put a directory on a fat12 image with the verbose flag" {
-    _run ./src/f12 put "${TEST_IMAGE}" --recursive --verbose tests/fixtures/TEST NEWDIR
+    _run "${BINARY}" put "${TEST_IMAGE}" --recursive --verbose tests/fixtures/TEST NEWDIR
     [[ "$status" -eq 0 ]]
     [[ "$output" == *"NEWDIR/SUBDIR1/FILE1.TXT"* ]]
     [[ "$output" == *"NEWDIR/DATA.BIN"* ]]

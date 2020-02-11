@@ -31,7 +31,7 @@ $(simple_bootloader_built_sources): $(simple_bootloader_binary)
 		> $(simple_bootloader_built_sources)
 
 # The main program(s) to build
-bin_PROGRAMS = src/f12
+bin_PROGRAMS = bin/f12
 # The library to build
 # noinst is a special prefix and means that the library is only used for
 # building or testing the program and not installed on the target system.
@@ -50,7 +50,7 @@ src_libfat12_libfat12_la_SOURCES = \
 src_libfat12_libfat12_la_CFLAGS = $(COVERAGE_CFLAGS)
 
 # Source files for the main program
-src_f12_SOURCES = \
+bin_f12_SOURCES = \
 	$(default_bootcode_built_sources) \
 	$(simple_bootloader_built_sources) \
 	boot/default/bootcode.h \
@@ -69,13 +69,13 @@ src_f12_SOURCES = \
 	src/put.c \
 	src/main.c
 # Additional compiler flags for the main program
-src_f12_CFLAGS = $(COVERAGE_CFLAGS)
+bin_f12_CFLAGS = $(COVERAGE_CFLAGS)
 # Libraries linked to the main program
-src_f12_LDADD = src/libfat12/libfat12.la
+bin_f12_LDADD = src/libfat12/libfat12.la
 # Additional linker flags for the libraries linked to the main program
-src_f12_LDFLAGS = $(COVERAGE_LDFLAGS)
+bin_f12_LDFLAGS = $(COVERAGE_LDFLAGS)
 # Additional dependecies for the main program
-EXTRA_src_f12_DEPENDENCIES = default_bootcode
+EXTRA_bin_f12_DEPENDENCIES = default_bootcode
 
 # All the programs that are build for tests
 check_PROGRAMS = \
