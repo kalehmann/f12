@@ -35,7 +35,7 @@ steps:
           commands:
                 - "/usr/local/bin/bats --tap tests/functional.bats"
           depends_on:
-                - "build"
+                - "unit-tests"
           environment:
                 TMP_DIR: "/tmp/bats"
                 VALGRIND: "1"
