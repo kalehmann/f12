@@ -14,8 +14,9 @@
 !tests/fixtures/*.txt
 !createDummyImage.sh
 
-# Do not ignore the files needed for drone
+# Do not ignore the files needed for continuous integration
 !.drone.yml
+!.travis.yml
 
 # Do not ignore the files for autoconf and automake
 !*Makefile.am

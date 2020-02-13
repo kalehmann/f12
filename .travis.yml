@@ -1,0 +1,21 @@
+language: 'minimal'
+services:
+  - 'docker'
+before_install:
+  - 'docker pull lehmannka/f12:testing'
+  - 'docker run -itd --name TESTS --volume ${TRAVIS_BUILD_DIR}:/tests --workdir /tests lehmannka/f12:testing'
+install:
+  - 'docker exec TESTS bash -c "cd /tests; autoreconf --install"'
+  - 'docker exec TESTS bash -c "cd /tests; ./configure --enable-coverage --enable-beautify"'
+jobs:
+  include:
+    - stage: 'style-check'
+      script: 'docker exec TESTS bash -c "cd /tests; make beautify; git diff --exit-code"'
+    - stage: 'unit-tests'
+      script: 'docker exec TESTS bash -c "cd /tests; make check || (cat test-suite.log && exit 1)"'
+    - stage: 'bats'
+      env: 'VALGRIND=1 VALGRIND_TAP=valgrind.tap'
+      script:
+        - 'docker exec TESTS bash -c "cd /tests; make"'
+        - 'docker exec TESTS bash -c "cd /tests; bats tests || (cat valgrind.tap && exit 1)"'
+        -  'docker exec TESTS bash -c "cd /tests; make coverage-report"'
