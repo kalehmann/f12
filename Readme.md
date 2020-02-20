@@ -1,6 +1,10 @@
 ## f12
 
-[![Build Status](https://drone.kalehmann.de/api/badges/karsten/f12/status.svg)](https://drone.kalehmann.de/karsten/f12)
+
+| Drone CI Build Status (private) | Travis CI Build Status |
+|---------------------------------|------------------------|
+| [![Build Status](https://drone.kalehmann.de/api/badges/karsten/f12/status.svg)](https://drone.kalehmann.de/karsten/f12) | [![Build Status](https://travis-ci.org/kalehmann/f12.svg?branch=master)](https://travis-ci.org/kalehmann/f12) |
+
 
 f12 is an experimental tool to access fat12 images without requiring superuser
 privileges for mounting them.
