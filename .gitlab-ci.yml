@@ -1,0 +1,49 @@
+---
+image: "lehmannka/f12:testing"
+
+variables:
+    GIT_SUBMODULE_STRATEGY: "recursive"
+
+stages:
+    - "tests"
+    - "reports"
+
+before_script:
+    - "autoreconf --install"
+    - "./configure --enable-beautify --enable-coverage"
+    - "make"
+
+style-check:
+    script:
+        - "make beautify"
+        - "git diff --exit-code"
+    stage: "tests"
+
+unit-tests:
+    script:
+        - "make check || (cat test-suite.log && exit 1)"
+    stage: "tests"
+    variables:
+        GCOV_PREFIX: "/tmp/unit-tests"
+
+bats:
+    artifacts:
+        paths:
+            - "valgrind.tap"
+    script:
+        - "/usr/local/bin/bats --tap tests/functional.bats"
+        - "make coverage-report"
+    stage: "tests"
+    variables:
+        TMP_DIR: "/tmp/bats"
+        VALGRIND: "1"
+        VALGRIND_TAP: "valgrind.tap"
+
+valgrind-log:
+    dependencies:
+        - "bats"
+    script:
+        - "cat valgrind.tap"
+    stage: "reports"
+    when: "on_failure"
+...

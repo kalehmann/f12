@@ -16,6 +16,7 @@
 
 # Do not ignore the files needed for continuous integration
 !.drone.yml
+!.gitlab-ci.yml
 !.travis.yml
 
 # Do not ignore the files for autoconf and automake
