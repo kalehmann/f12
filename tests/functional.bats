@@ -49,7 +49,7 @@ fi
 #
 # Arguments:
 #  the information to extract
-#  all POSIX character classes for the match seperated by spaces (no brackets or colons)
+#  all POSIX character classes for the match separated by spaces (no brackets or colons)
 # Globals:
 #  None
 # Returns:
