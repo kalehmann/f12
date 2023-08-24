@@ -141,7 +141,7 @@ endif
 # Build and tag the docker image for development
 docker-image:
 	docker build \
-		--tag "registry.kalehmann.de/testing/f12:latest" \
+		--tag "git.kalehmann.de/karsten/f12:latest" \
 		--pull \
 		--file Dockerfile \
 		.
