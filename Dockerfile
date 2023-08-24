@@ -1,4 +1,4 @@
-FROM debian:10-slim
+FROM debian:12-slim
 
 RUN apt-get update \
     	&& apt-get upgrade -y \
@@ -21,14 +21,14 @@ RUN apt-get update \
 	xxd \
 	&& rm -rf /var/lib/apt/lists/*
 
-RUN curl -L https://github.com/libcheck/check/releases/download/0.13.0/check-0.13.0.tar.gz | tar zx \
-	&& cd check-0.13.0 \
+RUN curl -L https://github.com/libcheck/check/releases/download/0.15.2/check-0.15.2.tar.gz | tar zx \
+	&& cd check-0.15.2 \
 	&& ./configure \
 	&& make \
 	&& make check \
 	&& make install \
 	&& cd .. \
-	&& rm -rf check-0.13.0
+	&& rm -rf check-0.15.2
 
 RUN git clone https://github.com/bats-core/bats-core.git \
 	&& cd bats-core \
