@@ -1,49 +1,49 @@
 ---
-image: "lehmannka/f12:testing"
+image: 'lehmannka/f12:testing'
 
 variables:
-    GIT_SUBMODULE_STRATEGY: "recursive"
+    GIT_SUBMODULE_STRATEGY: 'recursive'
 
 stages:
-    - "tests"
-    - "reports"
+    - 'tests'
+    - 'reports'
 
 before_script:
-    - "autoreconf --install"
-    - "./configure --enable-beautify --enable-coverage"
-    - "make"
+    - 'autoreconf --install'
+    - './configure --enable-beautify --enable-coverage'
+    - 'make CFLAGS="-Wall"'
 
 style-check:
     script:
-        - "make beautify"
-        - "git diff --exit-code"
-    stage: "tests"
+        - 'make beautify'
+        - 'git diff --exit-code'
+    stage: 'tests'
 
 unit-tests:
     script:
-        - "make check || (cat test-suite.log && exit 1)"
-    stage: "tests"
+        - 'make check || (cat test-suite.log && exit 1)'
+    stage: 'tests'
     variables:
-        GCOV_PREFIX: "/tmp/unit-tests"
+        GCOV_PREFIX: '/tmp/unit-tests'
 
 bats:
     artifacts:
         paths:
-            - "valgrind.tap"
+            - 'valgrind.tap'
     script:
-        - "/usr/local/bin/bats --tap tests/functional.bats"
-        - "make coverage-report"
-    stage: "tests"
+        - '/usr/local/bin/bats --tap tests/functional.bats'
+        - 'make coverage-report'
+    stage: 'tests'
     variables:
-        TMP_DIR: "/tmp/bats"
-        VALGRIND: "1"
-        VALGRIND_TAP: "valgrind.tap"
+        TMP_DIR: '/tmp/bats'
+        VALGRIND: '1'
+        VALGRIND_TAP: 'valgrind.tap'
 
 valgrind-log:
     dependencies:
-        - "bats"
+        - 'bats'
     script:
-        - "cat valgrind.tap"
-    stage: "reports"
-    when: "on_failure"
+        - 'cat valgrind.tap'
+    stage: 'reports'
+    when: 'on_failure'
 ...
