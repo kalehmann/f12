@@ -245,7 +245,7 @@ _f12_initialize_bpb(struct bios_parameter_block *bpb,
 }
 
 static enum lf12_error
-install_simple_bootloader(FILE * fp,
+install_simple_bootloader(FILE *fp,
 			  struct lf12_metadata *f12_meta,
 			  const char *boot_name, char **output)
 {

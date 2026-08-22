@@ -6,7 +6,7 @@
 #include "libfat12/libfat12.h"
 
 static enum lf12_error
-recursive_del_entry(FILE * fp,
+recursive_del_entry(FILE *fp,
 		    struct lf12_metadata *f12_meta,
 		    struct lf12_directory_entry *entry,
 		    struct f12_del_arguments *args, char **output)

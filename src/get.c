@@ -7,7 +7,7 @@
 #include "f12.h"
 #include "libfat12/libfat12.h"
 
-static int _f12_dump_f12_structure(FILE * fp, struct lf12_metadata *f12_meta,
+static int _f12_dump_f12_structure(FILE *fp, struct lf12_metadata *f12_meta,
 				   struct lf12_directory_entry *entry,
 				   char *dest_path,
 				   struct f12_get_arguments *args,

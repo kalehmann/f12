@@ -68,7 +68,7 @@ size_t _lf12_get_cluster_chain_size(uint16_t start_cluster,
  * @return a pointer to the contents of the cluster chain in the memory. Must be
  *         freed.
  */
-static char *load_cluster_chain(FILE * fp,
+static char *load_cluster_chain(FILE *fp,
 				uint16_t start_cluster,
 				struct lf12_metadata *f12_meta)
 {
@@ -115,7 +115,7 @@ static char *load_cluster_chain(FILE * fp,
  * @param first_cluster the number of the first cluster of the cluster chain
  * @return F12_SUCCESS or any error that occurred
  */
-static enum lf12_error erase_cluster_chain(FILE * fp,
+static enum lf12_error erase_cluster_chain(FILE *fp,
 					   struct lf12_metadata *f12_meta,
 					   uint16_t first_cluster)
 {
@@ -189,7 +189,7 @@ void _lf12_read_dir_entry(char *data, struct lf12_directory_entry *entry)
  * directory, that should be scanned for subdirectories and files
  * @return F12_SUCCESS or any error that occurred
  */
-static enum lf12_error scan_subsequent_entries(FILE * fp,
+static enum lf12_error scan_subsequent_entries(FILE *fp,
 					       struct lf12_metadata *f12_meta,
 					       struct lf12_directory_entry
 					       *dir_entry)
@@ -256,7 +256,7 @@ static enum lf12_error scan_subsequent_entries(FILE * fp,
  * @param f12_meta a pointer to the metadata of the partition
  * @return F12_SUCCESS or any error that occurred
  */
-static enum lf12_error load_root_dir(FILE * fp, struct lf12_metadata *f12_meta)
+static enum lf12_error load_root_dir(FILE *fp, struct lf12_metadata *f12_meta)
 {
 	enum lf12_error err;
 	struct bios_parameter_block *bpb = f12_meta->bpb;
@@ -308,7 +308,7 @@ static enum lf12_error load_root_dir(FILE * fp, struct lf12_metadata *f12_meta)
  * @param f12_meta a pointer to the metadata of the partition
  * @return F12_SUCCESS or any other error that occurred
  */
-static enum lf12_error read_fat_entries(FILE * fp,
+static enum lf12_error read_fat_entries(FILE *fp,
 					struct lf12_metadata *f12_meta)
 {
 
@@ -351,7 +351,7 @@ static enum lf12_error read_fat_entries(FILE * fp,
  * @param bpb a pointer to the bios_parameter_block structure to populate
  * @return F12_SUCCESS or any other error that occurred
  */
-static enum lf12_error read_bpb(FILE * fp, struct bios_parameter_block *bpb)
+static enum lf12_error read_bpb(FILE *fp, struct bios_parameter_block *bpb)
 {
 	char buffer[59];
 
@@ -402,7 +402,7 @@ static enum lf12_error read_bpb(FILE * fp, struct bios_parameter_block *bpb)
  * @param f12_meta a pointer to the metadata of the partition
  * @return F12_SUCCESS or any other error that occurred
  */
-static enum lf12_error write_to_cluster_chain(FILE * fp,
+static enum lf12_error write_to_cluster_chain(FILE *fp,
 					      void *data,
 					      uint16_t first_cluster,
 					      size_t bytes,
@@ -474,7 +474,7 @@ static enum lf12_error write_to_cluster_chain(FILE * fp,
  * @param f12_meta a pointer to the metadata of the image
  * @return F12_SUCCESS or any other error that occurred
  */
-static enum lf12_error write_bpb(FILE * fp, struct lf12_metadata *f12_meta)
+static enum lf12_error write_bpb(FILE *fp, struct lf12_metadata *f12_meta)
 {
 	struct bios_parameter_block *bpb = f12_meta->bpb;
 	char buffer[59];
@@ -601,7 +601,7 @@ static char *create_directory(struct lf12_directory_entry *dir_entry,
  * @param f12_meta a pointer to the metadata
  * @return F12_SUCCESS or any other error that occurred
  */
-static enum lf12_error write_fats(FILE * fp, struct lf12_metadata *f12_meta)
+static enum lf12_error write_fats(FILE *fp, struct lf12_metadata *f12_meta)
 {
 	struct bios_parameter_block *bpb = f12_meta->bpb;
 	int fat_offset = bpb->SectorSize * bpb->ReservedForBoot;
@@ -641,7 +641,7 @@ static enum lf12_error write_fats(FILE * fp, struct lf12_metadata *f12_meta)
  * @param entry a pointer to the lf12_directory_entry structure
  * @return F12_SUCCESS or any other error that occurred
  */
-static enum lf12_error write_directory(FILE * fp,
+static enum lf12_error write_directory(FILE *fp,
 				       struct lf12_metadata *f12_meta,
 				       struct lf12_directory_entry *entry)
 {
@@ -687,7 +687,7 @@ static enum lf12_error write_directory(FILE * fp,
  * @param f12_meta a pointer to the metadata of the image
  * @return F12_SUCCESS or any other error that occurred
  */
-static enum lf12_error write_root_dir(FILE * fp, struct lf12_metadata *f12_meta)
+static enum lf12_error write_root_dir(FILE *fp, struct lf12_metadata *f12_meta)
 {
 	enum lf12_error err;
 
@@ -762,7 +762,7 @@ uint16_t _lf12_create_cluster_chain(struct lf12_metadata *f12_meta,
 	return 0;
 }
 
-enum lf12_error lf12_read_metadata(FILE * fp, struct lf12_metadata **f12_meta)
+enum lf12_error lf12_read_metadata(FILE *fp, struct lf12_metadata **f12_meta)
 {
 	enum lf12_error err;
 	struct bios_parameter_block *bpb;
@@ -809,7 +809,7 @@ enum lf12_error lf12_read_metadata(FILE * fp, struct lf12_metadata **f12_meta)
 	return F12_SUCCESS;
 }
 
-enum lf12_error lf12_write_metadata(FILE * fp, struct lf12_metadata *f12_meta)
+enum lf12_error lf12_write_metadata(FILE *fp, struct lf12_metadata *f12_meta)
 {
 	enum lf12_error err;
 
@@ -831,7 +831,7 @@ enum lf12_error lf12_write_metadata(FILE * fp, struct lf12_metadata *f12_meta)
 	return F12_SUCCESS;
 }
 
-enum lf12_error lf12_del_entry(FILE * fp,
+enum lf12_error lf12_del_entry(FILE *fp,
 			       struct lf12_metadata *f12_meta,
 			       struct lf12_directory_entry *entry,
 			       int soft_delete)
@@ -864,10 +864,10 @@ enum lf12_error lf12_del_entry(FILE * fp,
 	return F12_SUCCESS;
 }
 
-enum lf12_error lf12_dump_file(FILE * fp,
+enum lf12_error lf12_dump_file(FILE *fp,
 			       struct lf12_metadata *f12_meta,
 			       struct lf12_directory_entry *entry,
-			       FILE * dest_fp)
+			       FILE *dest_fp)
 {
 	uint32_t file_size = entry->FileSize;
 	char *buffer = load_cluster_chain(fp, entry->FirstCluster, f12_meta);
@@ -887,9 +887,9 @@ enum lf12_error lf12_dump_file(FILE * fp,
 	return F12_SUCCESS;
 }
 
-enum lf12_error lf12_create_file(FILE * fp,
+enum lf12_error lf12_create_file(FILE *fp,
 				 struct lf12_metadata *f12_meta,
-				 struct lf12_path *path, FILE * source_fp,
+				 struct lf12_path *path, FILE *source_fp,
 				 suseconds_t created)
 {
 	enum lf12_error err;
@@ -1080,7 +1080,7 @@ enum lf12_error lf12_create_entry_from_path(struct lf12_metadata *f12_meta,
 	return F12_SUCCESS;
 }
 
-enum lf12_error lf12_create_image(FILE * fp, struct lf12_metadata *f12_meta)
+enum lf12_error lf12_create_image(FILE *fp, struct lf12_metadata *f12_meta)
 {
 	struct bios_parameter_block *bpb = f12_meta->bpb;
 	void *sector = calloc(bpb->SectorSize, 1);
@@ -1098,7 +1098,7 @@ enum lf12_error lf12_create_image(FILE * fp, struct lf12_metadata *f12_meta)
 	return F12_SUCCESS;
 }
 
-enum lf12_error lf12_install_bootloader(FILE * fp,
+enum lf12_error lf12_install_bootloader(FILE *fp,
 					struct lf12_metadata *f12_meta,
 					char *bootloader)
 {

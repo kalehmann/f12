@@ -112,7 +112,7 @@ static char *destination_path(const char *source, const char *destination)
 	return converted_path;
 }
 
-int _f12_walk_dir(FILE * fp, struct f12_put_arguments *args,
+int _f12_walk_dir(FILE *fp, struct f12_put_arguments *args,
 		  struct lf12_metadata *f12_meta, suseconds_t created,
 		  char **output)
 {
@@ -207,7 +207,7 @@ int esprintf(char **strp, const char *fmt, ...)
 	return ret;
 }
 
-int open_image(FILE * fp, struct lf12_metadata **f12_meta, char **output)
+int open_image(FILE *fp, struct lf12_metadata **f12_meta, char **output)
 {
 	enum lf12_error err;
 
@@ -230,7 +230,7 @@ int open_image(FILE * fp, struct lf12_metadata **f12_meta, char **output)
 	return EXIT_SUCCESS;
 }
 
-int print_error(FILE * fp, struct lf12_metadata *f12_meta, char **strp,
+int print_error(FILE *fp, struct lf12_metadata *f12_meta, char **strp,
 		char *fmt, ...)
 {
 	va_list ap;

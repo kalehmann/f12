@@ -80,7 +80,7 @@ size_t lf12_get_used_bytes(struct lf12_metadata *f12_meta)
 	return used_bytes;
 }
 
-enum lf12_error lf12_generate_volume_id(uint32_t * volume_id)
+enum lf12_error lf12_generate_volume_id(uint32_t *volume_id)
 {
 	struct timeval now;
 
@@ -133,8 +133,8 @@ enum lf12_error lf12_create_metadata(struct lf12_metadata **f12_meta)
 	return F12_SUCCESS;
 }
 
-void lf12_generate_entry_timestamp(long usecs, uint16_t * date, uint16_t * time,
-				   uint8_t * msecs)
+void lf12_generate_entry_timestamp(long usecs, uint16_t *date, uint16_t *time,
+				   uint8_t *msecs)
 {
 	char seconds, minutes, hours, day, month, year;
 	time_t timer = usecs / 1000000;
