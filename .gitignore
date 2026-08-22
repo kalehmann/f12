@@ -18,6 +18,7 @@
 !.drone.yml
 !.gitlab-ci.yml
 !.travis.yml
+!.woodpecker/*.yaml
 
 # Do not ignore the files for autoconf and automake
 !*Makefile.am

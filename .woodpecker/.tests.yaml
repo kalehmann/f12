@@ -1,0 +1,59 @@
+---
+when:
+    event: push
+
+clone:
+    - name: "git"
+      image: "woodpeckerci/plugin-git"
+      settings:
+          partial: false
+          submodule-partial: false
+
+steps:
+    - name: 'build'
+      image: 'git.kalehmann.de/karsten/f12'
+      commands:
+          - 'autoreconf --install'
+          - './configure --enable-beautify --enable-coverage'
+          - 'make CFLAGS="-Wall"'
+    - name: 'style-check'
+      image: 'git.kalehmann.de/karsten/f12'
+      commands:
+          - 'make beautify'
+          - 'git diff --exit-code'
+      depends_on:
+          - 'build'
+    - name: 'unit-tests'
+      image: 'git.kalehmann.de/karsten/f12'
+      commands:
+          - 'make check || (cat test-suite.log && exit 1)'
+      depends_on:
+          - 'build'
+      environment:
+          GCOV_PREFIX: '/tmp/unit-tests'
+    - name: 'bats'
+      image: 'git.kalehmann.de/karsten/f12'
+      commands:
+          - '/usr/local/bin/bats --tap tests/functional.bats'
+      depends_on:
+          - 'unit-tests'
+      environment:
+          TMP_DIR: '/tmp/bats'
+          VALGRIND: '1'
+          VALGRIND_TAP: 'valgrind.tap'
+    - name: 'coverage-report'
+      image: 'git.kalehmann.de/karsten/f12'
+      commands:
+          - 'make coverage-report'
+      depends_on:
+          - 'bats'
+    - name: 'valgrind-log'
+      image: 'git.kalehmann.de/karsten/f12'
+      commands:
+          - 'cat valgrind.tap'
+      depends_on:
+          - 'bats'
+      when:
+          status:
+              - 'failure'
+...
